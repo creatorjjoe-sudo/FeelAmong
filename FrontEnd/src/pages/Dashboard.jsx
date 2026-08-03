@@ -20,7 +20,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/auth/users', {
+        const res = await fetch('http://localhost:8000/api/auth/users', {
           headers: { 'Authorization': `Bearer ${user.token}` }
         });
         const data = await res.json();
@@ -32,7 +32,7 @@ const Dashboard = () => {
     fetchUsers();
 
     // Establish persistent full duplex network bridge connection
-    socketRef.current = io('http://localhost:5000');
+    socketRef.current = io('http://localhost:8000');
     socketRef.current.emit('user_connected', user._id);
 
     // Watch live updates sent from the server's presence monitoring systems
@@ -60,7 +60,7 @@ const Dashboard = () => {
 
     const fetchChatLogs = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/messages/${activePartner._id}`, {
+        const res = await fetch(`http://localhost:8000/api/messages/${activePartner._id}`, {
           headers: { 'Authorization': `Bearer ${user.token}` }
         });
         const data = await res.json();
@@ -92,7 +92,7 @@ const Dashboard = () => {
     const customMessagePayload = { receiverId: activePartner._id, text: typedMessage };
 
     try {
-      const res = await fetch('http://localhost:5000/api/messages', {
+      const res = await fetch('http://localhost:8000/api/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -137,20 +137,17 @@ const Dashboard = () => {
           <button className="logout-link" onClick={logout}>Logout</button>
         </div>
         <ul className="user-list">
-          {users.map((item) => {
-            const statusInfo = determineUserPresenceLabel(item._id);
-            return (
-              <li 
-                key={item._id} 
-                className={`user-item ${activePartner?._id === item._id ? 'active' : ''}`}
-                onClick={() => setActivePartner(item)}
-              >
-                <span className="user-name">{item.username}</span>
-                <span className={`status-badge ${statusInfo.classType}`}>{statusInfo.text}</span>
-              </li>
-            );
-          })}
-        </ul>
+  {users.map((item) => (
+    <li 
+      key={item._id} 
+      className={`user-item ${activePartner?._id === item._id ? 'active' : ''}`}
+      onClick={() => setActivePartner(item)}
+    >
+      <span className="user-name">{item.username}</span>
+    </li>
+  ))}
+</ul>
+
       </div>
 
       {/* Main Message Board Interface Panel Layout */}
@@ -158,8 +155,18 @@ const Dashboard = () => {
         {activePartner ? (
           <>
             <div className="chat-header">
-              <h4>{activePartner.username}</h4>
-            </div>
+  <h4 style={{ marginBottom: '2px' }}>{activePartner.username}</h4>
+  {/* Live presence indicator placed exactly beneath the username */}
+  <span 
+    className={`status-badge ${determineUserPresenceLabel(activePartner._id).classType}`}
+    style={{ display: 'inline-block', fontSize: '13px', padding: '0', background: 'none' }}
+  >
+    {determineUserPresenceLabel(activePartner._id).text === 'With you' && '• With you'}
+    {determineUserPresenceLabel(activePartner._id).text === 'online' && '• Online'}
+    {determineUserPresenceLabel(activePartner._id).text === 'offline' && '• Offline'}
+  </span>
+</div>
+
             
             <div className="message-stream">
               {messages.map((msg) => (
