@@ -169,16 +169,29 @@ const Dashboard = () => {
 
             
             <div className="message-stream">
-              {messages.map((msg) => (
-                <div 
-                  key={msg._id} 
-                  className={`msg-bubble ${msg.sender === user._id ? 'sent' : 'received'}`}
-                >
-                  {msg.text}
-                </div>
-              ))}
-              <div ref={messageEndRef} />
-            </div>
+  {messages.map((msg, index) => {
+    // Check if the previous message exists and was sent by the exact same user
+    const isSameUserAsPrevious = index > 0 && messages[index - 1].sender === msg.sender;
+
+    return (
+      <div 
+        key={msg._id} 
+        className={`message-row ${msg.sender === user._id ? 'sent' : 'received'}`}
+        style={{ 
+          // If it's the same user, override the container's gap with a tiny 4px margin top
+          marginTop: isSameUserAsPrevious ? '-12px' : '0px' 
+        }}
+      >
+        <div className={`msg-bubble ${msg.sender === user._id ? 'sent' : 'received'}`}>
+          {msg.text}
+        </div>
+      </div>
+    );
+  })}
+  <div ref={messageEndRef} />
+</div>
+
+
 
             <form className="chat-input-bar" onSubmit={sendChatMessage}>
               <input 
