@@ -13,11 +13,11 @@ function App() {
       <Routes>
         {/* Secure Dashboard View Route Layout Container Integration */}
         <Route path="/" element={user ? <Dashboard /> : <Navigate to="/signin" />} />
-        
+
         {/* Gateway Public Auth Forms Routing Maps */}
         <Route path="/signin" element={!user ? <Signin /> : <Navigate to="/" />} />
         <Route path="/signup" element={!user ? <Signup /> : <Navigate to="/" />} />
-        
+
         {/* Default Catchall Redirect Route Parameter Mapping Map Logic */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

@@ -8,7 +8,7 @@ const Dashboard = () => {
   const [activePartner, setActivePartner] = useState(null);
   const [messages, setMessages] = useState([]);
   const [typedMessage, setTypedMessage] = useState('');
-  
+
   // Presence state structures tracked dynamically over websockets
   const [onlineUserIds, setOnlineUserIds] = useState([]);
   const [partnerChatMaps, setPartnerChatMaps] = useState({});
@@ -137,16 +137,16 @@ const Dashboard = () => {
           <button className="logout-link" onClick={logout}>Logout</button>
         </div>
         <ul className="user-list">
-  {users.map((item) => (
-    <li 
-      key={item._id} 
-      className={`user-item ${activePartner?._id === item._id ? 'active' : ''}`}
-      onClick={() => setActivePartner(item)}
-    >
-      <span className="user-name">{item.username}</span>
-    </li>
-  ))}
-</ul>
+          {users.map((item) => (
+            <li
+              key={item._id}
+              className={`user-item ${activePartner?._id === item._id ? 'active' : ''}`}
+              onClick={() => setActivePartner(item)}
+            >
+              <span className="user-name">{item.username}</span>
+            </li>
+          ))}
+        </ul>
 
       </div>
 
@@ -155,48 +155,73 @@ const Dashboard = () => {
         {activePartner ? (
           <>
             <div className="chat-header">
-  <h4 style={{ marginBottom: '2px' }}>{activePartner.username}</h4>
-  {/* Live presence indicator placed exactly beneath the username */}
-  <span 
-    className={`status-badge ${determineUserPresenceLabel(activePartner._id).classType}`}
-    style={{ display: 'inline-block', fontSize: '13px', padding: '0', background: 'none' }}
-  >
-    {determineUserPresenceLabel(activePartner._id).text === 'With you' && '• With you'}
-    {determineUserPresenceLabel(activePartner._id).text === 'online' && '• Online'}
-    {determineUserPresenceLabel(activePartner._id).text === 'offline' && '• Offline'}
-  </span>
-</div>
+              <h4 style={{ marginBottom: '2px' }}>{activePartner.username}</h4>
+              {/* Live presence indicator placed exactly beneath the username */}
+              <span
+                className={`status-badge ${determineUserPresenceLabel(activePartner._id).classType}`}
+                style={{ display: 'inline-block', fontSize: '13px', padding: '0', background: 'none' }}
+              >
+                {determineUserPresenceLabel(activePartner._id).text === 'With you' && '• With you'}
+                {determineUserPresenceLabel(activePartner._id).text === 'online' && '• Online'}
+                {determineUserPresenceLabel(activePartner._id).text === 'offline' && '• Offline'}
+              </span>
+            </div>
 
-            
+
             <div className="message-stream">
-  {messages.map((msg, index) => {
-    // Check if the previous message exists and was sent by the exact same user
-    const isSameUserAsPrevious = index > 0 && messages[index - 1].sender === msg.sender;
+              {messages.map((msg, index) => {
+                // Convert timestamps to JavaScript Date Objects
+                const currentMsgTime = new Date(msg.createdAt);
 
-    return (
-      <div 
-        key={msg._id} 
-        className={`message-row ${msg.sender === user._id ? 'sent' : 'received'}`}
-        style={{ 
-          // If it's the same user, override the container's gap with a tiny 4px margin top
-          marginTop: isSameUserAsPrevious ? '-12px' : '0px' 
-        }}
-      >
-        <div className={`msg-bubble ${msg.sender === user._id ? 'sent' : 'received'}`}>
-          {msg.text}
-        </div>
-      </div>
-    );
-  })}
-  <div ref={messageEndRef} />
-</div>
+                // --- 1. Evaluate connection with PREVIOUS message ---
+                const prevMsg = index > 0 ? messages[index - 1] : null;
+                const isSameUserAsPrev = prevMsg && prevMsg.sender === msg.sender;
+                const isWithinOneMinuteOfPrev = prevMsg && (currentMsgTime - new Date(prevMsg.createdAt)) <= 60000;
+                const isConnectedToPrev = isSameUserAsPrev && isWithinOneMinuteOfPrev;
+
+                // --- 2. Evaluate connection with NEXT message ---
+                const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
+                const isSameUserAsNext = nextMsg && nextMsg.sender === msg.sender;
+                const isWithinOneMinuteOfNext = nextMsg && (new Date(nextMsg.createdAt) - currentMsgTime) <= 60000;
+                const isConnectedToNext = isSameUserAsNext && isWithinOneMinuteOfNext;
+
+                // --- 3. Determine the position inside the cluster ---
+                let clusterPosition = 'single'; // Default fallback if it's just one isolated message
+
+                if (isConnectedToPrev && isConnectedToNext) {
+                  clusterPosition = 'middle';
+                } else if (!isConnectedToPrev && isConnectedToNext) {
+                  clusterPosition = 'first';
+                } else if (isConnectedToPrev && !isConnectedToNext) {
+                  clusterPosition = 'last';
+                }
+
+                return (
+                  <div
+                    key={msg._id}
+                    className={`message-row ${msg.sender === user._id ? 'sent' : 'received'}`}
+                    style={{
+                      // Keep consecutive messages tightly stacked together
+                      marginTop: isConnectedToPrev ? '-12px' : '0px'
+                    }}
+                  >
+                    {/* Pass the dynamic cluster position class to the bubble */}
+                    <div className={`msg-bubble ${msg.sender === user._id ? 'sent' : 'received'} ${clusterPosition}`}>
+                      {msg.text}
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={messageEndRef} />
+            </div>
+
 
 
 
             <form className="chat-input-bar" onSubmit={sendChatMessage}>
-              <input 
-                type="text" 
-                placeholder="Type your message here..." 
+              <input
+                type="text"
+                placeholder="Type your message here..."
                 value={typedMessage}
                 onChange={(e) => setTypedMessage(e.target.value)}
                 required

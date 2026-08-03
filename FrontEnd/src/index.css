@@ -18,7 +18,7 @@ body {
   padding: 30px;
   background: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
 
 .auth-title {
@@ -220,53 +220,91 @@ body {
   padding: 20px;
   overflow-y: auto;
   background: #f4f6f9;
-  
+
   display: flex;
   flex-direction: column;
-  gap: 16px; /* Keeps a beautiful, wide separation when the speaker changes */
+  gap: 16px;
+  /* Keeps a beautiful, wide separation when the speaker changes */
 }
 
 
 /* 2. NEW CONTAINER: This forces every message onto its own standalone row */
 .message-row {
-  width: 100%;            /* Spans the full width of the chat page */
-  display: flex;          /* Allows us to cleanly push bubbles left or right */
+  width: 100%;
+  /* Spans the full width of the chat page */
+  display: flex;
+  /* Allows us to cleanly push bubbles left or right */
   flex-shrink: 0;
 }
 
 .message-row.sent {
-  justify-content: flex-end; /* Strictly anchors User A's bubbles to the right wall */
+  justify-content: flex-end;
+  /* Strictly anchors User A's bubbles to the right wall */
 }
 
 .message-row.received {
-  justify-content: flex-start; /* Strictly anchors User B's bubbles to the left wall */
+  justify-content: flex-start;
+  /* Strictly anchors User B's bubbles to the left wall */
 }
 
 /* 3. The actual uniform text box */
+/* Base bubble configuration for uniform length */
 .msg-bubble {
-  width: 50%;                 /* Max width is exactly half the screen */
+  width: 50%;
   padding: 14px 18px;
-  border-radius: 8px;
   font-size: 15px;
   line-height: 1.5;
-  
-  word-wrap: break-word;      
-  overflow-wrap: break-word;  
-  white-space: pre-wrap;      
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  flex-shrink: 0;
+  transition: border-radius 0.1s ease;
+  /* Smooth visual morphing */
 }
 
 .msg-bubble.sent {
   background: #0078d4;
   color: #ffffff;
-  border-top-right-radius: 0;
 }
 
 .msg-bubble.received {
   background: #ffffff;
   color: #1a1a1a;
-  border-top-left-radius: 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e1e4e8;
 }
+
+/* ========================================================
+   DYNAMIC CLUSTER SHAPE CORNER MAP SYSTEM
+   Syntax rules used: border-radius: top-left top-right bottom-right bottom-left;
+   ======================================================== */
+
+/* 1. FIRST message in a sequence: Top corners fully round, bottom sharp */
+.msg-bubble.first {
+  border-radius: 18px 18px 0px 0px;
+}
+
+/* 2. MIDDLE messages in a sequence: Absolute straight edges everywhere, no rounding */
+.msg-bubble.middle {
+  border-radius: 0px 0px 0px 0px;
+}
+
+/* 3. LAST message in a sequence: Bottom corners fully round, top sharp */
+.msg-bubble.last {
+  border-radius: 0px 0px 18px 18px;
+}
+
+/* 4. SINGLE isolated message fallback (standard chat bubble default) */
+/* 4. SINGLE isolated message fallback: All four corners completely rounded */
+.msg-bubble.single.sent {
+  border-radius: 18px 18px 18px 18px;
+}
+
+.msg-bubble.single.received {
+  border-radius: 18px 18px 18px 18px;
+}
+
+
 
 
 
