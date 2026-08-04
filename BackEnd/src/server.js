@@ -23,6 +23,16 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Expose upload directory paths publicly over network routes static access loaders
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+
 // Establish Base Routing Definitions
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
