@@ -32,7 +32,7 @@ const Profile = () => {
   }
 
   try {
-   const res = await fetch('http://localhost:5000/api/auth/profile', {
+   const res = await fetch('http://localhost:8000/api/auth/profile', {
     method: 'PUT',
     headers: {
      'Authorization': `Bearer ${user.token}`
@@ -53,7 +53,7 @@ const Profile = () => {
   }
  };
 
- const imageSrcUrl = user?.profilePic ? `http://localhost:5000${user.profilePic}` : null;
+ const imageSrcUrl = user?.profilePic ? `http://localhost:8000${user.profilePic}` : null;
 
  return (
   <div className="profile-container">
