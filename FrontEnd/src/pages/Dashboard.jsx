@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { io } from 'socket.io-client';
+import { useNavigate } from 'react-router-dom'; // Ensure useNavigate is added to your top imports lists
 
 const Dashboard = () => {
   const { user, logout } = useContext(AuthContext);
@@ -15,6 +16,7 @@ const Dashboard = () => {
 
   const socketRef = useRef(null);
   const messageEndRef = useRef(null);
+  const navigate = useNavigate();
 
   // 1. Structural Lifecycle Hook: Hydrate users roster and map socket instances
   useEffect(() => {
@@ -131,23 +133,12 @@ const Dashboard = () => {
   return (
     <div className="dashboard-container">
       {/* Sidebar Controls */}
-      <div className="sidebar">
-        <div className="sidebar-header">
-          <h3>Chat Rooms</h3>
+      <div className="sidebar-header">
+        <h3>Chat Rooms</h3>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button className="logout-link" style={{ color: '#0078d4' }} onClick={() => navigate('/profile')}>Profile</button>
           <button className="logout-link" onClick={logout}>Logout</button>
         </div>
-        <ul className="user-list">
-          {users.map((item) => (
-            <li
-              key={item._id}
-              className={`user-item ${activePartner?._id === item._id ? 'active' : ''}`}
-              onClick={() => setActivePartner(item)}
-            >
-              <span className="user-name">{item.username}</span>
-            </li>
-          ))}
-        </ul>
-
       </div>
 
       {/* Main Message Board Interface Panel Layout */}
