@@ -161,9 +161,9 @@ const Dashboard = () => {
                 className={`status-badge ${determineUserPresenceLabel(activePartner._id).classType}`}
                 style={{ display: 'inline-block', fontSize: '13px', padding: '0', background: 'none' }}
               >
-                {determineUserPresenceLabel(activePartner._id).text === 'With you' && '• With you'}
+                {determineUserPresenceLabel(activePartner._id).text === 'With you' && 'With you'}
                 {determineUserPresenceLabel(activePartner._id).text === 'online' && '• Online'}
-                {determineUserPresenceLabel(activePartner._id).text === 'offline' && '• Offline'}
+                {determineUserPresenceLabel(activePartner._id).text === 'offline' && 'Offline'}
               </span>
             </div>
 

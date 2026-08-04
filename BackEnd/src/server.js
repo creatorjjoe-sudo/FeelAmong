@@ -7,6 +7,8 @@ import { Server } from 'socket.io';
 import authRoutes from './routes/authroutes.js';
 import messageRoutes from './routes/messageroutes.js';
 
+const PORT = process.env.PORT || 8000;
+
 dotenv.config();
 
 const app = express();
@@ -92,10 +94,13 @@ io.on('connection', (socket) => {
 });
 
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('✅ Connected to MongoDB Engine'))
+  .then(() => console.log('✅ Connected to MongoDB Engine:', process.env.MONGO_URI))
+  .then(() => {
+    server.listen(PORT, () => {
+    console.log(`🚀 Server is running on port ${PORT}`);
+    });
+  })
   .catch((err) => console.error('❌ Database boot critical exception:', err));
 
-const PORT = process.env.PORT || 8000;
-server.listen(PORT, () => {
-    console.log(`🚀 Real-time server running smoothly on port ${PORT}`);
-});
+
+
