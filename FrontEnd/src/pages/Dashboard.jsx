@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { io } from 'socket.io-client';
-import './Dashboard.css'; // Load Localized Page Architecture Styles
+import './Dashboard.css';
 
 import SidebarHeader from '../components/SidebarHeader';
 import UserListItem from '../components/UserListItem';
@@ -17,6 +17,9 @@ const Dashboard = () => {
   const [onlineUserIds, setOnlineUserIds] = useState([]);
   const [partnerChatMaps, setPartnerChatMaps] = useState({});
   const [typingUserMaps, setTypingUserMaps] = useState({});
+  
+  // NEW STATE: Tracks missed unread text counts per user -> { userId: countNumber }
+  const [unreadMessages, setUnreadMessages] = useState({});
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -49,16 +52,29 @@ const Dashboard = () => {
       setTypingUserMaps(typingStatus || {});
     });
 
-    socketRef.current.on('receive_private_message', (incomingMessage) => {
-      if (activePartner && (incomingMessage.sender === activePartner._id || incomingMessage.receiver === activePartner._id)) {
-        setMessages((prev) => [...prev, incomingMessage]);
-      }
-    });
-
     return () => {
       if (socketRef.current) socketRef.current.disconnect();
     };
-  }, [user, activePartner]);
+  }, [user]);
+
+  // Handle incoming real-time messages with unread notification badge routing math rules
+  useEffect(() => {
+    if (!socketRef.current) return;
+
+    socketRef.current.off('receive_private_message');
+    socketRef.current.on('receive_private_message', (incomingMessage) => {
+      // Case A: Message belongs to the active, open chat screen -> append to stream instantly
+      if (activePartner && (incomingMessage.sender === activePartner._id || incomingMessage.receiver === activePartner._id)) {
+        setMessages((prev) => [...prev, incomingMessage]);
+      } else {
+        // Case B: Message is from someone else in the background -> increment their unread counter badge
+        setUnreadMessages((prev) => ({
+          ...prev,
+          [incomingMessage.sender]: (prev[incomingMessage.sender] || 0) + 1
+        }));
+      }
+    });
+  }, [activePartner]);
 
   useEffect(() => {
     if (!activePartner) return;
@@ -75,6 +91,12 @@ const Dashboard = () => {
       }
     };
     fetchChatLogs();
+
+    // Reset unread count for this user immediately upon opening their room view
+    setUnreadMessages((prev) => ({
+      ...prev,
+      [activePartner._id]: 0
+    }));
 
     socketRef.current.emit('enter_chat_view', { userId: user._id, partnerId: activePartner._id });
 
@@ -163,6 +185,7 @@ const Dashboard = () => {
               activePartner={activePartner}
               typingUserMaps={typingUserMaps}
               currentUserId={user._id}
+              unreadCount={unreadMessages[item._id] || 0} // Map unread counter state explicitly
               onSelect={() => {
                 setActivePartner(item);
                 setSidebarOpen(false);

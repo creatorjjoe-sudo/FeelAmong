@@ -16,7 +16,7 @@ const ChatHeader = ({ activePartner, determineUserPresenceLabel, typingUserMaps,
   const avatarUrl = activePartner?.profilePic ? `http://localhost:8000${activePartner.profilePic}` : null;
 
   return (
-    <div className="chat-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="chat-header" style={{ display: 'flex'}}>
       
       {/* Profile Avatar Bubble */}
       {avatarUrl ? (
@@ -39,7 +39,7 @@ const ChatHeader = ({ activePartner, determineUserPresenceLabel, typingUserMaps,
 
       {/* Typing Indicator */}
       {typingUserMaps[activePartner._id] === currentUserId && presence.text === 'With you' && (
-        <div style={{ fontSize: '14px', color: '#107c41', fontWeight: '600', fontStyle: 'italic' }}>
+        <div style={{fontSize: '14px', color: '#107c41', fontWeight: '600'}}>
           Typing...
         </div>
       )}

@@ -1,21 +1,18 @@
 import React from 'react';
 import './UserListItem.css';
 
-const UserListItem = ({ item, activePartner, onSelect, typingUserMaps, currentUserId }) => {
+const UserListItem = ({ item, activePartner, onSelect, typingUserMaps, currentUserId, unreadCount }) => {
   const isTypingForMeInBg = typingUserMaps[item._id] === currentUserId && activePartner?._id !== item._id;
 
-  // Dynamic initial color map array matrix
   const BG_COLORS = [
     '#4a90e2', '#28a745', '#e05d5d', '#f39c12', '#8e44ad', 
     '#16a085', '#2c3e50', '#d35400', '#27ae60', '#2980b9'
   ];
 
-  // Pick a stable color code index dependent upon character alphabet positions
   const firstLetter = item.username?.charAt(0).toUpperCase() || '?';
   const charCodeSum = firstLetter.charCodeAt(0);
   const selectedBgColor = BG_COLORS[charCodeSum % BG_COLORS.length];
 
-  // Establish full path pointer directly targeting our Port 8000 static file backend asset server
   const avatarUrl = item.profilePic ? `http://localhost:8000${item.profilePic}` : null;
 
   return (
@@ -24,7 +21,6 @@ const UserListItem = ({ item, activePartner, onSelect, typingUserMaps, currentUs
       onClick={onSelect}
     >
       <div className="user-item-row">
-        {/* Render profile image avatar element if asset string path is populated */}
         {avatarUrl ? (
           <img src={avatarUrl} alt={item.username} className="avatar-circle" />
         ) : (
@@ -34,6 +30,13 @@ const UserListItem = ({ item, activePartner, onSelect, typingUserMaps, currentUs
         )}
         
         <span className="user-name">{item.username}</span>
+
+        {/* Render unread numeric badge tracking notifications count if value exceeds zero */}
+        {unreadCount > 0 && (
+          <div className="unread-badge">
+            {unreadCount}
+          </div>
+        )}
       </div>
       
       {isTypingForMeInBg && (

@@ -28,6 +28,7 @@
   font-weight: 500;
   font-size: 15px;
   color: #222;
+  flex: 1;             /* Dynamic extension pushes the unread badge cleanly to the far right side */
 }
 
 /* Sidebar Listing Profile Image Avatar Circles Enginery Styles */
@@ -53,4 +54,26 @@
   text-transform: uppercase;
   flex-shrink: 0;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* Real-Time Red Unread Notification Badge Component */
+.unread-badge {
+  background-color: #d9534f;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  margin-left: 10px;
+  animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
 }
