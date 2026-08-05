@@ -1,11 +1,12 @@
 import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
- username: { type: String, required: true, unique: true, trim: true },
- email: { type: String, required: true, unique: true, lowercase: true, trim: true },
- password: { type: String, required: true },
- profilePic: { type: String, default: '' } // Stores server image upload route path
+    username: { type: String, required: true, unique: true, trim: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password: { type: String, required: true },
+    profilePic: { type: String, default: '' }
 }, { timestamps: true });
 
-const User = mongoose.model('User', userSchema);
+// Check if the 'User' model is already compiled in mongoose.models; if not, compile it.
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 export default User;

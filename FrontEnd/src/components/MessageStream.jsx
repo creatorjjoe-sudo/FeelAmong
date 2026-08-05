@@ -2,7 +2,6 @@ import React from 'react';
 
 const MessageStream = ({ messages, currentUserId, messageEndRef }) => {
   
-  // Dynamic relative clock calculation engine matrix
   const formatSmartTimestamp = (dateString) => {
     if (!dateString) return '';
     const now = new Date();
@@ -68,18 +67,24 @@ const MessageStream = ({ messages, currentUserId, messageEndRef }) => {
           clusterPosition = 'last';
         }
 
+        const isMe = msg.sender === currentUserId;
         const showTimestamp = clusterPosition === 'last' || clusterPosition === 'single';
 
         return (
           <div 
             key={msg._id} 
-            className={`message-row ${msg.sender === currentUserId ? 'sent' : 'received'}`}
+            className={`message-row ${isMe ? 'sent' : 'received'}`}
             style={{ 
               marginTop: isConnectedToPrev ? '-12px' : '0px',
-              flexDirection: 'column'
+              flexDirection: 'column',
+              alignItems: isMe ? 'flex-end' : 'flex-start' /* Forces child elements to stick strictly to their sides */
             }}
           >
-            <div className={`msg-bubble ${msg.sender === currentUserId ? 'sent' : 'received'} ${clusterPosition}`}>
+            {/* Uniform text bubble bubble alignment */}
+            <div 
+              className={`msg-bubble ${isMe ? 'sent' : 'received'} ${clusterPosition}`}
+              style={{ alignSelf: isMe ? 'flex-end' : 'flex-start' }}
+            >
               {msg.text}
             </div>
             
@@ -90,8 +95,8 @@ const MessageStream = ({ messages, currentUserId, messageEndRef }) => {
                 marginTop: '4px',
                 marginBottom: '8px',
                 fontWeight: '500',
-                alignSelf: msg.sender === currentUserId ? 'flex-end' : 'flex-start',
-                padding: msg.sender === currentUserId ? '0 10px 0 0' : '0 0 0 10px'
+                alignSelf: isMe ? 'flex-end' : 'flex-start', /* Keeps timestamps bound right below their bubble edges */
+                padding: isMe ? '0 10px 0 0' : '0 0 0 10px'
               }}>
                 {formatSmartTimestamp(msg.createdAt)}
               </span>

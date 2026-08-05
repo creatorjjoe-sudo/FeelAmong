@@ -49,12 +49,15 @@
   flex-shrink: 0;
 }
 
+/* Guard alignments forced strictly to anchor the components to their correct sides */
 .message-row.sent {
-  justify-content: flex-end;
+  align-items: flex-end;    /* Aligns components vertically right against the right border */
+  justify-content: flex-end; /* Pushes sent rows layout elements completely to the right edge */
 }
 
 .message-row.received {
-  justify-content: flex-start;
+  align-items: flex-start;  /* Aligns components vertically left against the left border */
+  justify-content: flex-start; /* Pushes received rows layout elements completely to the left edge */
 }
 
 /* Base bubble configuration for uniform length */
@@ -83,15 +86,15 @@
 }
 
 .msg-bubble.first {
-  border-radius: 18px 18px 0px 0px;
+  border-radius: 18px 18px 5px 5px;
 }
 
 .msg-bubble.middle {
-  border-radius: 0px 0px 0px 0px;
+  border-radius: 5px 5px 5px 5px;
 }
 
 .msg-bubble.last {
-  border-radius: 0px 0px 18px 18px;
+  border-radius: 5px 5px 18px 18px;
 }
 
 .msg-bubble.single.sent {
