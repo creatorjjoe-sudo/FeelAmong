@@ -1,7 +1,11 @@
 import { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
+
+// Import split sub-components cleanly
+import SidebarHeader from '../components/SidebarHeader';
+import UserListItem from '../components/UserListItem';
+import ChatHeader from '../components/ChatHeader';
 
 const Dashboard = () => {
   const { user, logout } = useContext(AuthContext);
@@ -12,13 +16,13 @@ const Dashboard = () => {
   
   const [onlineUserIds, setOnlineUserIds] = useState([]);
   const [partnerChatMaps, setPartnerChatMaps] = useState({});
+  const [typingUserMaps, setTypingUserMaps] = useState({});
 
-  // NEW STATE: Tracks mobile sidebar visibility layout shifts
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const socketRef = useRef(null);
   const messageEndRef = useRef(null);
-  const navigate = useNavigate();
+  const typingTimeoutRef = useRef(null);
 
   const BACKEND_URL = 'http://localhost:8000';
 
@@ -39,9 +43,10 @@ const Dashboard = () => {
     socketRef.current = io(BACKEND_URL);
     socketRef.current.emit('user_connected', user._id);
 
-    socketRef.current.on('presence_update', ({ onlineUsers, activeChatPartners }) => {
+    socketRef.current.on('presence_update', ({ onlineUsers, activeChatPartners, typingStatus }) => {
       setOnlineUserIds(onlineUsers);
       setPartnerChatMaps(activeChatPartners);
+      setTypingUserMaps(typingStatus || {});
     });
 
     socketRef.current.on('receive_private_message', (incomingMessage) => {
@@ -82,9 +87,26 @@ const Dashboard = () => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const handleInputChange = (e) => {
+    setTypedMessage(e.target.value);
+
+    if (!activePartner || !socketRef.current) return;
+
+    socketRef.current.emit('typing_start', { userId: user._id, partnerId: activePartner._id });
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+    typingTimeoutRef.current = setTimeout(() => {
+        socketRef.current.emit('typing_stop', user._id);
+    }, 1500);
+  };
+
   const sendChatMessage = async (e) => {
     e.preventDefault();
     if (!typedMessage.trim() || !activePartner) return;
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    socketRef.current.emit('typing_stop', user._id);
 
     const customMessagePayload = { receiverId: activePartner._id, text: typedMessage };
 
@@ -123,7 +145,7 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
-      {/* 1. MOBILE FLOATING TOGGLE ICON TRIGGER */}
+      {/* MOBILE FLOATING TOGGLE ICON TRIGGER */}
       <button 
         className="sidebar-toggle-btn"
         onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -131,46 +153,37 @@ const Dashboard = () => {
         {sidebarOpen ? '✕ Close' : '☰ Menu'}
       </button>
 
-      {/* 2. SIDEBAR: Appends dynamic .open class to hook the sliding transform animation */}
+      {/* LEFT SIDEBAR PANEL */}
       <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div className="sidebar-header">
-          <h3>Chat Rooms</h3>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <button className="logout-link" style={{ color: '#0078d4' }} onClick={() => navigate('/profile')}>Profile</button>
-            <button className="logout-link" onClick={logout}>Logout</button>
-          </div>
-        </div>
+        <SidebarHeader logout={logout} />
+        
         <ul className="user-list">
           {users.map((item) => (
-            <li 
-              key={item._id} 
-              className={`user-item ${activePartner?._id === item._id ? 'active' : ''}`}
-              onClick={() => {
+            <UserListItem 
+              key={item._id}
+              item={item}
+              activePartner={activePartner}
+              typingUserMaps={typingUserMaps}
+              currentUserId={user._id}
+              onSelect={() => {
                 setActivePartner(item);
-                setSidebarOpen(false); // Automatically close sidebar on click (mobile-friendly UX)
+                setSidebarOpen(false);
               }}
-            >
-              <span className="user-name">{item.username}</span>
-            </li>
+            />
           ))}
         </ul>
       </div>
 
-      {/* 3. MAIN CHAT CONTAINER BLOCK WINDOW */}
+      {/* RIGHT CHAT WINDOW AREA */}
       <div className="chat-window" onClick={() => setSidebarOpen(false)}>
         {activePartner ? (
           <>
-            <div className="chat-header">
-              <h4 style={{ marginBottom: '2px' }}>{activePartner.username}</h4>
-              <span 
-                className={`status-badge ${determineUserPresenceLabel(activePartner._id).classType}`}
-                style={{ display: 'inline-block', fontSize: '13px', padding: '0', background: 'none' }}
-              >
-                {determineUserPresenceLabel(activePartner._id).text === 'With you' && '• With you'}
-                {determineUserPresenceLabel(activePartner._id).text === 'online' && '• Online'}
-                {determineUserPresenceLabel(activePartner._id).text === 'offline' && '• Offline'}
-              </span>
-            </div>
+            <ChatHeader 
+              activePartner={activePartner}
+              determineUserPresenceLabel={determineUserPresenceLabel}
+              typingUserMaps={typingUserMaps}
+              currentUserId={user._id}
+            />
             
             <div className="message-stream">
               {messages.map((msg, index) => {
@@ -215,7 +228,7 @@ const Dashboard = () => {
                 type="text" 
                 placeholder="Type your message here..." 
                 value={typedMessage}
-                onChange={(e) => setTypedMessage(e.target.value)}
+                onChange={handleInputChange}
                 required
               />
               <button type="submit" className="chat-send-btn">Send</button>

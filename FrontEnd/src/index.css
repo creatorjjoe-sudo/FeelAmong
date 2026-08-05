@@ -1,4 +1,3 @@
-/* frontend/src/index.css */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -18,7 +17,7 @@ body {
   padding: 30px;
   background: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
 }
 
 .auth-title {
@@ -99,7 +98,7 @@ body {
   width: 100vw;
   height: 100vh;
   background: #ffffff;
-  overflow: hidden; /* Prevents whole-page weird scrolling breakages */
+  overflow: hidden;
 }
 
 /* Sidebar Styling Parameters */
@@ -109,7 +108,7 @@ body {
   display: flex;
   flex-direction: column;
   background: #f8f9fa;
-  flex-shrink: 0; /* Guarantees the sidebar never collapses horizontally */
+  flex-shrink: 0;
 }
 
 .sidebar-header {
@@ -143,8 +142,9 @@ body {
 
 .user-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column; /* Stack name and sub-typing labels vertically */
+  justify-content: center;
+  align-items: flex-start;
   padding: 15px 20px;
   border-bottom: 1px solid #edf0f5;
   cursor: pointer;
@@ -157,6 +157,13 @@ body {
 
 .user-item.active {
   background: #e1ecf8;
+}
+
+.user-item-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .user-name {
@@ -189,7 +196,7 @@ body {
 
 /* Chat Main Area Presentation */
 .chat-window {
-  flex: 1; /* Instructs the chat box to fill up 100% of remaining screen width */
+  flex: 1;
   display: flex;
   flex-direction: column;
   background: #ffffff;
@@ -217,52 +224,41 @@ body {
   margin-bottom: 4px;
 }
 
-/* 1. The main scrolling background container */
 .message-stream {
   flex: 1;
   padding: 20px;
   overflow-y: auto;
   background: #f4f6f9;
-
   display: flex;
   flex-direction: column;
   gap: 16px;
-  /* Keeps a beautiful, wide separation when the speaker changes */
 }
 
-
-/* 2. NEW CONTAINER: This forces every message onto its own standalone row */
 .message-row {
   width: 100%;
-  /* Spans the full width of the chat page */
   display: flex;
-  /* Allows us to cleanly push bubbles left or right */
   flex-shrink: 0;
 }
 
 .message-row.sent {
   justify-content: flex-end;
-  /* Strictly anchors User A's bubbles to the right wall */
 }
 
 .message-row.received {
   justify-content: flex-start;
-  /* Strictly anchors User B's bubbles to the left wall */
 }
 
-/* 3. The actual uniform text box */
 /* Base bubble configuration for uniform length */
 .msg-bubble {
-  width: 50%;
+  width: 50%;                 
   padding: 14px 18px;
   font-size: 15px;
   line-height: 1.5;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: pre-wrap;
-  flex-shrink: 0;
+  word-wrap: break-word;      
+  overflow-wrap: break-word;  
+  white-space: pre-wrap;      
+  flex-shrink: 0;             
   transition: border-radius 0.1s ease;
-  /* Smooth visual morphing */
 }
 
 .msg-bubble.sent {
@@ -277,40 +273,24 @@ body {
   border: 1px solid #e1e4e8;
 }
 
-/* ========================================================
-   DYNAMIC CLUSTER SHAPE CORNER MAP SYSTEM
-   Syntax rules used: border-radius: top-left top-right bottom-right bottom-left;
-   ======================================================== */
-
-/* 1. FIRST message in a sequence: Top corners fully round, bottom sharp */
 .msg-bubble.first {
   border-radius: 18px 18px 0px 0px;
 }
 
-/* 2. MIDDLE messages in a sequence: Absolute straight edges everywhere, no rounding */
 .msg-bubble.middle {
   border-radius: 0px 0px 0px 0px;
 }
 
-/* 3. LAST message in a sequence: Bottom corners fully round, top sharp */
 .msg-bubble.last {
   border-radius: 0px 0px 18px 18px;
 }
 
-/* 4. SINGLE isolated message fallback (standard chat bubble default) */
-/* 4. SINGLE isolated message fallback: All four corners completely rounded */
 .msg-bubble.single.sent {
   border-radius: 18px 18px 18px 18px;
 }
-
 .msg-bubble.single.received {
   border-radius: 18px 18px 18px 18px;
 }
-
-
-
-
-
 
 .chat-input-bar {
   padding: 15px 20px;
@@ -413,7 +393,6 @@ body {
   margin-left: 10px;
 }
 
-/* File Input customization hide override framework wrappers */
 .file-upload-label {
   display: inline-block;
   padding: 8px 16px;
@@ -433,10 +412,8 @@ body {
 /* ========================================================
    RESPONSIVE SLIDING SIDEBAR FRAMEWORK SYSTEM
    ======================================================== */
-
-/* Mobile Navigation Toggle Button Styling Rules */
 .sidebar-toggle-btn {
-  display: none; /* Hidden by default on large desktop viewports */
+  display: none;
   position: absolute;
   top: 15px;
   left: 15px;
@@ -452,10 +429,9 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Tablet & Mobile Media Breakpoint Query */
 @media (max-width: 768px) {
   .sidebar-toggle-btn {
-    display: block; /* Reveal toggle trigger on mobile layouts */
+    display: block;
   }
 
   .sidebar {
@@ -465,18 +441,14 @@ body {
     height: 100vh;
     z-index: 999;
     box-shadow: 4px 0 15px rgba(0, 0, 0, 0.15);
-    
-    /* Strict sliding layout setup transformation vectors */
-    transform: translateX(-100%); /* Pushes it completely off-screen to the left */
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Hardware-accelerated sliding effect */
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* When the class '.open' is appended, slide it smoothly into view */
   .sidebar.open {
     transform: translateX(0);
   }
 
-  /* Shift header title to the right so it doesn't clip behind the toggle button */
   .chat-header {
     padding-left: 75px !important;
   }

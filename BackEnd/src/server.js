@@ -4,10 +4,10 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import http from 'http';
 import { Server } from 'socket.io';
-import authRoutes from './routes/authroutes.js';
-import messageRoutes from './routes/messageroutes.js';
-
-const PORT = process.env.PORT || 8000;
+import path from 'path';
+import { fileURLToPath } from 'url';
+import authRoutes from './routes/authRoutes.js';
+import messageRoutes from './routes/messageRoutes.js';
 
 dotenv.config();
 
@@ -16,32 +16,27 @@ const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: 'http://localhost:5173',
-        methods: ['GET', 'POST']
+        methods: ['GET', 'POST'],
+        credentials: true
     }
 });
-
-app.use(cors());
-app.use(express.json());
-
-import path from 'path';
-import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Expose upload directory paths publicly over network routes static access loaders
+app.use(cors());
+app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 
 // Establish Base Routing Definitions
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
 
 // Real-Time Stateful In-Memory Context Trackers
-// onlineUsers: { userId: socketId }
 const onlineUsers = {};
-// activeChatPartners: { userId: currentTargetUserIdChattingWith }
 const activeChatPartners = {};
+// NEW: Map tracking who is typing and to whom -> { typingUserId: targetUserId }
+const typingStatus = {};
 
 io.on('connection', (socket) => {
     let connectedUserId = null;
@@ -52,10 +47,11 @@ io.on('connection', (socket) => {
         connectedUserId = userId;
         onlineUsers[userId] = socket.id;
         
-        // Broadcast presence updates globally
+        // Broadcast presence and typing updates globally
         io.emit('presence_update', {
             onlineUsers: Object.keys(onlineUsers),
-            activeChatPartners
+            activeChatPartners,
+            typingStatus
         });
     });
 
@@ -66,7 +62,8 @@ io.on('connection', (socket) => {
 
         io.emit('presence_update', {
             onlineUsers: Object.keys(onlineUsers),
-            activeChatPartners
+            activeChatPartners,
+            typingStatus
         });
     });
 
@@ -74,10 +71,34 @@ io.on('connection', (socket) => {
     socket.on('leave_chat_view', (userId) => {
         if (!userId) return;
         delete activeChatPartners[userId];
+        delete typingStatus[userId]; // Safety cleanup if they leave while typing
 
         io.emit('presence_update', {
             onlineUsers: Object.keys(onlineUsers),
-            activeChatPartners
+            activeChatPartners,
+            typingStatus
+        });
+    });
+
+    // NEW: Handle Typing Initiation Signal
+    socket.on('typing_start', ({ userId, partnerId }) => {
+        if (!userId || !partnerId) return;
+        typingStatus[userId] = partnerId;
+        io.emit('presence_update', {
+            onlineUsers: Object.keys(onlineUsers),
+            activeChatPartners,
+            typingStatus
+        });
+    });
+
+    // NEW: Handle Typing Cease Signal
+    socket.on('typing_stop', (userId) => {
+        if (!userId) return;
+        delete typingStatus[userId];
+        io.emit('presence_update', {
+            onlineUsers: Object.keys(onlineUsers),
+            activeChatPartners,
+            typingStatus
         });
     });
 
@@ -94,10 +115,12 @@ io.on('connection', (socket) => {
         if (connectedUserId) {
             delete onlineUsers[connectedUserId];
             delete activeChatPartners[connectedUserId];
+            delete typingStatus[connectedUserId];
             
             io.emit('presence_update', {
                 onlineUsers: Object.keys(onlineUsers),
-                activeChatPartners
+                activeChatPartners,
+                typingStatus
             });
         }
     });
@@ -106,11 +129,9 @@ io.on('connection', (socket) => {
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ Connected to MongoDB Engine:', process.env.MONGO_URI))
   .then(() => {
+    const PORT = process.env.PORT || 8000;
     server.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
     });
   })
   .catch((err) => console.error('❌ Database boot critical exception:', err));
-
-
-
