@@ -99,6 +99,7 @@ body {
   width: 100vw;
   height: 100vh;
   background: #ffffff;
+  overflow: hidden; /* Prevents whole-page weird scrolling breakages */
 }
 
 /* Sidebar Styling Parameters */
@@ -108,6 +109,7 @@ body {
   display: flex;
   flex-direction: column;
   background: #f8f9fa;
+  flex-shrink: 0; /* Guarantees the sidebar never collapses horizontally */
 }
 
 .sidebar-header {
@@ -187,10 +189,11 @@ body {
 
 /* Chat Main Area Presentation */
 .chat-window {
-  flex: 1;
+  flex: 1; /* Instructs the chat box to fill up 100% of remaining screen width */
   display: flex;
   flex-direction: column;
   background: #ffffff;
+  position: relative;
 }
 
 .chat-blank-state {
@@ -425,4 +428,56 @@ body {
 
 .file-upload-label:hover {
   background: #e1e4e8;
+}
+
+/* ========================================================
+   RESPONSIVE SLIDING SIDEBAR FRAMEWORK SYSTEM
+   ======================================================== */
+
+/* Mobile Navigation Toggle Button Styling Rules */
+.sidebar-toggle-btn {
+  display: none; /* Hidden by default on large desktop viewports */
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  z-index: 1000;
+  background: #0078d4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 14px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Tablet & Mobile Media Breakpoint Query */
+@media (max-width: 768px) {
+  .sidebar-toggle-btn {
+    display: block; /* Reveal toggle trigger on mobile layouts */
+  }
+
+  .sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 999;
+    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.15);
+    
+    /* Strict sliding layout setup transformation vectors */
+    transform: translateX(-100%); /* Pushes it completely off-screen to the left */
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Hardware-accelerated sliding effect */
+  }
+
+  /* When the class '.open' is appended, slide it smoothly into view */
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Shift header title to the right so it doesn't clip behind the toggle button */
+  .chat-header {
+    padding-left: 75px !important;
+  }
 }
