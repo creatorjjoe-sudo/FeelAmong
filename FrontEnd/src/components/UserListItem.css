@@ -1,0 +1,30 @@
+.user-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 15px 20px;
+  border-bottom: 1px solid #edf0f5;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.user-item:hover {
+  background: #f0f3f7;
+}
+
+.user-item.active {
+  background: #e1ecf8;
+}
+
+.user-item-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user-name {
+  font-weight: 500;
+  font-size: 15px;
+}

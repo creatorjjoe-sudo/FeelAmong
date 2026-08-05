@@ -1,4 +1,5 @@
 import React from 'react';
+import './ChatHeader.css'; // Load Component-specific localized stylesheet
 
 const ChatHeader = ({ activePartner, determineUserPresenceLabel, typingUserMaps, currentUserId }) => {
   const presence = determineUserPresenceLabel(activePartner._id);
@@ -17,7 +18,6 @@ const ChatHeader = ({ activePartner, determineUserPresenceLabel, typingUserMaps,
         </span>
       </div>
       
-      {/* Condition: User is typing and is actively "With you" -> show to the right side of the header */}
       {typingUserMaps[activePartner._id] === currentUserId && presence.text === 'With you' && (
         <div style={{ fontSize: '14px', color: '#107c41', fontWeight: '600', fontStyle: 'italic' }}>
           Typing...

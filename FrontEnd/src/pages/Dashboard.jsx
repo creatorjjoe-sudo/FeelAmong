@@ -1,8 +1,8 @@
 import { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { io } from 'socket.io-client';
+import './Dashboard.css'; // Load Localized Page Architecture Styles
 
-// Import split sub-components cleanly
 import SidebarHeader from '../components/SidebarHeader';
 import UserListItem from '../components/UserListItem';
 import ChatHeader from '../components/ChatHeader';
@@ -145,7 +145,6 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
-      {/* MOBILE FLOATING TOGGLE ICON TRIGGER */}
       <button 
         className="sidebar-toggle-btn"
         onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -153,11 +152,10 @@ const Dashboard = () => {
         {sidebarOpen ? '✕ Close' : '☰ Menu'}
       </button>
 
-      {/* LEFT SIDEBAR PANEL */}
       <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <SidebarHeader logout={logout} />
         
-        <ul className="user-list">
+        <ul className="user-list" style={{ listStyle: 'none', padding: 0 }}>
           {users.map((item) => (
             <UserListItem 
               key={item._id}
@@ -174,7 +172,6 @@ const Dashboard = () => {
         </ul>
       </div>
 
-      {/* RIGHT CHAT WINDOW AREA */}
       <div className="chat-window" onClick={() => setSidebarOpen(false)}>
         {activePartner ? (
           <>

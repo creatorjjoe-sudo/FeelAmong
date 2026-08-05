@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import './SidebarHeader.css'; // Load Component-specific localized stylesheet
 
 const SidebarHeader = ({ logout }) => {
   const navigate = useNavigate();
