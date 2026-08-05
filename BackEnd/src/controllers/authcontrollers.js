@@ -1,6 +1,8 @@
-import User from '../models/User.js';
+import User from '../models/user.js';
+import Message from '../models/message.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose'; // NEW: Explicitly imported Mongoose to handle strict ObjectId type casting
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -56,6 +58,7 @@ export const signin = async (req, res) => {
             _id: user._id,
             username: user.username,
             email: user.email,
+            profilePic: user.profilePic,
             token: generateToken(user._id)
         });
     } catch (error) {
@@ -63,17 +66,72 @@ export const signin = async (req, res) => {
     }
 };
 
-// Fetch every user except yourself to establish a dynamic directory listing
+// UPGRADED: Dynamic directory extraction sorting by most recent communication exchanges
 export const getAllUsers = async (req, res) => {
     try {
-        // Fetches username, email, and profilePic while explicitly hiding passwords
-        const directoryUsers = await User.find({ _id: { $ne: req.user._id } }).select('username email profilePic');
-        res.status(200).json(directoryUsers);
+        // Strict Type Casting: Force the current user ID into a genuine MongoDB ObjectId match type
+        const currentUserId = new mongoose.Types.ObjectId(req.user._id);
+
+        const usersWithSortingMetrics = await User.aggregate([
+            // 1. Exclude the currently logged-in user from the listing context
+            { $match: { _id: { $ne: currentUserId } } },
+
+            // 2. Perform a lookup matching any bidirectional message rows between users
+            {
+                $lookup: {
+                    from: 'messages',
+                    let: { targetUserId: '$_id' },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $or: [
+                                        { $and: [{ $eq: ['$sender', currentUserId] }, { $eq: ['$receiver', '$$targetUserId'] }] },
+                                        { $and: [{ $eq: ['$sender', '$$targetUserId'] }, { $eq: ['$receiver', currentUserId] }] }
+                                    ]
+                                }
+                            }
+                        },
+                        { $sort: { createdAt: -1 } },
+                        { $limit: 1 }
+                    ],
+                    as: 'lastMessage'
+                }
+            }],
+
+            // 3. Destructure the array payload safely using unwind paths
+            [{
+                $unwind: {
+                    path: '$lastMessage',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+
+            // 4. Calculate an explicit sort index. If no message history exists, default to baseline entry dates
+            {
+                $addFields: {
+                    lastInteraction: { $ifNull: ['$lastMessage.createdAt', '$createdAt'] }
+                }
+            },
+
+            // 5. Sort descending -> Most recently active users push immediately to the top row
+            { $sort: { lastInteraction: -1 } },
+
+            // 6. Project clean sanitized profiles containing username, email, and profilePic while explicitly hiding passwords
+            {
+                $project: {
+                    username: 1,
+                    email: 1,
+                    profilePic: 1
+                }
+            }
+            ]);
+
+        res.status(200).json(usersWithSortingMetrics);
     } catch (error) {
-        res.status(500).json({ message: 'Failed to extract directory roster', error: error.message });
+        res.status(500).json({ message: 'Failed to extract sorted directory roster', error: error.message });
     }
 };
-
 
 // Explicit profile update routine controller action configuration block
 export const updateProfile = async (req, res) => {

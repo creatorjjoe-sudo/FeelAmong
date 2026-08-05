@@ -17,8 +17,6 @@ const Dashboard = () => {
   const [onlineUserIds, setOnlineUserIds] = useState([]);
   const [partnerChatMaps, setPartnerChatMaps] = useState({});
   const [typingUserMaps, setTypingUserMaps] = useState({});
-  
-  // NEW STATE: Tracks missed unread text counts per user -> { userId: countNumber }
   const [unreadMessages, setUnreadMessages] = useState({});
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -28,6 +26,18 @@ const Dashboard = () => {
   const typingTimeoutRef = useRef(null);
 
   const BACKEND_URL = 'http://localhost:8000';
+
+  // Helper helper: Safely moves a specific user identity item element right up to index position 0
+  const reorderUserListToTop = (senderId) => {
+    setUsers((prevUsers) => {
+      const userIndex = prevUsers.findIndex((u) => u._id === senderId);
+      if (userIndex <= 0) return prevUsers; // Already at the top layer or not present in list
+      
+      const updatedUsersList = [...prevUsers];
+      const [targetUser] = updatedUsersList.splice(userIndex, 1);
+      return [targetUser, ...updatedUsersList];
+    });
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -57,17 +67,17 @@ const Dashboard = () => {
     };
   }, [user]);
 
-  // Handle incoming real-time messages with unread notification badge routing math rules
   useEffect(() => {
     if (!socketRef.current) return;
 
     socketRef.current.off('receive_private_message');
     socketRef.current.on('receive_private_message', (incomingMessage) => {
-      // Case A: Message belongs to the active, open chat screen -> append to stream instantly
+      // 1. Move the user who just chatted you directly up to the top of the sidebar row instantly
+      reorderUserListToTop(incomingMessage.sender);
+
       if (activePartner && (incomingMessage.sender === activePartner._id || incomingMessage.receiver === activePartner._id)) {
         setMessages((prev) => [...prev, incomingMessage]);
       } else {
-        // Case B: Message is from someone else in the background -> increment their unread counter badge
         setUnreadMessages((prev) => ({
           ...prev,
           [incomingMessage.sender]: (prev[incomingMessage.sender] || 0) + 1
@@ -92,7 +102,6 @@ const Dashboard = () => {
     };
     fetchChatLogs();
 
-    // Reset unread count for this user immediately upon opening their room view
     setUnreadMessages((prev) => ({
       ...prev,
       [activePartner._id]: 0
@@ -146,6 +155,10 @@ const Dashboard = () => {
       if (res.ok) {
         setMessages((prev) => [...prev, storedMessageRecord]);
         socketRef.current.emit('send_private_message', storedMessageRecord);
+        
+        // 2. Move the user you just texted right up to the top of your layout array list view instantly
+        reorderUserListToTop(activePartner._id);
+        
         setTypedMessage('');
       }
     } catch (err) {
@@ -185,7 +198,7 @@ const Dashboard = () => {
               activePartner={activePartner}
               typingUserMaps={typingUserMaps}
               currentUserId={user._id}
-              unreadCount={unreadMessages[item._id] || 0} // Map unread counter state explicitly
+              unreadCount={unreadMessages[item._id] || 0}
               onSelect={() => {
                 setActivePartner(item);
                 setSidebarOpen(false);
