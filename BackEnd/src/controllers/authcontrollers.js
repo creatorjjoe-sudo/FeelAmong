@@ -66,12 +66,14 @@ export const signin = async (req, res) => {
 // Fetch every user except yourself to establish a dynamic directory listing
 export const getAllUsers = async (req, res) => {
     try {
-        const directoryUsers = await User.find({ _id: { $ne: req.user._id } }).select('-password');
+        // Fetches username, email, and profilePic while explicitly hiding passwords
+        const directoryUsers = await User.find({ _id: { $ne: req.user._id } }).select('username email profilePic');
         res.status(200).json(directoryUsers);
     } catch (error) {
         res.status(500).json({ message: 'Failed to extract directory roster', error: error.message });
     }
 };
+
 
 // Explicit profile update routine controller action configuration block
 export const updateProfile = async (req, res) => {

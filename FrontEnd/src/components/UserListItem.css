@@ -3,7 +3,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
-  padding: 15px 20px;
+  padding: 12px 20px;
   border-bottom: 1px solid #edf0f5;
   cursor: pointer;
   transition: background 0.15s;
@@ -20,11 +20,37 @@
 .user-item-row {
   width: 100%;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  align-items: center; /* Aligns avatar image and text perfectly straight horizontally */
+  gap: 12px;           /* Adds clean spacing between avatar bubble and name string */
 }
 
 .user-name {
   font-weight: 500;
   font-size: 15px;
+  color: #222;
+}
+
+/* Sidebar Listing Profile Image Avatar Circles Enginery Styles */
+.avatar-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #ccd1d9;
+  flex-shrink: 0;
+}
+
+.avatar-fallback {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
