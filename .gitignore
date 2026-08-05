@@ -10,4 +10,4 @@ frontend/dist/
 *.log
 .DS_Store
 
-note.md
+README.md

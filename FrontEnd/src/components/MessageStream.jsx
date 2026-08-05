@@ -2,10 +2,13 @@ import React from 'react';
 
 const MessageStream = ({ messages, currentUserId, messageEndRef }) => {
   
-  const formatSmartTimestamp = (dateString) => {
-    if (!dateString) return '';
+  const formatSmartTimestamp = (msg) => {
+    if (msg.status === 'sending') return 'sending';
+    if (msg.status === 'sent') return 'sent';
+
+    if (!msg.createdAt) return '';
     const now = new Date();
-    const past = new Date(dateString);
+    const past = new Date(msg.createdAt);
     const msDifference = now - past;
     
     const minsAgo = Math.floor(msDifference / 60000);
@@ -68,7 +71,21 @@ const MessageStream = ({ messages, currentUserId, messageEndRef }) => {
         }
 
         const isMe = msg.sender === currentUserId;
-        const showTimestamp = clusterPosition === 'last' || clusterPosition === 'single';
+        const isAbsoluteLastMessage = index === messages.length - 1;
+
+        let shouldBeVisible = clusterPosition === 'last' || clusterPosition === 'single' || isAbsoluteLastMessage;
+
+        if (nextMsg && isAbsoluteLastMessage === false && index === messages.length - 2) {
+          if (nextMsg.status === 'sending') {
+            shouldBeVisible = true;
+          }
+        }
+
+        if (nextMsg && index === messages.length - 2 && isSameUserAsNext) {
+          if (nextMsg.status === 'sent' || nextMsg.status === 'displayed') {
+            shouldBeVisible = false;
+          }
+        }
 
         return (
           <div 
@@ -77,10 +94,9 @@ const MessageStream = ({ messages, currentUserId, messageEndRef }) => {
             style={{ 
               marginTop: isConnectedToPrev ? '-12px' : '0px',
               flexDirection: 'column',
-              alignItems: isMe ? 'flex-end' : 'flex-start' /* Forces child elements to stick strictly to their sides */
+              alignItems: isMe ? 'flex-end' : 'flex-start'
             }}
           >
-            {/* Uniform text bubble bubble alignment */}
             <div 
               className={`msg-bubble ${isMe ? 'sent' : 'received'} ${clusterPosition}`}
               style={{ alignSelf: isMe ? 'flex-end' : 'flex-start' }}
@@ -88,19 +104,12 @@ const MessageStream = ({ messages, currentUserId, messageEndRef }) => {
               {msg.text}
             </div>
             
-            {showTimestamp && (
-              <span style={{
-                fontSize: '11px',
-                color: '#797775',
-                marginTop: '4px',
-                marginBottom: '8px',
-                fontWeight: '500',
-                alignSelf: isMe ? 'flex-end' : 'flex-start', /* Keeps timestamps bound right below their bubble edges */
-                padding: isMe ? '0 10px 0 0' : '0 0 0 10px'
-              }}>
-                {formatSmartTimestamp(msg.createdAt)}
-              </span>
-            )}
+            <span className={`msg-timestamp-holder ${shouldBeVisible ? 'visible' : 'hidden'}`} style={{
+              alignSelf: isMe ? 'flex-end' : 'flex-start',
+              padding: isMe ? '0 10px 0 0' : '0 0 0 10px'
+            }}>
+              {formatSmartTimestamp(msg)}
+            </span>
           </div>
         );
       })}

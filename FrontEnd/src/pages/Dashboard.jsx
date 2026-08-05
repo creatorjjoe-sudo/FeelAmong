@@ -78,7 +78,7 @@ const Dashboard = () => {
       reorderUserListToTop(incomingMessage.sender);
 
       if (activePartner && (incomingMessage.sender === activePartner._id || incomingMessage.receiver === activePartner._id)) {
-        setMessages((prev) => [...prev, incomingMessage]);
+        setMessages((prev) => [...prev, { ...incomingMessage, status: 'delivered' }]);
       } else {
         setUnreadMessages((prev) => ({
           ...prev,
@@ -97,7 +97,9 @@ const Dashboard = () => {
           headers: { 'Authorization': `Bearer ${user.token}` }
         });
         const data = await res.json();
-        if (res.ok) setMessages(data);
+        if (res.ok) {
+          setMessages(data.map(msg => ({ ...msg, status: 'delivered' })));
+        }
       } catch (err) {
         console.error('Could not restore chat stream history', err);
       }
@@ -141,27 +143,61 @@ const Dashboard = () => {
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     socketRef.current.emit('typing_stop', user._id);
 
-    const customMessagePayload = { receiverId: activePartner._id, text: typedMessage };
+    const messageTextSnapshot = typedMessage;
+    setTypedMessage('');
+
+    const tempClientId = `temp-${Date.now()}`;
+
+    const optimisticMessage = {
+      _id: tempClientId,
+      sender: user._id,
+      receiver: activePartner._id,
+      text: messageTextSnapshot,
+      createdAt: new Date().toISOString(),
+      status: 'sending'
+    };
+
+    setMessages((prev) => [...prev, optimisticMessage]);
+    reorderUserListToTop(activePartner._id);
 
     try {
-      const res = await fetch(`${BACKEND_URL}/api/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.token}`
-        },
-        body: JSON.stringify(customMessagePayload)
-      });
-      const storedMessageRecord = await res.json();
+      // UPGRADED: Explicit delay wrapper forcing the 'sending' state to stay active for 2.5 seconds [STEM-Calculative-Problem-Solving]
+      const [res] = await Promise.all([
+        fetch(`${BACKEND_URL}/api/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${user.token}`
+          },
+          body: JSON.stringify({ receiverId: activePartner._id, text: messageTextSnapshot })
+        }),
+        new Promise((resolve) => setTimeout(resolve, 2500)) // Holds the thread block for exactly 2500 milliseconds [STEM-Calculative-Problem-Solving]
+      ]);
+
+      const savedServerRecord = await res.json();
 
       if (res.ok) {
-        setMessages((prev) => [...prev, storedMessageRecord]);
-        socketRef.current.emit('send_private_message', storedMessageRecord);
-        reorderUserListToTop(activePartner._id);
-        setTypedMessage('');
+        // Transition cleanly from 'sending' into 'sent' after the 2.5s delay clears [STEM-Calculative-Problem-Solving]
+        setMessages((prev) => 
+          prev.map((msg) => 
+            msg._id === tempClientId ? { ...savedServerRecord, status: 'sent' } : msg
+          )
+        );
+
+        socketRef.current.emit('send_private_message', savedServerRecord);
+
+        // Keep the 'sent' confirmation visible for an additional 2.5 seconds before converting to standard timestamps [STEM-Calculative-Problem-Solving]
+        setTimeout(() => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg._id === savedServerRecord._id ? { ...msg, status: 'displayed' } : msg
+            )
+          );
+        }, 2500);
       }
     } catch (err) {
       console.error('Failed processing message requests', err);
+      setMessages((prev) => prev.filter((msg) => msg._id !== tempClientId));
     }
   };
 
@@ -179,7 +215,6 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
-      {/* MOBILE FLOATING TOGGLE ICON TRIGGER */}
       <button 
         className="sidebar-toggle-btn"
         onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -187,7 +222,6 @@ const Dashboard = () => {
         {sidebarOpen ? '✕ Close' : '☰ Menu'}
       </button>
 
-      {/* LEFT SIDEBAR PANEL */}
       <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <SidebarHeader logout={logout} />
         
@@ -209,7 +243,6 @@ const Dashboard = () => {
         </ul>
       </div>
 
-      {/* RIGHT CHAT WINDOW AREA */}
       <div className="chat-window" onClick={() => setSidebarOpen(false)}>
         {activePartner ? (
           <>
