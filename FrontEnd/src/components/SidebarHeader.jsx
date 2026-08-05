@@ -7,7 +7,7 @@ const SidebarHeader = ({ logout }) => {
 
   return (
     <div className="sidebar-header">
-      <h3>Chat Rooms</h3>
+      <h2 style={{color: '#016515'}}>FeelAmong</h2>
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
         <button 
           className="logout-link" 
