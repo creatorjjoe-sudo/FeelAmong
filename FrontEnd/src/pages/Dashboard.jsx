@@ -3,9 +3,13 @@ import { AuthContext } from '../context/AuthContext';
 import { io } from 'socket.io-client';
 import './Dashboard.css';
 
+// Import all modular sub-components cleanly
 import SidebarHeader from '../components/SidebarHeader';
 import UserListItem from '../components/UserListItem';
 import ChatHeader from '../components/ChatHeader';
+import MessageStream from '../components/MessageStream';
+import MessageInputBar from '../components/MessageInputBar';
+import BlankChatState from '../components/BlankChatState';
 
 const Dashboard = () => {
   const { user, logout } = useContext(AuthContext);
@@ -27,11 +31,10 @@ const Dashboard = () => {
 
   const BACKEND_URL = 'http://localhost:8000';
 
-  // Helper helper: Safely moves a specific user identity item element right up to index position 0
   const reorderUserListToTop = (senderId) => {
     setUsers((prevUsers) => {
       const userIndex = prevUsers.findIndex((u) => u._id === senderId);
-      if (userIndex <= 0) return prevUsers; // Already at the top layer or not present in list
+      if (userIndex <= 0) return prevUsers;
       
       const updatedUsersList = [...prevUsers];
       const [targetUser] = updatedUsersList.splice(userIndex, 1);
@@ -72,7 +75,6 @@ const Dashboard = () => {
 
     socketRef.current.off('receive_private_message');
     socketRef.current.on('receive_private_message', (incomingMessage) => {
-      // 1. Move the user who just chatted you directly up to the top of the sidebar row instantly
       reorderUserListToTop(incomingMessage.sender);
 
       if (activePartner && (incomingMessage.sender === activePartner._id || incomingMessage.receiver === activePartner._id)) {
@@ -155,10 +157,7 @@ const Dashboard = () => {
       if (res.ok) {
         setMessages((prev) => [...prev, storedMessageRecord]);
         socketRef.current.emit('send_private_message', storedMessageRecord);
-        
-        // 2. Move the user you just texted right up to the top of your layout array list view instantly
         reorderUserListToTop(activePartner._id);
-        
         setTypedMessage('');
       }
     } catch (err) {
@@ -180,6 +179,7 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
+      {/* MOBILE FLOATING TOGGLE ICON TRIGGER */}
       <button 
         className="sidebar-toggle-btn"
         onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -187,6 +187,7 @@ const Dashboard = () => {
         {sidebarOpen ? '✕ Close' : '☰ Menu'}
       </button>
 
+      {/* LEFT SIDEBAR PANEL */}
       <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <SidebarHeader logout={logout} />
         
@@ -208,6 +209,7 @@ const Dashboard = () => {
         </ul>
       </div>
 
+      {/* RIGHT CHAT WINDOW AREA */}
       <div className="chat-window" onClick={() => setSidebarOpen(false)}>
         {activePartner ? (
           <>
@@ -218,59 +220,20 @@ const Dashboard = () => {
               currentUserId={user._id}
             />
             
-            <div className="message-stream">
-              {messages.map((msg, index) => {
-                const currentMsgTime = new Date(msg.createdAt);
-                
-                const prevMsg = index > 0 ? messages[index - 1] : null;
-                const isSameUserAsPrev = prevMsg && prevMsg.sender === msg.sender;
-                const isWithinOneMinuteOfPrev = prevMsg && (currentMsgTime - new Date(prevMsg.createdAt)) <= 60000;
-                const isConnectedToPrev = isSameUserAsPrev && isWithinOneMinuteOfPrev;
+            <MessageStream 
+              messages={messages} 
+              currentUserId={user._id} 
+              messageEndRef={messageEndRef} 
+            />
 
-                const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
-                const isSameUserAsNext = nextMsg && nextMsg.sender === msg.sender;
-                const isWithinOneMinuteOfNext = nextMsg && (new Date(nextMsg.createdAt) - currentMsgTime) <= 60000;
-                const isConnectedToNext = isSameUserAsNext && isWithinOneMinuteOfNext;
-
-                let clusterPosition = 'single';
-                if (isConnectedToPrev && isConnectedToNext) {
-                  clusterPosition = 'middle';
-                } else if (!isConnectedToPrev && isConnectedToNext) {
-                  clusterPosition = 'first';
-                } else if (isConnectedToPrev && !isConnectedToNext) {
-                  clusterPosition = 'last';
-                }
-
-                return (
-                  <div 
-                    key={msg._id} 
-                    className={`message-row ${msg.sender === user._id ? 'sent' : 'received'}`}
-                    style={{ marginTop: isConnectedToPrev ? '-12px' : '0px' }}
-                  >
-                    <div className={`msg-bubble ${msg.sender === user._id ? 'sent' : 'received'} ${clusterPosition}`}>
-                      {msg.text}
-                    </div>
-                  </div>
-                );
-              })}
-              <div ref={messageEndRef} />
-            </div>
-
-            <form className="chat-input-bar" onSubmit={sendChatMessage}>
-              <input 
-                type="text" 
-                placeholder="Type your message here..." 
-                value={typedMessage}
-                onChange={handleInputChange}
-                required
-              />
-              <button type="submit" className="chat-send-btn">Send</button>
-            </form>
+            <MessageInputBar 
+              typedMessage={typedMessage} 
+              onChange={handleInputChange} 
+              onSubmit={sendChatMessage} 
+            />
           </>
         ) : (
-          <div className="chat-blank-state">
-            <p>Select a user from the directory side list layout pane to begin chatting</p>
-          </div>
+          <BlankChatState />
         )}
       </div>
     </div>
