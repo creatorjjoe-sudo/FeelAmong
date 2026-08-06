@@ -3,7 +3,7 @@
   margin: 80px auto;
   padding: 30px;
   background: #ffffff;
-  border-radius: 8px;
+  border-radius: 30px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.05);
 }
 
@@ -38,7 +38,7 @@
 .form-input {
   width: 100%;
   padding: 10px;
-  border: 1px solid #ccd1d9;
+  border: 1px solid #ecedee;
   border-radius: 4px;
   font-size: 15px;
   transition: border 0.2s;

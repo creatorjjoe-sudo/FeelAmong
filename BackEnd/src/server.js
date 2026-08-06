@@ -6,8 +6,8 @@ import http from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import authRoutes from './routes/authRoutes.js';
-import messageRoutes from './routes/messageRoutes.js';
+import authRoutes from './routes/authroutes.js';
+import messageRoutes from './routes/messageroutes.js';
 
 dotenv.config();
 
