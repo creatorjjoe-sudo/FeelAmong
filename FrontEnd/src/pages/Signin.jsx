@@ -1,13 +1,16 @@
 import { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import './Auth.css'; // Load Localized Authentication Styles
+import './Auth.css'; 
 
 const Signin = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  // UPGRADED: Dynamic workspace route extraction fallback rules
+  const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -17,7 +20,8 @@ const Signin = () => {
     e.preventDefault();
     setError('');
     try {
-      const res = await fetch('http://localhost:8000/api/auth/signin', {
+      // UPGRADED: Using dynamic environment URL variable mapping
+      const res = await fetch(`${BACKEND_URL}/api/auth/signin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

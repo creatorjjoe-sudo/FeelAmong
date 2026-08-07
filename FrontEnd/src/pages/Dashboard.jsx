@@ -1,9 +1,7 @@
 import { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { io } from 'socket.io-client';
 import './Dashboard.css';
 
-// Import all modular sub-components cleanly
 import SidebarHeader from '../components/SidebarHeader';
 import UserListItem from '../components/UserListItem';
 import ChatHeader from '../components/ChatHeader';
@@ -12,7 +10,8 @@ import MessageInputBar from '../components/MessageInputBar';
 import BlankChatState from '../components/BlankChatState';
 
 const Dashboard = () => {
-  const { user, logout } = useContext(AuthContext);
+  // UPGRADED: Grabbing the global socket state directly from context
+  const { user, socket, logout } = useContext(AuthContext);
   const [users, setUsers] = useState([]);
   const [activePartner, setActivePartner] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -24,12 +23,11 @@ const Dashboard = () => {
   const [unreadMessages, setUnreadMessages] = useState({});
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const socketRef = useRef(null);
   const messageEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
-  const BACKEND_URL = 'http://localhost:8000';
+  // Dynamic variable assignment
+  const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
   const reorderUserListToTop = (senderId) => {
     setUsers((prevUsers) => {
@@ -56,25 +54,25 @@ const Dashboard = () => {
     };
     fetchUsers();
 
-    socketRef.current = io(BACKEND_URL);
-    socketRef.current.emit('user_connected', user._id);
+    if (!socket) return;
 
-    socketRef.current.on('presence_update', ({ onlineUsers, activeChatPartners, typingStatus }) => {
+    // Listen to live presence updates
+    socket.on('presence_update', ({ onlineUsers, activeChatPartners, typingStatus }) => {
       setOnlineUserIds(onlineUsers);
       setPartnerChatMaps(activeChatPartners);
       setTypingUserMaps(typingStatus || {});
     });
 
     return () => {
-      if (socketRef.current) socketRef.current.disconnect();
+      socket.off('presence_update');
     };
-  }, [user]);
+  }, [user, socket]);
 
   useEffect(() => {
-    if (!socketRef.current) return;
+    if (!socket) return;
 
-    socketRef.current.off('receive_private_message');
-    socketRef.current.on('receive_private_message', (incomingMessage) => {
+    socket.off('receive_private_message');
+    socket.on('receive_private_message', (incomingMessage) => {
       reorderUserListToTop(incomingMessage.sender);
 
       if (activePartner && (incomingMessage.sender === activePartner._id || incomingMessage.receiver === activePartner._id)) {
@@ -86,10 +84,14 @@ const Dashboard = () => {
         }));
       }
     });
-  }, [activePartner]);
+
+    return () => {
+      socket.off('receive_private_message');
+    };
+  }, [activePartner, socket]);
 
   useEffect(() => {
-    if (!activePartner) return;
+    if (!activePartner || !socket) return;
 
     const fetchChatLogs = async () => {
       try {
@@ -111,12 +113,12 @@ const Dashboard = () => {
       [activePartner._id]: 0
     }));
 
-    socketRef.current.emit('enter_chat_view', { userId: user._id, partnerId: activePartner._id });
+    socket.emit('enter_chat_view', { userId: user._id, partnerId: activePartner._id });
 
     return () => {
-      if (socketRef.current) socketRef.current.emit('leave_chat_view', user._id);
+      socket.emit('leave_chat_view', user._id);
     };
-  }, [activePartner, user._id]);
+  }, [activePartner, user._id, socket]);
 
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -125,14 +127,14 @@ const Dashboard = () => {
   const handleInputChange = (e) => {
     setTypedMessage(e.target.value);
 
-    if (!activePartner || !socketRef.current) return;
+    if (!activePartner || !socket) return;
 
-    socketRef.current.emit('typing_start', { userId: user._id, partnerId: activePartner._id });
+    socket.emit('typing_start', { userId: user._id, partnerId: activePartner._id });
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
     typingTimeoutRef.current = setTimeout(() => {
-        socketRef.current.emit('typing_stop', user._id);
+        socket.emit('typing_stop', user._id);
     }, 1500);
   };
 
@@ -141,7 +143,7 @@ const Dashboard = () => {
     if (!typedMessage.trim() || !activePartner) return;
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    socketRef.current.emit('typing_stop', user._id);
+    if (socket) socket.emit('typing_stop', user._id);
 
     const messageTextSnapshot = typedMessage;
     setTypedMessage('');
@@ -161,7 +163,6 @@ const Dashboard = () => {
     reorderUserListToTop(activePartner._id);
 
     try {
-      // UPGRADED: Explicit delay wrapper forcing the 'sending' state to stay active for 2.5 seconds [STEM-Calculative-Problem-Solving]
       const [res] = await Promise.all([
         fetch(`${BACKEND_URL}/api/messages`, {
           method: 'POST',
@@ -171,22 +172,20 @@ const Dashboard = () => {
           },
           body: JSON.stringify({ receiverId: activePartner._id, text: messageTextSnapshot })
         }),
-        new Promise((resolve) => setTimeout(resolve, 2500)) // Holds the thread block for exactly 2500 milliseconds [STEM-Calculative-Problem-Solving]
+        new Promise((resolve) => setTimeout(resolve, 2500))
       ]);
 
       const savedServerRecord = await res.json();
 
       if (res.ok) {
-        // Transition cleanly from 'sending' into 'sent' after the 2.5s delay clears [STEM-Calculative-Problem-Solving]
         setMessages((prev) => 
           prev.map((msg) => 
             msg._id === tempClientId ? { ...savedServerRecord, status: 'sent' } : msg
           )
         );
 
-        socketRef.current.emit('send_private_message', savedServerRecord);
+        if (socket) socket.emit('send_private_message', savedServerRecord);
 
-        // Keep the 'sent' confirmation visible for an additional 2.5 seconds before converting to standard timestamps [STEM-Calculative-Problem-Solving]
         setTimeout(() => {
           setMessages((prev) =>
             prev.map((msg) =>
@@ -215,16 +214,12 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
-      <button 
-        className="sidebar-toggle-btn"
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-      >
+      <button className="sidebar-toggle-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
         {sidebarOpen ? '✕ Close' : '☰ Menu'}
       </button>
 
       <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <SidebarHeader logout={logout} />
-        
         <ul className="user-list" style={{ listStyle: 'none', padding: 0 }}>
           {users.map((item) => (
             <UserListItem 
@@ -252,18 +247,8 @@ const Dashboard = () => {
               typingUserMaps={typingUserMaps}
               currentUserId={user._id}
             />
-            
-            <MessageStream 
-              messages={messages} 
-              currentUserId={user._id} 
-              messageEndRef={messageEndRef} 
-            />
-
-            <MessageInputBar 
-              typedMessage={typedMessage} 
-              onChange={handleInputChange} 
-              onSubmit={sendChatMessage} 
-            />
+            <MessageStream messages={messages} currentUserId={user._id} messageEndRef={messageEndRef} />
+            <MessageInputBar typedMessage={typedMessage} onChange={handleInputChange} onSubmit={sendChatMessage} />
           </>
         ) : (
           <BlankChatState />
