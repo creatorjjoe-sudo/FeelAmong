@@ -1,137 +1,229 @@
+/* Update :root section at the very top (lines 1-13) */
 :root {
-  --primary-color: #00ba00;
+  --primary-color: #00ba00; /* Re-confirming your brand green */
   --primary-hover: #009f00;
-  --bg-color: #f4f6f8;
+  --primary-color-blue: #0000ff; /* The blue color for Create Account section */
+  --bg-color: #f7f9fa; /* Lighter background for the surrounding area */
   --card-bg: #ffffff;
   --text-main: #1c1e21;
-  --text-muted: #65676b;
-  --border-color: #e4e6eb;
-  --danger-color: #e41e3f;
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --text-muted: #6c757d;
+  --border-color: #dee2e6;
+  --divider-color: #ccc;
+  --danger-color: #dc3545;
+  --radius-sm: 4px;
+  --radius-md: 10px;
+  --shadow-main: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
 
+/* Modify * reset and body (lines 15-25) */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: Arial, sans-serif; /* Simplified for the reference design */
 }
 
 body {
   background-color: var(--bg-color);
   color: var(--text-main);
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
-/* Common Container for Auth Forms */
-.auth-container {
+/* ADD THIS NEW BLOCK: Layout for the new Login Screen */
+/* Replace the existing .page-container block with this: */
+.page-container {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: 20px;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
-.auth-card {
-  background: var(--card-bg);
-  padding: 32px;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+/* Replace the existing .login-frame block with this: */
+.login-frame {
+  background-color: var(--card-bg);
   width: 100%;
-  max-width: 400px;
-  text-align: center;
+  height: 100%;
+  max-width: none; /* Removes max-width constraint */
+  border: none;    /* Removes outer card border */
+  border-radius: 0;/* Removes rounded corners */
+  box-shadow: none;
+  display: flex;
 }
 
-.auth-card h2 {
-  margin-bottom: 8px;
+/* ADD THIS NEW BLOCK: Left Sidebar Styling */
+.login-left {
+  flex: 0 0 35%; /* Fixed width for left side */
+  padding: 40px;
+  border-right: 1px solid var(--divider-color);
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-green {
   color: var(--primary-color);
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
 }
 
-.auth-card p {
+.sub-text {
   color: var(--text-muted);
   font-size: 14px;
-  margin-bottom: 24px;
+  margin-bottom: 8px;
 }
 
-.form-group {
-  margin-bottom: 16px;
-  text-align: left;
+.learn-more {
+  color: var(--text-muted);
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+  margin-bottom: 25px;
 }
 
-.form-group label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
+.info-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 25px;
+}
+
+.info-icon {
+  width: 40px;
+  height: 40px;
+  margin-right: 15px;
+  flex-shrink: 0;
+}
+
+.info-content h3 {
+  font-size: 20px;
+  font-weight: 700;
   margin-bottom: 6px;
-  color: var(--text-main);
 }
 
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  outline: none;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-  border-color: var(--primary-color);
-}
-
-.btn-primary {
-  width: 100%;
-  padding: 11px;
-  background-color: var(--primary-color);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 8px;
-}
-
-.btn-primary:hover {
-  background-color: var(--primary-hover);
-}
-
-.btn-secondary {
-  width: 100%;
-  padding: 11px;
-  background-color: transparent;
-  color: var(--text-muted);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  cursor: pointer;
+.action-row {
+  display: flex;
+  align-items: center;
   margin-top: 10px;
 }
 
-.btn-secondary:hover {
-  background-color: #f0f2f5;
-}
-
-.auth-switch {
-  margin-top: 20px;
-  font-size: 14px;
-  color: var(--text-muted);
-}
-
-.auth-switch span {
-  color: var(--primary-color);
+.small-info-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
   cursor: pointer;
-  font-weight: 600;
 }
 
-.error-msg {
-  background-color: #ffebe9;
-  color: var(--danger-color);
-  padding: 8px 12px;
+.btn-green {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
   border-radius: var(--radius-sm);
+  padding: 6px 15px;
   font-size: 13px;
-  margin-bottom: 16px;
+  cursor: pointer;
+}
+
+.btn-green:hover {
+  background-color: var(--primary-hover);
+}
+
+.color-blue {
+  color: var(--primary-color-blue);
+}
+
+/* ADD THIS NEW BLOCK: Right Main Panel Styling */
+.login-right {
+  flex: 1; /* Takes remaining space */
+  padding: 40px 60px;
+  display: flex;
+  flex-direction: column;
+}
+
+.top-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 50px;
+}
+
+.search-container {
+  position: relative;
+  width: 100%;
+  max-width: 280px;
+  margin-right: 20px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px 8px 35px; /* Leave space for icon */
+  border: 1px solid var(--divider-color);
+  border-radius: 20px; /* Fully rounded search */
+  font-size: 13px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+}
+
+.mode-toggle {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.login-header-group {
+  display: flex;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.login-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-right: 20px;
+}
+
+.login-status-icon {
+  width: 50px;
+  height: 50px;
+}
+
+.details-prompt {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 30px;
+}
+
+.login-form {
+  width: 100%;
+  max-width: 320px;
+}
+
+/* Input Styling specific to image (bottom-border only) */
+.underlined-input {
+  width: 100%;
+  padding: 10px 0;
+  border: none;
+  border-bottom: 1px solid var(--divider-color);
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 15px;
+}
+
+.underlined-input:focus {
+  border-bottom-color: var(--primary-color);
+}
+
+.login-right .btn-primary {
+  width: auto;
+  min-width: 80px;
+  margin-top: 20px;
+  padding: 10px 20px;
+  align-self: flex-start; /* Correct width for button */
 }
