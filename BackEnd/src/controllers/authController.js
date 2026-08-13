@@ -3,14 +3,12 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d',
-  });
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
 const registerUser = async (req, res) => {
   try {
-    const { email, username, password, dateOfBirth } = req.body;
+    const { email, username, password, dateOfBirth, sex, status, from, bio } = req.body;
 
     if (!email || !username || !password) {
       return res.status(400).json({ message: 'Please add all required fields' });
@@ -29,19 +27,19 @@ const registerUser = async (req, res) => {
       username,
       password: hashedPassword,
       dateOfBirth: dateOfBirth || '',
+      sex: sex || '',
+      status: status || 'Single',
+      from: from || '',
+      bio: bio || '',
       isAnonymous: false
     });
 
-    if (user) {
-      res.status(201).json({
-        _id: user._id,
-        username: user.username,
-        email: user.email,
-        token: generateToken(user._id),
-      });
-    } else {
-      res.status(400).json({ message: 'Invalid user data' });
-    }
+    res.status(201).json({
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      token: generateToken(user._id)
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -56,7 +54,7 @@ const loginUser = async (req, res) => {
     }
 
     const user = await User.findOne({
-      $or: [{ email: loginIdentifier }, { username: loginIdentifier }],
+      $or: [{ email: loginIdentifier }, { username: loginIdentifier }]
     });
 
     if (user && (await bcrypt.compare(password, user.password))) {
@@ -64,10 +62,10 @@ const loginUser = async (req, res) => {
         _id: user._id,
         username: user.username,
         email: user.email,
-        token: generateToken(user._id),
+        token: generateToken(user._id)
       });
     } else {
-      res.status(401).json({ message: 'Invalid email/username or password' });
+      res.status(401).json({ message: 'Invalid credentials' });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -80,22 +78,27 @@ const guestLogin = async (req, res) => {
     const guestUser = await User.create({
       username: guestId,
       isAnonymous: true,
-      bio: 'Guest User with limited access'
+      bio: 'Guest User'
     });
 
     res.status(201).json({
       _id: guestUser._id,
       username: guestUser.username,
       isAnonymous: true,
-      token: generateToken(guestUser._id),
+      token: generateToken(guestUser._id)
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = {
-  registerUser,
-  loginUser,
-  guestLogin,
+const getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
+
+module.exports = { registerUser, loginUser, guestLogin, getProfile };

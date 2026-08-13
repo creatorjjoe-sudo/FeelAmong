@@ -4,7 +4,7 @@ const userSchema = new mongoose.Schema(
   {
     email: {
       type: String,
-      required: function() { return !this.isAnonymous; },
+      required: function () { return !this.isAnonymous; },
       unique: true,
       sparse: true,
       lowercase: true,
@@ -12,44 +12,24 @@ const userSchema = new mongoose.Schema(
     },
     username: {
       type: String,
-      required: function() { return !this.isAnonymous; },
+      required: function () { return !this.isAnonymous; },
       unique: true,
       sparse: true,
       trim: true
     },
     password: {
       type: String,
-      required: function() { return !this.isAnonymous; }
+      required: function () { return !this.isAnonymous; }
     },
-    dateOfBirth: {
-      type: String,
-    },
-    sex: {
-      type: String,
-    },
-    status: {
-      type: String,
-      default: 'Single'
-    },
-    from: {
-      type: String,
-    },
-    bio: {
-      type: String,
-      default: ''
-    },
-    avatar: {
-      type: String,
-      default: ''
-    },
-    isAnonymous: {
-      type: Boolean,
-      default: false
-    }
+    dateOfBirth: { type: String, default: '' },
+    sex: { type: String, default: '' },
+    status: { type: String, default: 'Single' },
+    from: { type: String, default: '' },
+    bio: { type: String, default: '' },
+    avatar: { type: String, default: '' },
+    isAnonymous: { type: Boolean, default: false }
   },
-  {
-    timestamps: true
-  }
+  { timestamps: true }
 );
 
 module.exports = mongoose.model('User', userSchema);
