@@ -1,15 +1,13 @@
-import express from 'express';
-import { signup, signin, getAllUsers, updateProfile } from '../controllers/authcontrollers.js';
-import { protect } from '../middleware/authmiddleware.js';
-import upload from '../middleware/uploadMiddleware.js';
-
+const express = require('express');
 const router = express.Router();
+const {
+  registerUser,
+  loginUser,
+  guestLogin,
+} = require('../controllers/authController');
 
-router.post('/signup', signup);
-router.post('/signin', signin);
-router.get('/users', protect, getAllUsers);
+router.post('/signup', registerUser);
+router.post('/login', loginUser);
+router.post('/guest', guestLogin);
 
-// Profile patch endpoint mapping configuration passing upload middleware layer explicitly
-router.put('/profile', protect, upload.single('profilePic'), updateProfile);
-
-export default router;
+module.exports = router;
