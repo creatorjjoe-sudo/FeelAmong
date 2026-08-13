@@ -1,7 +1,9 @@
 const express = require('express');
+const http = require('http'); // 1. Import HTTP module
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/db');
+const { initSocket } = require('./config/socket'); // 2. Import Socket Config
 
 const authRoutes = require('./routes/authRoutes');
 const postRoutes = require('./routes/postRoutes');
@@ -24,8 +26,13 @@ app.use('/api/posts', postRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/videos', videoRoutes);
 
+// 3. Create HTTP Server & Pass to Socket.io
+const server = http.createServer(app);
+initSocket(server);
+
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// 4. Listen on HTTP Server instead of express app
+server.listen(PORT, () => {
+  console.log(`Server & Socket.io running on port ${PORT}`);
 });

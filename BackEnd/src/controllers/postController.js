@@ -1,4 +1,5 @@
 const Post = require('../models/Post');
+const { getIO } = require('../config/socket');
 
 // Create Post
 const createPost = async (req, res) => {
@@ -14,6 +15,14 @@ const createPost = async (req, res) => {
     });
 
     const populatedPost = await post.populate('user', 'username avatar');
+
+    // Real-time broadcast for new post added to feed
+    try {
+      getIO().emit('new_post_created', populatedPost);
+    } catch (err) {
+      console.log('Socket error:', err.message);
+    }
+
     res.status(201).json(populatedPost);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -46,7 +55,22 @@ const toggleLikePost = async (req, res) => {
     }
 
     await post.save();
-    res.json({ likesCount: post.likes.length, isLiked: !isLiked });
+
+    const payload = {
+      postId: post._id,
+      likesCount: post.likes.length,
+      userId: req.user._id,
+      isLiked: !isLiked
+    };
+
+    // Broadcast updated like count to everyone online
+    try {
+      getIO().emit('post_liked_updated', payload);
+    } catch (err) {
+      console.log('Socket error:', err.message);
+    }
+
+    res.json(payload);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

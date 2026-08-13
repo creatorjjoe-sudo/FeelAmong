@@ -1,4 +1,5 @@
 const Message = require('../models/Message');
+const { getIO } = require('../config/socket');
 
 const sendMessage = async (req, res) => {
   try {
@@ -10,6 +11,14 @@ const sendMessage = async (req, res) => {
       recipient: recipientId,
       text
     });
+
+    // Real-Time Socket Emit to Recipient's Room
+    try {
+      const io = getIO();
+      io.to(recipientId).emit('receive_message', message);
+    } catch (err) {
+      console.log('Socket emit error:', err.message);
+    }
 
     res.status(201).json(message);
   } catch (error) {
