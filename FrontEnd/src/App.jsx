@@ -1,26 +1,31 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { AuthContext } from './context/AuthContext';
-import Signin from './pages/Signin';
-import Signup from './pages/Signup';
-import Dashboard from './pages/Dashboard';
-import Profile from './pages/Profile';
-import './App.css'; // Load App-specific style architecture
+import Login from './pages/Login';
+import Register from './pages/Register';
 
 function App() {
-  const { user } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
+  const [isRegistering, setIsRegistering] = useState(false);
+
+  if (!user) {
+    return isRegistering ? (
+      <Register onSwitchToLogin={() => setIsRegistering(false)} />
+    ) : (
+      <Login onSwitchToRegister={() => setIsRegistering(true)} />
+    );
+  }
 
   return (
-    <div className="app-viewport">
-      <Router>
-        <Routes>
-          <Route path="/" element={user ? <Dashboard /> : <Navigate to="/signin" />} />
-          <Route path="/profile" element={user ? <Profile /> : <Navigate to="/signin" />} />
-          <Route path="/signin" element={!user ? <Signin /> : <Navigate to="/" />} />
-          <Route path="/signup" element={!user ? <Signup /> : <Navigate to="/" />} />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </Router>
+    <div style={{ padding: '20px', textStyle: 'center' }}>
+      <h1>Welcome to feelamong, {user.username}!</h1>
+      {user.isAnonymous && <p style={{ color: 'orange' }}>(Guest Account)</p>}
+      <button 
+        onClick={logout} 
+        className="btn-primary" 
+        style={{ width: 'auto', padding: '8px 16px', marginTop: '16px' }}
+      >
+        Log Out
+      </button>
     </div>
   );
 }
