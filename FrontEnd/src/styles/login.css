@@ -1,0 +1,72 @@
+
+
+.login-container {
+ display: flex;
+ background-color: #333;
+ height: 100%;
+ gap: 5px;
+}
+
+.login-container p {
+ font-size: large;
+ color: #595959;
+}
+
+.login-container p  {
+ font-size: large;
+ color: #595959;
+}
+
+.login-container p div {
+ display: flex;
+ width: fit-content;
+ height: 20px;
+ gap: 5px;
+ cursor: pointer;
+}
+
+.login-container p span {
+ display: flex;
+ align-items: center;
+ background-color: #e2e7ee;
+ padding: 3px;
+ border-radius: 5px;
+ font-weight: bold;
+}
+.app-logo {
+ width: 200px;
+}
+
+.screen {
+ display: flex;
+ flex-direction: column;
+ gap: 20px;
+ background: white;
+ width: 100%;
+ padding: 20px;
+}
+
+.option-container {
+ display: flex;
+ background: white;
+ gap: 10px;
+}
+
+.user-green {
+ width: 50px;
+ height: 50px;
+}
+
+.option.login {
+ border: solid #3d4489 2px;
+ border-radius: 20px;
+ padding: 10px;
+}
+
+.option.login h2 {
+ margin-bottom: 10px;
+}
+
+.info {
+ height: 15px;
+}
