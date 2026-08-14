@@ -1,9 +1,9 @@
 import React from 'react'
-import Login from './pages/Login'
+import WelcomePage from './pages/WelcomePage'
 
 function App() {
   return (
-    <Login/>
+    <WelcomePage/>
   )
 }
 
