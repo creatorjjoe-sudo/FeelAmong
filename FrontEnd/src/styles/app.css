@@ -1,0 +1,13 @@
+.mobile-container {
+ display: none;
+}
+
+@media screen and (max-width: 800px) {
+  .desktop-container {
+   display: none;
+  }
+
+  .mobile-container {
+   display: block;
+  }
+}

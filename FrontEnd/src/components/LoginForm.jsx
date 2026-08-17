@@ -7,26 +7,34 @@ function LoginForm() {
   const showpassword = () => {
     setPassword(!password)
   }
-  return ( 
+
+  
+  return (
     <form className="screen middle login">
-        <div className='form-header'>
-          <h1>Login</h1> <img className='user-icon-login' src={ICONS.userGreen} alt="user-check" />
-        </div>
-        <h3>Enter details below</h3>
 
-        <div className="input-container email">
-          <input type="text" id='email' placeholder='' />
-          <label htmlFor="email">Email or username</label>
-        </div>
-        <div className="input-container password">
-          <input type={password ? 'text' : 'password'} id='password' placeholder='' />
-          <label htmlFor="password">Password</label>
-          <p className='show-password' onClick={showpassword}>{password ? 'Hide' : 'Show'}</p>
-        </div>
+      <div className='search-container second'>
+        <img src={ICONS.search} alt="" />
+        <img src={ICONS.themeToggle} alt="" />
+      </div>
 
-        <button className='submit' type='submit'>Login</button>
+      <div className='form-header'>
+        <h1>Login</h1> <img className='user-icon-login' src={ICONS.userGreen} alt="user-check" />
+      </div>
+      <h3>Enter details below</h3>
 
-      </form>
+      <div className="input-container email">
+        <input type="text" id='email' placeholder='' />
+        <label htmlFor="email">Email or username</label>
+      </div>
+      <div className="input-container password">
+        <input type={password ? 'text' : 'password'} id='password' placeholder='' />
+        <label htmlFor="password">Password</label>
+        <p className='show-password' onClick={showpassword}>{password ? 'Hide' : 'Show'}</p>
+      </div>
+
+      <button className='submit' type='submit'>Login</button>
+
+    </form>
   )
 }
 
