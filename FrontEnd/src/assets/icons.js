@@ -6,6 +6,7 @@ import search from './icons/search.png';
 import themeToggle from './icons/theme-toggle.png';
 import appLogo from './icons/app-logo.png';
 import arrowForward from './icons/arrow-forward.png'
+import avata from './icons/avata.png'
 
 export const ICONS = {
   userGreen,
@@ -16,4 +17,5 @@ export const ICONS = {
   themeToggle,
   appLogo,
   arrowForward,
+  avata,
 };

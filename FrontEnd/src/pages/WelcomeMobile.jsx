@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ICONS } from '../assets/icons'
-import '../styles/login.css'
+import '../styles/components/welcome/login.css'
 
 function WelcomeMobile({setOption, activeOption}) {
   const navigate = useNavigate()

@@ -177,6 +177,14 @@
  height: fit-content;
  width: fit-content;
  align-self: center;
+ background: #00ba00;
+ border: none;
+ padding: 10px 20px;
+ color: white;
+ border-radius: 20px;
+ font-size: 18px;
+ font-weight: bold;
+ justify-self: center; cursor: pointer;
 }
 
 .search-container {

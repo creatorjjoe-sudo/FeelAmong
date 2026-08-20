@@ -1,10 +1,16 @@
 import React from 'react'
 import { ICONS } from '../assets/icons'
-import '../styles/login.css'
-import LoginForm from '../components/LoginForm'
-import SignupForm from '../components/SignupForm'
+import '../styles/components/welcome/login.css'
+import LoginForm from '../components/welcome/LoginForm'
+import SignupForm from '../components/welcome/SignupForm'
+import { useNavigate } from 'react-router-dom'
 
 function WelcomePage({setOption, activeOption}) {
+  const navigate = useNavigate()
+
+  const handleContinue = () => {
+    navigate('/dashboard')
+  }
 
   function loginValue(e) {
     e.preventDefault()
@@ -58,14 +64,14 @@ function WelcomePage({setOption, activeOption}) {
             </p>
             <img className='info' src={ICONS.info} alt="" />
           </div>
-        </div>
+        </div>z
 
       </div>
       <div className="screen-divider"></div>
       
       {activeOption === 'login' && <LoginForm />}
       {activeOption === 'signup' && <SignupForm />}
-      {activeOption === 'no-account' && <button className='continue-btn'>Continue</button>}
+      {activeOption === 'no-account' && <button className='continue-btn' onClick={handleContinue}>Continue</button>}
 
       <div className="screen right">
         <div className='search-container'>
