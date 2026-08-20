@@ -17,7 +17,6 @@
  width: fit-content;
  height: 20px;
  gap: 5px;
- cursor: pointer;
 }
 
 .learn-more span {
@@ -85,6 +84,7 @@
  width: 10px;
  height: 100%;
  background: #939395;
+ cursor: e-resize;
 }
 
 .screen.middle {
