@@ -23,7 +23,7 @@
  width: 100%;
  max-width: 450px;
  background: white;
- transition: left .5s ease;
+ transition: all .5s ease;
 }
 
 .search-wrapper:focus-within {
@@ -70,6 +70,7 @@
  outline: none;
  padding-left: 10px;
  font-size: 18px;
+ color: #4e4e4e;
 }
 
 .search-icon-mobile {

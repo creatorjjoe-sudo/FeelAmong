@@ -39,7 +39,7 @@ function WelcomeMobile({setOption, activeOption}) {
         <div className='option-container login'>
           <img className='user-icon' src={ICONS.userGreen} alt="" />
           <div className={`option ${activeOption === 'login' ? 'active' : ''}`} onClick={loginValue}>
-            <h2>{activeOption === 'login' && 'Loggin in'} {activeOption !== 'login' && 'Login'}</h2>
+            <h2>{activeOption === 'login' && 'Logging in'} {activeOption !== 'login' && 'Login'}</h2>
             <p>With account you can chat other users, comment on people’s posts, like and take other actions </p>
             <img className='info' src={ICONS.info} alt="" />
           </div>
