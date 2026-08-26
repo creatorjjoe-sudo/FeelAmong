@@ -1,9 +1,9 @@
 import React from 'react'
 import { ICONS } from '../assets/icons'
-import '../styles/components/welcome/login.css'
 import LoginForm from '../components/welcome/LoginForm'
 import SignupForm from '../components/welcome/SignupForm'
 import { useNavigate } from 'react-router-dom'
+import '../styles/pages/login.css'
 
 function WelcomePage({setOption, activeOption}) {
   const navigate = useNavigate()
