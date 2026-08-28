@@ -20,8 +20,9 @@ import save from './icons/save-icon.png'
 import saved from './icons/saved-icon.png'
 import share from './icons/share-icon.png'
 import userIcon from './icons/user-icon.png'
+import likedusersicon from './icons/liked-users-icon.png'
 
 
 export const ICONS = {
-  userGreen, userBlack, userBlue, info, search, themeToggle, appLogo, arrowForward, avata, homeActive, messageInactive, videoInactive, like, liked, play, pluscircle, save, saved, share, userIcon, comment, more
+  userGreen, userBlack, userBlue, info, search, themeToggle, appLogo, arrowForward, avata, homeActive, messageInactive, videoInactive, like, liked, play, pluscircle, save, saved, share, userIcon, comment, more, likedusersicon
 };

@@ -1,13 +1,12 @@
 .post-container {
- width: 100%;
+ width: 100vw;
  max-width: 500px;
  height: 100vh;
  overflow: scroll;
  border-radius: 20px;
- margin-top: 80px;
- margin-bottom: 80px;
  scroll-snap-type: y mandatory;
  scrollbar-width: none;
+ overscroll-behavior: contain;
  padding: 10px;
 }
 
@@ -24,17 +23,36 @@
  display: flex;
  align-items: center;
  border-radius: 20px;
+ padding-top: 70px;
 }
 
 .left-items {
  display: flex;
- flex-direction: column; width: 100%;
+ flex-direction: column; 
+ width: 100%;
+ height: 100%;
+ justify-content: space-between;
 }
 
 .post-header {
  display: flex;
+ justify-content: space-between;
+}
+
+.post-header .header-left-items > * :not(p){
+ cursor: pointer;
+}
+
+.add-friend {
+ font-size: 18px;
+ font-weight: bold;
+ color: #00ba00;
+ cursor: pointer;
+}
+
+.header-left-items {
+ display: flex;
  gap: 10px;
- padding: 10px;
 }
 
 .creator-avata {
@@ -47,25 +65,19 @@
  width: 45px;
  height: 45px;
  border-radius: 100px;
-}
-
-.post-header .creator-icon {
- width: 50px;
- height: 50px;
-}
-
-.right-items {
- display: flex;
- flex-direction: column;
- width: 100%;
+ background: black;
 }
 
 .creator-details {
  display: flex;
- align-items: center;
- width: 100%;
- justify-content: space-between;
+ flex-direction: column;
 }
+
+.creator-avata .creator-icon {
+ width: 50px;
+ height: 50px;
+}
+
 
 .signgle-image {
  height: 400px;
@@ -73,31 +85,58 @@
  border-radius: 20px;
 }
 
+.liked-users {
+ display: flex;
+ align-items: center;
+ gap: 10px;
+}
+
+.liked-users .liked-img {
+ width: 30px;
+ height: 30px;
+}
+
+.liked-users .liked-users-list-img {
+ height: 30px;
+}
+
 .right-items.e {
  width: 60px;
- height: 500px;
+ height: 400px;
+ align-self: end;
+ margin-bottom: 90px;
  display: flex;
  flex-direction: column;
- gap: 30px;
+ gap: 20px;
  align-items: center;
  justify-content: end;
-
 }
 
 .right-items.e .engage-folder {
  display: flex; flex-direction: column; justify-content: center;
- align-items: center; gap: 10px; cursor: pointer;
+ align-items: center; gap: 5px; cursor: pointer;
 }
 
-.engage-count {
- font-size: 13px;
- font-weight: bold;
- color: #858585;
+.engage-background {
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ background: linear-gradient(to right, #d2f8d2, #f1f7f1);
+ padding: 7px;
+ border-radius: 50px;
+ width: 40px;
+ height: 40px;
 }
 
 .right-items.e img {
  width: 15px;
  cursor: pointer;
+}
+
+.engage-count {
+ font-size: 13px;
+ font-weight: bold;
+ color: #545454;
 }
 
 
