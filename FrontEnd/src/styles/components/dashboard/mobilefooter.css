@@ -1,0 +1,51 @@
+.footer-wrapper {
+ position: fixed;
+ bottom: 0;
+ display: flex;
+ justify-content: center;
+ width: 100%;
+ gap: 100px;
+ background: #ffffff;
+ padding: 10px;
+}
+
+.nave-title{
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ cursor: pointer;
+ gap: 5px;
+}
+
+.nave-title .title.active {
+ color: #00ba00;
+}
+
+.active-mobile-indicator {
+ position: absolute;
+ top: 0;
+ left: 30px; 
+ display: none;
+ border-radius: 0 0 10px 10px;
+ height: 10px;
+ width: 90px;
+ background: #00ba00; transition: .3s ease;
+}
+
+.footer-wrapper img {
+ width: 25px;
+}
+
+.icon-wrapper {
+ position: relative;
+}
+
+h2 {
+ font-size: 20px;
+}
+
+@media screen and (min-width: 800px) {
+ .footer-wrapper {
+  display: none;
+ }
+}
