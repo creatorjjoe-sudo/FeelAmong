@@ -79,7 +79,10 @@
 }
 
 .top-group {
+ display: flex;
+ align-items: center;
  margin-bottom: 30px;
+ gap: 20px;
 }
 
 .top-group p {

@@ -33,6 +33,11 @@ function LoginForm() {
       {/* Dynamic submit handler based on current step */}
       <form onSubmit={step === 1 ? handleNext : handleLogin} className='login-form'>
         <div className="top-group">
+          {step === 2 && (
+              <p onClick={() => setStep(1)} style={{ cursor: 'pointer', fontSize: '14px', color: '#8089b0' }}>
+                Go Back
+              </p>
+            )}
           <img src={ICONS.feelLogo} alt="" />
         </div>
         <div className="login-body">
@@ -71,7 +76,7 @@ function LoginForm() {
                     required={step === 2}
                   />
                   <label htmlFor="input-password">Password</label>
-                  <label htmlFor="input-email" className='input-icon'>
+                  <label htmlFor="input-password" className='input-icon'>
                     <img  src={ICONS.lock} alt="" />
                   </label>
                   {passwordNotEmpty && <img className='pw-toggle' onClick={showPassword} src={`${passwordToggle? ICONS.eyeOpen : ICONS.eyeClose}`}/>}
@@ -93,11 +98,7 @@ function LoginForm() {
             </button>
 
             {/* Optional back link to return to email step */}
-            {step === 2 && (
-              <p onClick={() => setStep(1)} style={{ cursor: 'pointer', fontSize: '14px', color: '#8089b0' }}>
-                Go Back
-              </p>
-            )}
+          
 
             <div className="other-options">
               <div className="thin-line"></div>
