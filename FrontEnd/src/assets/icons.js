@@ -9,8 +9,11 @@ import appLogo from './icons/app-logo.png';
 import arrowForward from './icons/arrow-forward.png';
 import avata from './icons/avata.png';
 import homeActive from './icons/home-active.png';
+import homeInactive from './icons/home-inactive.png'
 import messageInactive from './icons/message-inactive.png'
+import messageActive from './icons/message-active.png'
 import videoInactive from './icons/video-inactive.png'
+import videoActive from './icons/video-active.png'
 import like from './icons/like-icon.png'
 import liked from './icons/liked-icon.png'
 import more from './icons/more-icon.png'
@@ -33,5 +36,5 @@ import lock from './icons/lock-icon.png'
 
 
 export const ICONS = {
-  userGreen, userBlack, userBlue, info, search, themeToggle, appLogo, arrowForward, avata, homeActive, messageInactive, videoInactive, like, liked, play, pluscircle, save, saved, share, userIcon, comment, more, likedusersicon, feelLogo, eyeClose, eyeOpen, background, facebook, google, email, lock
+  userGreen, userBlack, userBlue, info, search, themeToggle, appLogo, arrowForward, avata, homeActive, homeInactive, messageActive, messageInactive, videoActive, videoInactive, like, liked, play, pluscircle, save, saved, share, userIcon, comment, more, likedusersicon, feelLogo, eyeClose, eyeOpen, background, facebook, google, email, lock
 };

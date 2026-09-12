@@ -1,31 +1,57 @@
-import React, { useState } from 'react'
+import React from 'react'
 import '../../styles/pages/login.css'
 import { ICONS } from '../../assets/icons'
+import { useNavigate } from 'react-router-dom';
 
-function LoginForm() {
-  const [step, setStep] = useState(1);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+function LoginForm({view, switchView}) {
+  const [step, setStep] = React.useState(1);
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
   const [passwordToggle, setPasswordToggle] = React.useState(false)
-  const passwordNotEmpty = password.trim()
+  const [error, setError] = React.useState(false)
+  const passwordNotEmpty = password.trim() !== ''
+  const EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+  const navigate = useNavigate()
 
   const handleNext = (e) => {
     e.preventDefault();
+    if(!EMAIL_REGEX.test(email)) {
+      setError(true)
+      return
+    } else {setError(false)}
     if (email.trim() !== '') {
       setStep(2);
     }
   };
 
+  function cleaError() {
+    if(error && EMAIL_REGEX.test(email)) {
+      setError(false)
+    }
+  }
+
+  React.useEffect(function() {
+    cleaError()
+  },[email, error])
+
   const handleLogin = (e) => {
     e.preventDefault();
     if (password.trim() !== '') {
-      alert(`Logging in with ${email}`);
       // Your login logic here
+      navigate('/dashboard')
     }
   };
 
+  const Anonymous = start => {
+    navigate('/dashboard')
+  }
+
   const showPassword = () => {
     setPasswordToggle(!passwordToggle)
+  }
+
+  function signup () {
+    switchView('signup')
   }
 
   return (
@@ -64,6 +90,7 @@ function LoginForm() {
                   <label htmlFor="input-email" className='input-icon'>
                     <img  src={ICONS.email} alt="" />
                   </label>
+                  {error && <p className={`error-msg-email ${error ? 'show' : ''}`}>Please enter a valid email!</p> }
                 </div>
             
                 <div className='input-group password'>
@@ -84,7 +111,6 @@ function LoginForm() {
         
               </div>
             </div>
-
           </div>
           <div className="bottom-group password">
             {/* Dynamic text for lost options */}
@@ -110,11 +136,14 @@ function LoginForm() {
               <img src={ICONS.google} alt="" />
               <img src={ICONS.facebook} alt="" />
             </div>
-            <p>Not feelamong user yet? <span>Signup</span></p>
+            <p>Not feelamong user yet? <span onClick={signup}>Signup</span></p>
           </div>
         </div>
 
       </form>
+      <button className='anonymous-btn'
+      onClick={Anonymous}
+      >Anonymous</button>
     </div>
   )
 }

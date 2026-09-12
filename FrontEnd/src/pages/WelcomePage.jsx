@@ -1,9 +1,13 @@
 import React from 'react'
 import '../styles/pages/login.css'
 import LoginForm from '../components/welcome/LoginForm'
+import SignupForm from '../components/welcome/SignupForm'
 
 function WelcomePage() {
-  
+  const [view, setView] = React.useState('login')
+  function switchView () {
+    setView(value)
+  }
   return (
     <div className='welcome-container'>
       <div className="wrapper left-container">
@@ -12,7 +16,13 @@ function WelcomePage() {
       </div>
       <div className="wrapper middle-container">
         
-           <LoginForm/>
+           {view === 'login'
+           && 
+           <LoginForm view={view} />}
+
+           {view === 'signup'
+           &&
+           <SignupForm view={view} />}
 
       </div>
       <div className="wrapper right-container"></div>

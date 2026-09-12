@@ -5,7 +5,7 @@ import '../../styles/components/dashboard/mobilefooter.css'
 function MobileFooter({activeView, switchActive}) {
 
   const posts = []
-  const messages = [1, 2, 3,]
+  const messages = []
   const videos = []
 
   function setForYou() {
@@ -26,7 +26,7 @@ function MobileFooter({activeView, switchActive}) {
       <div className="nave-title for-you" onClick={setForYou}>
         <h2 className={`title ${activeView === 'for-you' ? 'active' : ''}`}>For you</h2>
         <div className="icon-wrapper home">
-          <img src={ICONS.homeActive} alt="" />
+          <img src={activeView !== 'for-you' ? ICONS.homeInactive : ICONS.homeActive} alt="" />
           {posts.length > 0 && <p className='notif-length home'>{posts.length}</p>}
         </div>
       </div>
@@ -34,7 +34,7 @@ function MobileFooter({activeView, switchActive}) {
       <div className="nave-title msgs" onClick={setMessages}>
         <h2 className={`title ${activeView === 'messages' ? 'active' : ''}`}>Messages</h2>
         <div className="icon-wrapper msg">
-          <img src={ICONS.messageInactive} alt="" />
+          <img src={activeView !== 'messages'? ICONS.messageInactive : ICONS.messageActive} alt="" />
           {messages.length > 0 && <p className='notif-length msg'>{messages.length}</p>}
         </div>
       </div>
@@ -42,7 +42,7 @@ function MobileFooter({activeView, switchActive}) {
       <div className="nave-title videos" onClick={setVideos}>
         <h2 className={`title ${activeView === 'videos' ? 'active' : ''}`}>Videos</h2>
         <div className="icon-wrapper video">
-          <img src={ICONS.videoInactive} alt="" />
+          <img src={activeView !== 'videos' ? ICONS.videoInactive : ICONS.videoActive} alt="" />
           {videos.length > 0 && <p className='notif-length video'>{videos.length}</p>}
         </div>
       </div>

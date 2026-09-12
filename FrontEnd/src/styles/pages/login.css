@@ -1,10 +1,11 @@
 :root {
  --input-background: #c1c6e0;
+ --background: #efecef;
 }
 .welcome-container {
  display: flex;
  justify-content: space-between;
- background: #f4e7f4;
+ background: var(--background);
  height: 100%;
  width: 100%;
 }
@@ -51,7 +52,6 @@
 }
 
 .wrapper.middle-container {
- background: #f4e7f4;
  overflow: hidden;
 }
 
@@ -129,13 +129,14 @@
 #input-email, #input-password {
   background: none;
   width: 100%;
-  padding: 18px 55px;
+  padding: 18px 45px;
   border-radius: 15px;
   background: #c1c6e0;
-  border: 1px solid #c1c6e0;
+  border: 1px solid #818ab3;
   outline: none;
   font-size: 20px;
   box-sizing: border-box;
+  color: #808080;
 }
 
 #input-email:focus,
@@ -150,9 +151,10 @@
 .input-group label:not(.input-icon) {
  position: absolute;
  top: 50%;
- left: 55px;
+ left: 45px;
  transform: translateY(-50%);
  transition: top .3s ease;
+ color: #808080;
 }
 
 .input-group .input-icon {
@@ -161,8 +163,8 @@
  top: 50%;
  transform: translateY(-50%);
  display: flex;
- height: 30px;
- width: 30px;
+ height: 20px;
+ width: 20px;
 }
 
 .input-group input:focus ~ label:not(.input-icon),
@@ -170,7 +172,7 @@
   top: 0;
   color: #0023a3;
   padding: 3px 5px;
-  background: #f4e7f4;
+  background: var(--background);
   font-size: 15px;
 }
 
@@ -181,6 +183,20 @@
  transform: translateY(-50%);
  width: 30px;
  cursor: pointer;
+}
+
+.error-msg-email {
+  position: absolute;
+  top: 83%;
+  left: 50px;
+  font-size: 1px;
+  color: #cc700d;
+  background: #f4e7f4;
+  transition: all .4s ease;
+}
+
+.error-msg-email.show {
+  font-size: 13px;
 }
 
 .bottom-group {
@@ -241,6 +257,7 @@ span {
  cursor: pointer;
  text-decoration: underline;
 }
+
 
 @media screen and (max-width:1000PX) {
  .wrapper.right-container {

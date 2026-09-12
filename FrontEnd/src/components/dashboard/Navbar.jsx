@@ -1,8 +1,10 @@
 import React from 'react'
 import { ICONS } from '../../assets/icons'
 import '../../styles/components/dashboard/navbar.css'
+import {useNavigate} from 'react-router-dom'
 
 function Navbar({ activeView, switchActive }) {
+  const navigate = useNavigate()
 
   const posts = []
   const messages = [1, 2, 3,]
@@ -16,6 +18,10 @@ function Navbar({ activeView, switchActive }) {
   }
   function setVideos() {
     switchActive('videos')
+  }
+
+  function navCreatePost () {
+    navigate('/posts-create')
   }
   return (
     <div className='navbar-wrapper'>

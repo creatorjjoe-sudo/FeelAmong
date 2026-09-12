@@ -6,13 +6,19 @@ import SignupForm from './components/welcome/SignupForm'
 import LoginForm from './components/welcome/LoginForm'
 import './styles/app.css'
 import Dashboard from './pages/Dashboard'
+import CreatePost from './pages/CreatePost'
 
 
 function App() {
   return (
-    <>
-    <WelcomePage />
-    </>
+    <BrowserRouter>
+      <Routes>
+        <Route path='/' element={<WelcomePage />} />
+        <Route path='/dashboard' element={<Dashboard />} />
+        <Route path='/post-create' element={<CreatePost />} />
+      </Routes>    
+    </BrowserRouter>
+
   )
 }
 
