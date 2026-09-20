@@ -38,12 +38,12 @@ function LoginForm({view, switchView}) {
     e.preventDefault();
     if (password.trim() !== '') {
       // Your login logic here
-      navigate('/dashboard')
+      navigate()
     }
   };
 
   const Anonymous = start => {
-    navigate('/dashboard')
+    navigate('/dashboard/for-you')
   }
 
   const showPassword = () => {

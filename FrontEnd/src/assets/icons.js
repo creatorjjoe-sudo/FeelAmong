@@ -25,6 +25,9 @@ import share from './icons/share-icon.png'
 import userIcon from './icons/user-icon.png'
 import likedusersicon from './icons/liked-users-icon.png'
 import background from './icons/blub-background.png'
+import cancelUpload from './icons/cancel-file-upload.png'
+import backArrow from './icons/back-arrow.png'
+import backArrowLong from './icons/back-arrow-long.png'
 
 import eyeClose from './icons/eye-close.png'
 import eyeOpen from './icons/eye-open.png'
@@ -33,8 +36,10 @@ import facebook from './icons/facebook-icon.png'
 import google from './icons/google-icon.png'
 import email from './icons/email-icon.png'
 import lock from './icons/lock-icon.png'
-
+import addPhoto from './icons/upload-photo.png'
+import arrowDown from './icons/arrow-down.png'
+import publicIcon from './icons/public-icon.png'
 
 export const ICONS = {
-  userGreen, userBlack, userBlue, info, search, themeToggle, appLogo, arrowForward, avata, homeActive, homeInactive, messageActive, messageInactive, videoActive, videoInactive, like, liked, play, pluscircle, save, saved, share, userIcon, comment, more, likedusersicon, feelLogo, eyeClose, eyeOpen, background, facebook, google, email, lock
-};
+  userGreen, userBlack, userBlue, info, search, themeToggle, appLogo, arrowForward, avata, homeActive, homeInactive, messageActive, messageInactive, videoActive, videoInactive, like, liked, play, pluscircle, save, saved, share, userIcon, comment, more, likedusersicon, feelLogo, eyeClose, eyeOpen, background, facebook, google, email, lock, cancelUpload, backArrow, backArrowLong, addPhoto, publicIcon, arrowDown
+}

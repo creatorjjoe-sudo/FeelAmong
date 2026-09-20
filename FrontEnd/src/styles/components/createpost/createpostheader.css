@@ -1,0 +1,37 @@
+.create-post-header-container {
+ position: fixed;
+ top: 0;
+ left: 0;
+ display: flex;
+ justify-content: space-between;
+ width: 100%;
+ padding: 20px;
+ background: #ffffff;
+}
+
+h1 {
+ pointer-events: none;
+}
+
+
+.right-icons {
+ display: flex;
+ gap: 20px;
+}
+
+.right-icons img {
+ width: 35px;
+ height: 35px;
+}
+
+.right-icons img:not(.feel-logo) {
+ cursor: pointer;
+}
+
+.user-icon {
+ width: 35px;
+ height: 35px;
+ background: #cbcbce;
+ border-radius: 50px;
+ cursor: pointer;
+}

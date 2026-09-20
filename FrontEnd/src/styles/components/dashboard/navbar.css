@@ -13,7 +13,7 @@
 }
 
 .navbar-wrapper .app-logo {
- width: 130px;
+ color: #00ba00;
 }
 
 .navbar-wrapper .search-wrapper {
@@ -83,20 +83,30 @@ h2 {
  color: white; border-radius: 30px;
 }
 
+
 .create-btn {
  padding: 7px;
  font-size: 16px;
  border: none;
  background: #00ba00;
+ width: 100%;
  color: white;
  font-weight: bold;
  cursor: pointer;
- border-radius: 5px;
+ border-radius: 10px;
 }
 
-@media screen and (max-width:880px) {
+.navbar-wrapper link {
+ text-decoration: none;
+}
+
+@media screen and (max-width: 880px) {
  .navbar-wrapper {
   max-width: 160px;
+ }
+
+ .app-logo {
+  font-size: 25px;
  }
 
  .title {

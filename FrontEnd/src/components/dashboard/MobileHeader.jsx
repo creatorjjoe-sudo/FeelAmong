@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { ICONS } from '../../assets/icons'
 import '../../styles/components/dashboard/mobileheader.css'
 
@@ -10,7 +11,9 @@ function MobileHeader() {
     <div className="search-wrapper">
     <img className='search-icon' src={ICONS.search} alt="" />
    </div>
-   <img className='plus-circle' src={ICONS.pluscircle} alt="" />
+   <Link to={'/post-create-one'}>
+    <img className='plus-circle' src={ICONS.pluscircle} alt="" />
+   </Link>
    <img className='user-avata' src={ICONS.avata} alt="" />
    </div>
   </div>
