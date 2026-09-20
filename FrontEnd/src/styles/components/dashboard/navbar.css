@@ -100,6 +100,9 @@ h2 {
  text-decoration: none;
 }
 
+.search-holder {
+ text-decoration: none;
+}
 @media screen and (max-width: 880px) {
  .navbar-wrapper {
   max-width: 160px;

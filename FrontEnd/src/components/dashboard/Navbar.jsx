@@ -36,7 +36,7 @@ function Navbar({ activeView, switchActive }) {
 
       <div className="search-wrapper">
         <img className='search-icon' src={ICONS.search} alt="" />
-        <span>Search</span>
+        <span className='search-holder'>Search</span>
       </div>
 
      <Link className='dash-link' to={'/dashboard/for-you'}>
