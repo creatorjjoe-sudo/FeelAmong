@@ -2,7 +2,7 @@ import React from 'react'
 
 function Videos() {
   return (
-    <div>Videos</div>
+    <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>Videos</div>
   )
 }
 

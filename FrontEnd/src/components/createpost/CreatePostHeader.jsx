@@ -9,7 +9,7 @@ function CreatePostHeader() {
    <title>Create post</title>
    <div className='create-post-header-container'>
     <div className="right-icons">
-     <Link to={'/dashboard'}><img src={ICONS.backArrowLong} alt="back" title='back'/></Link>
+     <Link to={-1}><img src={ICONS.backArrowLong} alt="back" title='back'/></Link>
      <img className='feel-logo' src={ICONS.feelLogo} alt="" />
      <h1>Create post</h1>
     </div>
