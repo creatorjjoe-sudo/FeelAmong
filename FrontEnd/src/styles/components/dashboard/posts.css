@@ -1,3 +1,10 @@
+.posts-wrapper {
+ display: flex;
+ width: 100%;
+ align-items: center;
+ justify-content: center;
+}
+
 .post-container {
  width: 100vw;
  max-width: 500px;

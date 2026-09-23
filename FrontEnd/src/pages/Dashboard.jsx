@@ -9,6 +9,7 @@ import Videos from '../components/dashboard/Videos'
 import Messages from '../components/dashboard/Messages'
 
 function Dashboard() {
+ 
   const [activeView, setActiveView] = React.useState('for-you')
   function switchActive(value) {
     setActiveView(value)
@@ -28,7 +29,7 @@ function Dashboard() {
       />
 
       <Routes>
-        <Route path='for-you' element={ <Posts />} />
+        <Route path='for-you' element={<Posts />} />
         <Route path='messages' element={ <Messages />} />
         <Route path='videos' element={ <Videos />} />
       </Routes>

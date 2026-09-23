@@ -1,0 +1,107 @@
+.chat-cover {
+ display: flex;
+ width: 100%;
+}
+
+.padder {
+ width: 100%;
+ max-width: 250px;
+}
+
+.main-screen {
+ display: flex;
+ justify-content: space-between;
+ width: 100%;
+ padding: 20px;
+}
+
+.left-section {
+ display: flex;
+ flex-direction: column;
+ gap: 30px;
+}
+
+.user-container {
+ display: flex;
+ gap: 10px;
+ cursor: pointer;
+}
+
+.user-avata-msg {
+ height: 45px;
+ width: 45px;
+ min-width: 45px;
+ border-radius: 50px;
+ border: 1px solid;
+}
+
+.middle-section {
+ display: flex;
+ flex-direction: column;
+ justify-content: end;
+ align-items: center;
+ width: 350px;
+ margin: 20px;
+ border-radius: 30px;
+ box-shadow: 0 0 20px #aaafb1;
+}
+
+.msg-composer {
+ display: flex;
+ align-items: center;
+ width: 100%;
+ padding: 0 20px;
+ margin-bottom: 20px;
+}
+
+.msg-composer .attach-icon {
+ width: 30px;
+ align-self: end;
+ margin-bottom: 10px;
+ cursor: pointer;
+}
+
+.msg-composer .attach-icon.mic{
+ width: 35px;
+ margin-bottom: 5px;
+}
+
+.input-container {
+ display: flex;
+ width: 100%;
+ overflow: hidden;
+ border: 1px solid #00ba00;
+ border-radius: 25px;
+}
+
+.input-container textarea {
+ margin-top: 15px;
+ margin-bottom: 13px;
+ scrollbar-width: none;
+ width: 100%;
+ max-height: 100px;
+ box-sizing: border-box;
+ overflow: auto;
+ field-sizing: content;
+ resize: none;
+ border: none;
+ outline: none;
+ padding-left: 20px;
+}
+
+.input-container button {
+ height: 45px;
+ align-self: end;
+ border: none;
+ background: #00ba00;
+ color: white;
+ font-weight: bold;
+ padding: 10px 20px 10px 15px;
+ cursor: pointer;
+}
+
+@media screen and (max-width: 800px) {
+ .left-section {
+  display: none;
+ }
+}

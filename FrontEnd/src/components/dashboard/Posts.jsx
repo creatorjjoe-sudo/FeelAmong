@@ -2,46 +2,49 @@ import React from 'react'
 import '../../styles/components/dashboard/posts.css'
 import { ICONS } from '../../assets/icons'
 import { PROFILES } from '../../assets/profiles'
-import postsdata from './postsdata'
 
 function Posts() {
-  const [userId, setUserId] = React.useState()
-  const [posts, setPosts] = React.useState(postsdata)
+   const baseURL = 'http://localhost:5000/api/posts'
 
-  React.useEffect(() => {
-    setUserId('user_' + Math.random().toString(36).substring(2, 9))
-  }, [])
+  const [posts, setPosts] = React.useState([])
+  const [isLoading, setIsLoading] = React.useState(true)
+  const [error, setError] = React.useState(null)
 
-  function toggleLike(id) {
-    if (!userId) return
-    setPosts(posts.map(post => {
-      if (post.id !== id) return post
-
-      const hasliked = post.likers.includes(userId)
-
-      return { ...post, likers: hasliked ? post.likers.filter(id => id !== userId) : [...post.likers, userId], engagements: { ...post.engagements, likes: hasliked ? post.engagements.likes - 1 : post.engagements.likes + 1 } }
-    }))
+  const getPosts = async () => {
+    try {
+      const res = await fetch(baseURL)
+      if(!res.ok) throw new Error('Error getting post!', res.status)
+      const data = await res.json()
+      setPosts(data)
+    } catch (error) {
+      setError(error.messaage)
+    } finally {setIsLoading(false)}
   }
 
-
+  React.useEffect(() => {
+    getPosts()
+  }, [])
+ 
   return (
-    <div className="post-container">
+    <div className="posts-wrapper">
+      {isLoading && <div>Loading posts...</div>}
+      {error && <div>{error}</div>}
+          <div className="post-container">
       {posts.map((post) => {
 
-        const isLikedByMe = post.likers.includes(userId)
         return (
-          <div key={post.id} className='post-wrapper'>
+          <div key={post._id} className='post-wrapper'>
             <div className="left-items">
 
               <div className="post-header">
 
                 <div className="header-left-items">
                   <div className="creator-avata">
-                    <img className='creator-icon' src={post.avata} alt="" />
+                    <img className='creator-icon' src={post.user.avata} alt="" />
                   </div>
                   <div className="creator-details">
-                    <h2>{post.creator}</h2>
-                    <p className='time-ago'>{post.timago}</p>
+                    <h2>{post.user.username}</h2>
+                    <p className='time-ago'>{post.timestamps}</p>
                   </div>
                 </div>
 
@@ -67,27 +70,27 @@ function Posts() {
 
               <div onClick={() => toggleLike(post.id)} className="engage-folder likes">
                 <div className="engage-background">
-                  <img src={isLikedByMe ? ICONS.liked : ICONS.like} alt="" />
+                  <img src={ICONS.like} alt="" />
                 </div>
-                <p className='engage-count'>{post.engagements.likes}</p>
+                <p className='engage-count'></p>
               </div>
               <div className="engage-folder comments">
                 <div className="engage-background">
                   <img src={ICONS.comment} alt="" />
                 </div>
-                <p className='engage-count'>{post.engagements.comments}K</p>
+                <p className='engage-count'></p>
               </div>
               <div className="engage-folder shares">
                 <div className="engage-background">
                   <img src={ICONS.share} alt="" />
                 </div>
-                <p className='engage-count'>{post.engagements.shares}</p>
+                <p className='engage-count'></p>
               </div>
               <div className="engage-folder saves">
                 <div className="engage-background">
                   <img src={ICONS.save} alt="" />
                 </div>
-                <p className='engage-count'>{post.engagements.saves}</p>
+                <p className='engage-count'>{}</p>
               </div>
               <div className="engage-folder">
                 <div className="engage-background">
@@ -99,6 +102,7 @@ function Posts() {
           </div>)
       }
       )}
+    </div>
     </div>
   )
 }
