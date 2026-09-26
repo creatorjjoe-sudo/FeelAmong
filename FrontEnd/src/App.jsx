@@ -1,24 +1,39 @@
-import React from 'react'
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
+import React, { useContext } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import WelcomePage from './pages/WelcomePage'
 import './styles/app.css'
 import Dashboard from './pages/Dashboard'
 import CreatePost from './pages/CreatePost'
+import { AuthContext } from './api/context/AuthContext'
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = React.useState(false)
+  const { user, loading } = useContext(AuthContext)
+  const isLoggedIn = Boolean(user) && !loading
 
-  const changeLoginState = (value) => {
-  setIsLoggedIn(value)
-}
   return (
     <BrowserRouter>
       <Routes>
-        <Route path='/*' element={!isLoggedIn ? <WelcomePage changeLoginState={changeLoginState} /> : <Dashboard />} />
-        <Route path='/post-create-one' element={<CreatePost />} />
-      </Routes>    
-    </BrowserRouter>
+        <Route
+          path='/'
+          element={isLoggedIn ? <Navigate to='/for-you' replace /> : <WelcomePage />}
+        />
 
+        <Route
+          path='/for-you/*'
+          element={isLoggedIn ? <Dashboard /> : <Navigate to='/' replace />}
+        />
+
+        <Route
+          path='/post-create-one'
+          element={isLoggedIn ? <CreatePost /> : <Navigate to='/' replace />}
+        />
+
+        <Route
+          path='*'
+          element={isLoggedIn ? <Navigate to='/for-you' replace /> : <Navigate to='/' replace />}
+        />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

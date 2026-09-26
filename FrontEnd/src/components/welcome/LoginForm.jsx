@@ -4,7 +4,7 @@ import { ICONS } from '../../assets/icons';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../../src/api/context/AuthContext'; // Hooked global context
 
-function LoginForm({ view, switchView, changeLoginState }) {
+function LoginForm({ view, switchView }) {
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -12,7 +12,7 @@ function LoginForm({ view, switchView, changeLoginState }) {
   const [error, setError] = useState(false);
   const [serverError, setServerError] = useState(''); // Holds API request errors
   const [loading, setLoading] = useState(false); // Manages button submission states
-  
+
   const { login } = useContext(AuthContext);
   const passwordNotEmpty = password.trim() !== '';
   const EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -37,7 +37,7 @@ function LoginForm({ view, switchView, changeLoginState }) {
     }
   }
 
-  useEffect(function() {
+  useEffect(function () {
     clearError();
   }, [email, error]);
 
@@ -67,9 +67,8 @@ function LoginForm({ view, switchView, changeLoginState }) {
         throw new Error(data.message || 'Invalid credentials');
       }
 
-      login(data); 
-      changeLoginState(true)
-      navigate('/for-you')
+      login(data);
+      navigate('/for-you', { replace: true });
     } catch (err) {
       setServerError(err.message);
     } finally {
@@ -92,7 +91,7 @@ function LoginForm({ view, switchView, changeLoginState }) {
       }
 
       login(data);
-      navigate('/for-you');
+      navigate('/for-you', { replace: true });
     } catch (err) {
       setServerError(err.message);
     } finally {
@@ -128,19 +127,12 @@ function LoginForm({ view, switchView, changeLoginState }) {
               <h1>Login</h1>
               <img src={ICONS.userGreen} alt="" />
             </div>
-            
+
             <div className="input-slider-window">
               <div className={`input-group-wrapper step-${step}`}>
-               
+
                 <div className='input-group email'>
-                  <input 
-                    id='input-email' 
-                    type="text" 
-                    placeholder=' ' 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={loading}
-                    required
+                  <input id='input-email' type="text" placeholder=' ' value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} required
                   />
                   <label htmlFor="input-email">Enter email</label>
                   <label htmlFor="input-email" className='input-icon'>
@@ -148,16 +140,9 @@ function LoginForm({ view, switchView, changeLoginState }) {
                   </label>
                   {error && <p className={`error-msg-email ${error ? 'show' : ''}`}>Please enter a valid email!</p>}
                 </div>
-            
+
                 <div className='input-group password'>
-                  <input 
-                    id='input-password' 
-                    type={passwordToggle ? 'text' : 'password'} 
-                    placeholder=' ' 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    required={step === 2}
+                  <input id='input-password' type={passwordToggle ? 'text' : 'password'} placeholder=' ' value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} required={step === 2}
                   />
                   <label htmlFor="input-password">Password</label>
                   <label htmlFor="input-password" className='input-icon'>
@@ -165,7 +150,7 @@ function LoginForm({ view, switchView, changeLoginState }) {
                   </label>
                   {passwordNotEmpty && <img className='pw-toggle' onClick={showPassword} src={`${passwordToggle ? ICONS.eyeOpen : ICONS.eyeClose}`} alt="" />}
                 </div>
-        
+
               </div>
             </div>
           </div>
@@ -173,7 +158,7 @@ function LoginForm({ view, switchView, changeLoginState }) {
             <p className='lost-email'>
               {step === 1 ? 'Lost email?' : 'Lost password?'}
             </p>
-            
+
             <button type="submit" className='login-btn' disabled={loading}>
               {loading ? '...' : (step === 1 ? 'Next' : 'Login')}
             </button>

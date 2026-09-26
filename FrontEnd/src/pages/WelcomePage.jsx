@@ -3,7 +3,7 @@ import '../styles/pages/login.css'
 import LoginForm from '../components/welcome/LoginForm'
 import SignupForm from '../components/welcome/SignupForm'
 
-function WelcomePage({changeLoginState}) {
+function WelcomePage() {
   const [view, setView] = React.useState('login')
 
   function switchView (value) {
@@ -16,15 +16,8 @@ function WelcomePage({changeLoginState}) {
         <p>Makes connection with both emmediate or new people easier</p>
       </div>
       <div className="wrapper middle-container">
-        
-           {view === 'login'
-           && 
-           <LoginForm changeLoginState={changeLoginState} view={view} switchView={switchView} />}
-
-           {view === 'signup'
-           &&
-           <SignupForm view={view} switchView={switchView} />}
-
+        {view === 'login' && <LoginForm view={view} switchView={switchView} />}
+        {view === 'signup' && <SignupForm view={view} switchView={switchView} />}
       </div>
       <div className="wrapper right-container"></div>
     </div>
