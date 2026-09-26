@@ -5,13 +5,16 @@ import './styles/app.css'
 import Dashboard from './pages/Dashboard'
 import CreatePost from './pages/CreatePost'
 
-
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = React.useState(false)
+
+  const changeLoginState = (value) => {
+  setIsLoggedIn(value)
+}
   return (
     <BrowserRouter>
       <Routes>
-        <Route path='/' element={<WelcomePage />} />
-        <Route path='/dashboard/*' element={<Dashboard />} />
+        <Route path='/*' element={!isLoggedIn ? <WelcomePage changeLoginState={changeLoginState} /> : <Dashboard />} />
         <Route path='/post-create-one' element={<CreatePost />} />
       </Routes>    
     </BrowserRouter>

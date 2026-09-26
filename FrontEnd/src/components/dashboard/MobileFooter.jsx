@@ -12,9 +12,9 @@ function MobileFooter({activeView, switchActive}) {
   const videos = []
 
   React.useEffect(() => {
-    if(location.pathname.includes('/dashboard/for-you')) setForYou()
-    if(location.pathname.includes('/dashboard/messages')) setMessages()
-    if(location.pathname.includes('/dashboard/videos')) setVideos()
+    if(location.pathname.includes('/for-you')) setForYou()
+    if(location.pathname.includes('/messages')) setMessages()
+    if(location.pathname.includes('/videos')) setVideos()
   }, [location.pathname])
 
   function setForYou() {
@@ -29,7 +29,7 @@ function MobileFooter({activeView, switchActive}) {
   return (
     <div className='footer-wrapper'>
 
-      <Link className='dash-link' to={'/dashboard/for-you'}>
+      <Link className='dash-link' to={'/for-you'}>
       <div className="nave-title for-you">
         <h2 className={`title ${activeView === 'for-you' ? 'active' : ''}`}>For you</h2>
         <div className="icon-wrapper home">
@@ -39,7 +39,7 @@ function MobileFooter({activeView, switchActive}) {
       </div>
       </Link>
 
-      <Link className='dash-link' to={'/dashboard/messages'}>
+      <Link className='dash-link' to={'/messages'}>
       <div className="nave-title msgs">
         <h2 className={`title ${activeView === 'messages' ? 'active' : ''}`}>Messages</h2>
         <div className="icon-wrapper msg">
@@ -49,7 +49,7 @@ function MobileFooter({activeView, switchActive}) {
       </div>
       </Link>
 
-      <Link className='dash-link' to={'/dashboard/videos'}>
+      <Link className='dash-link' to={'/videos'}>
       <div className="nave-title videos">
         <h2 className={`title ${activeView === 'videos' ? 'active' : ''}`}>Videos</h2>
         <div className="icon-wrapper video">

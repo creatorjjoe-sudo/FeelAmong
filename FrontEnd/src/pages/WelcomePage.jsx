@@ -3,9 +3,10 @@ import '../styles/pages/login.css'
 import LoginForm from '../components/welcome/LoginForm'
 import SignupForm from '../components/welcome/SignupForm'
 
-function WelcomePage() {
+function WelcomePage({changeLoginState}) {
   const [view, setView] = React.useState('login')
-  function switchView () {
+
+  function switchView (value) {
     setView(value)
   }
   return (
@@ -18,11 +19,11 @@ function WelcomePage() {
         
            {view === 'login'
            && 
-           <LoginForm view={view} />}
+           <LoginForm changeLoginState={changeLoginState} view={view} switchView={switchView} />}
 
            {view === 'signup'
            &&
-           <SignupForm view={view} />}
+           <SignupForm view={view} switchView={switchView} />}
 
       </div>
       <div className="wrapper right-container"></div>

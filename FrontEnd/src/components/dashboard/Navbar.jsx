@@ -12,9 +12,9 @@ function Navbar({ activeView, switchActive }) {
   const videos = []
 
   React.useEffect(() => {
-    if(location.pathname.includes('/dashboard/for-you')) setForYou()
-    if(location.pathname.includes('/dashboard/messages')) setMessages()
-    if(location.pathname.includes('/dashboard/videos')) setVideos()
+    if(location.pathname.includes('/for-you')) setForYou()
+    if(location.pathname.includes('/messages')) setMessages()
+    if(location.pathname.includes('/videos')) setVideos()
   }, [location.pathname])
   function setForYou() {
     switchActive('for-you')
@@ -39,7 +39,7 @@ function Navbar({ activeView, switchActive }) {
         <span className='search-holder'>Search</span>
       </div>
 
-     <Link className='dash-link' to={'/dashboard/for-you'}>
+     <Link className='dash-link' to={'/for-you'}>
       <div className="nav-title for-you">
         <div className="icon-wrapper home">
           <img src={activeView !== 'for-you' ? ICONS.homeInactive : ICONS.homeActive} alt="" />
@@ -49,7 +49,7 @@ function Navbar({ activeView, switchActive }) {
       </div>
      </Link>
 
-     <Link className='dash-link' to={'/dashboard/messages'}>
+     <Link className='dash-link' to={'/messages'}>
       <div className="nav-title msgs">
         <div className="icon-wrapper msg">
           <img src={activeView !== 'messages' ? ICONS.messageInactive : ICONS.messageActive} alt="" />
@@ -59,7 +59,7 @@ function Navbar({ activeView, switchActive }) {
       </div>
      </Link>
 
-      <Link className='dash-link' to={'/dashboard/videos'}>
+      <Link className='dash-link' to={'/videos'}>
       <div className="nav-title videos">
         <div className="icon-wrapper video">
           <img src={activeView !== 'videos' ? ICONS.videoInactive : ICONS.videoActive} alt="" />

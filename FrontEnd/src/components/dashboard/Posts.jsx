@@ -40,10 +40,10 @@ function Posts() {
 
                 <div className="header-left-items">
                   <div className="creator-avata">
-                    <img className='creator-icon' src={post.user.avata} alt="" />
+                    <img className='creator-icon' src={post.user} alt="" />
                   </div>
                   <div className="creator-details">
-                    <h2>{post.user.username}</h2>
+                    <h2></h2>
                     <p className='time-ago'>{post.timestamps}</p>
                   </div>
                 </div>

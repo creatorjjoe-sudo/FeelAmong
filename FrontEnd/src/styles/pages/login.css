@@ -2,6 +2,7 @@
  --input-background: #c1c6e0;
  --background: #efecef;
 }
+
 .welcome-container {
  display: flex;
  justify-content: space-between;
@@ -61,9 +62,21 @@
  min-width: 300px;
  border-radius: 30px;
  padding: 30px;
- transition: transform 0.4s ease-in-out;
  border: 1px solid #bbc1db;
  transition: all .3s;
+ background-color: var(--background);
+}
+
+.server-error-container {
+ background-color: #ffdcd9;
+ color: #cc2a1b;
+ border: 1px solid rgba(204, 42, 27, 0.2);
+ font-size: 14px;
+ font-weight: 500;
+ text-align: center;
+ padding: 10px;
+ border-radius: 12px;
+ margin-bottom: 15px;
 }
 
 .login-form {
@@ -72,7 +85,6 @@
  justify-content: space-between;
  height: 100%;
 }
-
 
 .form-wrapper img {
  width: 45px;
@@ -102,31 +114,73 @@
   padding: 10px;
 }
 
+/* Original standard login slider layer layout */
 .input-group-wrapper {
   display: flex;
   align-items: center;
-  gap: 20px; /* Space between the two input blocks */
-  width: 200%; /* Spans two columns wide */
+  gap: 20px; 
+  width: 200%; 
   transition: transform 0.4s ease-in-out;
 }
 
 .input-group {
   position: relative;
-  width: 50%; /* Each input column occupies exactly half of the 200% slider */
-  margin-bottom: 0 !important; /* Overriding previous margin layout */
+  width: 50%; 
+  margin-bottom: 0 !important; 
 }
 
-/* Slide configurations */
 .input-group-wrapper.step-1 {
   transform: translateX(0%);
 }
 
 .input-group-wrapper.step-2 {
-  /* Shifts left by 50% width minus half the layout gap to align perfectly */
   transform: translateX(calc(-50% - 10px)); 
 }
 
-#input-email, #input-password {
+/* Extended 5-step signup configuration slider window overrides */
+.input-group-wrapper.custom-signup-slider {
+  width: 500% !important; /* Spans across five complete pane sections width side-by-side */
+  gap: 0px !important;
+}
+
+.signup-slide-panel {
+  width: 20% !important; /* Outlines exactly one-fifth width partition space */
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 0 10px;
+}
+
+/* 5-step transform translations increments metrics */
+.input-group-wrapper.custom-signup-slider.step-1 {
+  transform: translateX(0%);
+}
+.input-group-wrapper.custom-signup-slider.step-2 {
+  transform: translateX(-20%);
+}
+.input-group-wrapper.custom-signup-slider.step-3 {
+  transform: translateX(-40%);
+}
+.input-group-wrapper.custom-signup-slider.step-4 {
+  transform: translateX(-60%);
+}
+.input-group-wrapper.custom-signup-slider.step-5 {
+  transform: translateX(-80%);
+}
+
+/* Forces input element items to map full panel boundaries comfortably */
+.custom-signup-slider .signup-slide-panel .input-group {
+  width: 100% !important;
+  margin-bottom: 0px !important;
+}
+
+.signup-slide-panel .input-group input,
+.signup-slide-panel .input-group select {
+  width: 100% !important;
+  box-sizing: border-box;
+}
+
+#input-email, #input-password, #input-username {
   background: none;
   width: 100%;
   padding: 18px 45px;
@@ -142,11 +196,12 @@
 #input-email:focus,
 #input-email:not(:placeholder-shown),
 #input-password:focus,
-#input-password:not(:placeholder-shown) {
+#input-password:not(:placeholder-shown),
+#input-username:focus,
+#input-username:not(:placeholder-shown) {
   border: 2px solid #454c6c;
   background: none;
 }
-
 
 .input-group label:not(.input-icon) {
  position: absolute;
@@ -155,6 +210,7 @@
  transform: translateY(-50%);
  transition: top .3s ease;
  color: #808080;
+ pointer-events: none;
 }
 
 .input-group .input-icon {
@@ -165,6 +221,7 @@
  display: flex;
  height: 20px;
  width: 20px;
+ pointer-events: none;
 }
 
 .input-group input:focus ~ label:not(.input-icon),
@@ -228,6 +285,43 @@
  border: none;
  border-radius: 10px;
  cursor: pointer;
+ transition: opacity 0.2s;
+}
+
+.login-btn:disabled {
+ opacity: 0.6;
+ cursor: not-allowed;
+}
+
+#input-dob, #input-sex {
+  background: #c1c6e0;
+  width: 100%;
+  padding: 16px 20px;
+  border-radius: 15px;
+  border: 1px solid #818ab3;
+  outline: none;
+  font-size: 16px;
+  box-sizing: border-box;
+  color: #444;
+}
+
+#input-dob:focus, #input-sex:focus {
+  border: 2px solid #454c6c;
+  background: var(--background);
+}
+
+.static-select-label {
+  position: absolute;
+  top: -24px !important;
+  left: 5px !important;
+  font-size: 13px !important;
+  color: #0023a3 !important;
+  background: transparent !important;
+  transform: none !important;
+}
+
+.profile-details-panel {
+  padding-top: 15px;
 }
 
 .other-options {
@@ -258,7 +352,6 @@ span {
  text-decoration: underline;
 }
 
-
 @media screen and (max-width:1000PX) {
  .wrapper.right-container {
   display: none;
@@ -268,8 +361,6 @@ span {
 @media screen and (max-width: 800PX) {
  .wrapper.wrapper.left-container {
   display: none;
-  background-position: center;
-  background-size: cover;
  }
 
  .wrapper.wrapper.middle-container {
@@ -281,5 +372,4 @@ span {
   height: 100%;
   border: none;
  }
-
 }
