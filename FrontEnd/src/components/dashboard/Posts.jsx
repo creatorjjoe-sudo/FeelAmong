@@ -3,6 +3,25 @@ import '../../styles/components/dashboard/posts.css'
 import { ICONS } from '../../assets/icons'
 import { PROFILES } from '../../assets/profiles'
 
+function formatTimeAgo(createdAt) {
+  if (!createdAt) return ''
+
+  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000))
+  if (elapsedSeconds < 60) return 'just now'
+
+  const units = [
+    ['year', 31536000],
+    ['month', 2592000],
+    ['day', 86400],
+    ['hour', 3600],
+    ['minute', 60],
+  ]
+
+  const [unit, secondsPerUnit] = units.find(([, seconds]) => elapsedSeconds >= seconds) || ['second', 1]
+  const value = Math.floor(elapsedSeconds / secondsPerUnit)
+  return `${value} ${unit}${value === 1 ? '' : 's'} ago`
+}
+
 function Posts() {
    const baseURL = 'http://localhost:5000/api/posts'
 
@@ -40,11 +59,11 @@ function Posts() {
 
                 <div className="header-left-items">
                   <div className="creator-avata">
-                    <img className='creator-icon' src={post.user} alt="" />
+                    <img className='creator-icon' src={post.user?.avatar || PROFILES.usersliked} alt={post.user?.username || 'Post creator'} />
                   </div>
                   <div className="creator-details">
-                    <h2></h2>
-                    <p className='time-ago'>{post.timestamps}</p>
+                    <h2>{post.user?.username || 'Unknown creator'}</h2>
+                    <p className='time-ago'>{formatTimeAgo(post.createdAt)}</p>
                   </div>
                 </div>
 

@@ -29,9 +29,9 @@ function Dashboard() {
       />
 
       <Routes>
-        <Route path='for-you' element={<Posts />} />
-        <Route path='messages' element={ <Messages />} />
-        <Route path='videos' element={ <Videos />} />
+        <Route index element={<Posts />} />
+        <Route path="messages" element={<Messages />} />
+        <Route path="videos" element={<Videos />} />
       </Routes>
     </div>
   )

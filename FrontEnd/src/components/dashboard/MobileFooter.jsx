@@ -39,7 +39,7 @@ function MobileFooter({activeView, switchActive}) {
       </div>
       </Link>
 
-      <Link className='dash-link' to={'/messages'}>
+      <Link className='dash-link' to={'/for-you/messages'}>
       <div className="nave-title msgs">
         <h2 className={`title ${activeView === 'messages' ? 'active' : ''}`}>Messages</h2>
         <div className="icon-wrapper msg">
@@ -49,7 +49,7 @@ function MobileFooter({activeView, switchActive}) {
       </div>
       </Link>
 
-      <Link className='dash-link' to={'/videos'}>
+      <Link className='dash-link' to={'/for-you/videos'}>
       <div className="nave-title videos">
         <h2 className={`title ${activeView === 'videos' ? 'active' : ''}`}>Videos</h2>
         <div className="icon-wrapper video">
