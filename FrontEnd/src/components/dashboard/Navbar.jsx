@@ -2,16 +2,31 @@ import React, { useContext } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ICONS } from '../../assets/icons'
 import { AuthContext } from '../../api/context/AuthContext'
+import SearchModal from './SearchModal'
 import '../../styles/components/dashboard/navbar.css'
 
 function Navbar({ activeView, switchActive }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { logout } = useContext(AuthContext)
+  const navbarRef = React.useRef(null)
+  const [searchOpen, setSearchOpen] = React.useState(false)
 
   const posts = []
-  const messages = [1, 2, 3]
+  const [unreadChats, setUnreadChats] = React.useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('unreadChats') || '[]')
+      return Array.isArray(saved) && saved.length > 0 ? saved : [1, 2, 3]
+    } catch {
+      return [1, 2, 3]
+    }
+  })
   const videos = []
+  const unreadChatCount = unreadChats.length
+
+  React.useEffect(() => {
+    localStorage.setItem('unreadChats', JSON.stringify(unreadChats))
+  }, [unreadChats])
 
   React.useEffect(() => {
     if (location.pathname.includes('/for-you')) switchActive('for-you')
@@ -25,13 +40,13 @@ function Navbar({ activeView, switchActive }) {
   }
 
   return (
-    <div className="navbar-wrapper">
+    <div className="navbar-wrapper" ref={navbarRef}>
       <h1 className="app-logo">feelamong</h1>
 
-      <div className="search-wrapper">
+      <button className="search-wrapper" type="button" onClick={() => setSearchOpen(true)}>
         <img className="search-icon" src={ICONS.search} alt="" />
         <span className="search-holder">Search</span>
-      </div>
+      </button>
 
       <Link className="dash-link" to="/for-you">
         <div className="nav-title for-you">
@@ -47,7 +62,7 @@ function Navbar({ activeView, switchActive }) {
         <div className="nav-title msgs">
           <div className="icon-wrapper msg">
             <img src={activeView !== 'messages' ? ICONS.messageInactive : ICONS.messageActive} alt="" />
-            {messages.length > 0 && <p className="notif-length msg">{messages.length}</p>}
+            {unreadChatCount > 0 && <p className="notif-length msg">{unreadChatCount}</p>}
           </div>
           <h2 className={`title ${activeView === 'messages' ? 'active' : ''}`}>Messages</h2>
         </div>
@@ -70,6 +85,11 @@ function Navbar({ activeView, switchActive }) {
       <button className="logout-btn" type="button" onClick={handleLogout}>
         Logout
       </button>
+      <SearchModal
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        anchorRef={navbarRef}
+      />
     </div>
   )
 }

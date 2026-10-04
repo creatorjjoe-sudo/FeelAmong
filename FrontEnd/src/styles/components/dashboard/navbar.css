@@ -23,6 +23,9 @@
  border-radius: 50px;
  gap: 10px;
  cursor: pointer;
+ border: 0;
+ font: inherit;
+ text-align: left;
 }
 
 .navbar-wrapper .search-wrapper img {

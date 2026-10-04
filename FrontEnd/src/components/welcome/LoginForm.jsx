@@ -76,27 +76,8 @@ function LoginForm({ view, switchView }) {
     }
   };
 
-  const Anonymous = async () => {
-    setServerError('');
-    setLoading(true);
-    try {
-      // Maps to your customized /api/auth/guest setup endpoint
-      const response = await fetch('/api/auth/guest', {
-        method: 'POST',
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Guest connection failed');
-      }
-
-      login(data);
-      navigate('/for-you', { replace: true });
-    } catch (err) {
-      setServerError(err.message);
-    } finally {
-      setLoading(false);
-    }
+  const Anonymous = () => {
+    navigate('/for-you', { replace: true });
   };
 
   const showPassword = () => {

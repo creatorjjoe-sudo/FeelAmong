@@ -8,8 +8,20 @@ function MobileFooter({activeView, switchActive}) {
   const location = useLocation()
 
   const posts = []
-  const messages = []
+  const [unreadChats, setUnreadChats] = React.useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('unreadChats') || '[]')
+      return Array.isArray(saved) && saved.length > 0 ? saved : [1, 2, 3]
+    } catch {
+      return [1, 2, 3]
+    }
+  })
   const videos = []
+  const unreadChatCount = unreadChats.length
+
+  React.useEffect(() => {
+    localStorage.setItem('unreadChats', JSON.stringify(unreadChats))
+  }, [unreadChats])
 
   React.useEffect(() => {
     if(location.pathname.includes('/for-you')) setForYou()
@@ -44,7 +56,7 @@ function MobileFooter({activeView, switchActive}) {
         <h2 className={`title ${activeView === 'messages' ? 'active' : ''}`}>Messages</h2>
         <div className="icon-wrapper msg">
           <img src={activeView !== 'messages'? ICONS.messageInactive : ICONS.messageActive} alt="" />
-          {messages.length > 0 && <p className='notif-length msg'>{messages.length}</p>}
+          {unreadChatCount > 0 && <p className='notif-length msg'>{unreadChatCount}</p>}
         </div>
       </div>
       </Link>

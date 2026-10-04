@@ -72,26 +72,6 @@ const loginUser = async (req, res) => {
   }
 };
 
-const guestLogin = async (req, res) => {
-  try {
-    const guestId = 'guest_' + Date.now();
-    const guestUser = await User.create({
-      username: guestId,
-      isAnonymous: true,
-      bio: 'Guest User'
-    });
-
-    res.status(201).json({
-      _id: guestUser._id,
-      username: guestUser.username,
-      isAnonymous: true,
-      token: generateToken(guestUser._id)
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
 const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
@@ -101,4 +81,4 @@ const getProfile = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, guestLogin, getProfile, };
+module.exports = { registerUser, loginUser, getProfile };

@@ -31,6 +31,8 @@
  border-radius: 50px;
  gap: 10px;
  cursor: pointer;
+ border: 0;
+ font: inherit;
 }
 
 .header-wrapper .search-wrapper img {

@@ -5,7 +5,7 @@
 
 .padder {
  width: 100%;
- max-width: 250px;
+ max-width: 190px;
 }
 
 .main-screen {
@@ -20,12 +20,14 @@
  flex-direction: column;
  width: 100%;
  gap: 30px;
+ margin: 10px;
 }
 .left-section-active {
  display: flex;
  flex-direction: column;
  width: 100%;
  gap: 30px;
+ margin: 10px;
 }
 
 .user-cover {
@@ -39,9 +41,7 @@
  justify-content: space-between;
  width: 100%;
  gap: 10px;
-
 }
-
 
 .user-avata-msg {
  height: 45px;
@@ -49,6 +49,19 @@
  min-width: 45px;
  border-radius: 50px;
  border: 1px solid;
+}
+
+.msg-unread {
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ background: #00ba00;
+ color: white;
+ padding: 10px;
+ border-radius: 50px;
+ font-size: 20px;
+ width: 30px;
+ height: 30px;
 }
 
 .middle-section {
@@ -92,6 +105,48 @@
  transition: all .3s ease;
 }
 
+.message-feed {
+ display: flex;
+ flex-direction: column;
+ width: 100%;
+ gap: 10px;
+ padding: 16px;
+ overflow-y: auto;
+}
+
+.message-row {
+ display: flex;
+ width: 100%;
+}
+
+.message-row p {
+ max-width: 70%;
+ padding: 10px 14px;
+ border-radius: 12px;
+ margin: 0;
+ line-height: 1.4;
+}
+
+.message-row.mine {
+ justify-content: flex-end;
+}
+
+.message-row.mine p {
+ background: #00ba00;
+ color: white;
+}
+
+.message-row.their p {
+ background: #f0f2f5;
+ color: #1d1d1d;
+}
+
+.chat-error {
+ color: #b71c1c;
+ font-size: 12px;
+ margin: 0 16px 8px;
+}
+
 .msg-composer {
  display: flex;
  align-items: center;
@@ -99,7 +154,6 @@
  padding: 0 20px;
  margin-bottom: 20px;
 }
-
 
 .msg-composer .attach-icon {
  width: 30px;
@@ -153,16 +207,24 @@
 }
 
 @media screen and (max-width: 1200px) {
-
  .right-section {
   display: none;
  }
 }
 
+@media screen and (max-width: 880px) {
+ .padder {
+  max-width: 150px;
+ }
+}
 
 @media screen and (max-width: 800px) {
  .left-section-active {
   display: none;
+ }
+
+ .left-section {
+  margin-top: 65px;
  }
 
  .middle-section-desk {

@@ -20,7 +20,7 @@ function App() {
 
         <Route
           path='/for-you/*'
-          element={isLoggedIn ? <Dashboard /> : <Navigate to='/' replace />}
+          element={<Dashboard />}
         />
 
         <Route

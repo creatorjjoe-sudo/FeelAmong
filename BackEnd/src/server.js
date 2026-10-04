@@ -9,6 +9,7 @@ const authRoutes = require('./routes/authRoutes');
 const postRoutes = require('./routes/postRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const videoRoutes = require('./routes/videoRoutes');
+const searchRoutes = require('./routes/searchRoutes');
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/videos', videoRoutes);
+app.use('/api/search', searchRoutes);
 
 // 3. Create HTTP Server & Pass to Socket.io
 const server = http.createServer(app);
