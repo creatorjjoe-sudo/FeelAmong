@@ -1,7 +1,6 @@
 import React from 'react'
 import '../../styles/components/dashboard/posts.css'
 import { ICONS } from '../../assets/icons'
-import { PROFILES } from '../../assets/profiles'
 
 function formatTimeAgo(createdAt) {
   if (!createdAt) return ''
@@ -10,11 +9,7 @@ function formatTimeAgo(createdAt) {
   if (elapsedSeconds < 60) return 'just now'
 
   const units = [
-    ['year', 31536000],
-    ['month', 2592000],
-    ['day', 86400],
-    ['hour', 3600],
-    ['minute', 60],
+    ['year', 31536000], ['month', 2592000], ['day', 86400], ['hour', 3600], ['minute', 60],
   ]
 
   const [unit, secondsPerUnit] = units.find(([, seconds]) => elapsedSeconds >= seconds) || ['second', 1]
@@ -59,7 +54,7 @@ function Posts() {
 
                 <div className="header-left-items">
                   <div className="creator-avata">
-                    <img className='creator-icon' src={post.user?.avatar || PROFILES.usersliked} alt={post.user?.username || 'Post creator'} />
+                    <img className='creator-icon' src={ICONS.maleUser} />
                   </div>
                   <div className="creator-details">
                     <h2>{post.user?.username || 'Unknown creator'}</h2>
@@ -79,7 +74,7 @@ function Posts() {
                 <p>Description: {post.description}</p>
                 <div className='liked-users'>
                   <img className='liked-img' src={ICONS.likedusersicon} alt="" />
-                  <img className='liked-users-list-img' src={PROFILES.usersliked} alt="" />
+                  <img className='liked-users-list-img' src={ICONS.usersliked} alt="" />
                 </div>
               </div>
 

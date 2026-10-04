@@ -1,5 +1,5 @@
 import React from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import Navbar from '../components/dashboard/Navbar'
 import '../styles/pages/dashboard.css'
 import Posts from '../components/dashboard/Posts'
@@ -9,6 +9,8 @@ import Videos from '../components/dashboard/Videos'
 import Messages from '../components/dashboard/Messages'
 
 function Dashboard() {
+
+  const location = useLocation()
  
   const [activeView, setActiveView] = React.useState('for-you')
   function switchActive(value) {
@@ -17,6 +19,7 @@ function Dashboard() {
 
   return (
     <div className='dashboard-container'>
+      <title>Feelamong | Dashboard</title>
       <MobileHeader />
       <Navbar
         activeView={activeView}

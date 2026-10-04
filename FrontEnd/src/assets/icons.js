@@ -40,7 +40,9 @@ import addPhoto from './icons/upload-photo.png'
 import arrowDown from './icons/arrow-down.png'
 import publicIcon from './icons/public-icon.png'
 import micGreen from './icons/mic-green.png'
+import maleUser from './icons/male-user.png'
+import femaleUser from './icons/female-user.png'
 
 export const ICONS = {
-  userGreen, userBlack, userBlue, info, search, themeToggle, appLogo, arrowForward, avata, homeActive, homeInactive, messageActive, messageInactive, videoActive, videoInactive, like, liked, play, pluscircle, save, saved, share, userIcon, comment, more, likedusersicon, feelLogo, eyeClose, eyeOpen, background, facebook, google, email, lock, cancelUpload, backArrow, backArrowLong, addPhoto, publicIcon, arrowDown, micGreen
+  userGreen, userBlack, userBlue, info, search, themeToggle, appLogo, arrowForward, avata, homeActive, homeInactive, messageActive, messageInactive, videoActive, videoInactive, like, liked, play, pluscircle, save, saved, share, userIcon, comment, more, likedusersicon, feelLogo, eyeClose, eyeOpen, background, facebook, google, email, lock, cancelUpload, backArrow, backArrowLong, addPhoto, publicIcon, arrowDown, micGreen, maleUser, femaleUser
 }

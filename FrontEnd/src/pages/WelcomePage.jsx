@@ -11,6 +11,7 @@ function WelcomePage() {
   }
   return (
     <div className='welcome-container'>
+      <title>{view === 'login' ? 'Feelamong | Login' : 'Feelamong | Signup'}</title>
       <div className="wrapper left-container">
         <h1>feelamong</h1>
         <p>Makes connection with both emmediate or new people easier</p>
