@@ -151,42 +151,26 @@ function FormBody() {
       <div className="right-els">
         <div className="form-container">
           <form className="post-form" onSubmit={handleShare}>
+            <div className="post-image-grid-mobile-preview">
+              <PostImageGrid
+                images={imageFiles.map(({ file, previewUrl }) => ({ src: previewUrl, alt: file.name }))}
+              />
+            </div>
             <h2>Enter details</h2>
 
             <div className="title-container">
               <p className="option-text">Title</p>
-              <input
-                type="text"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                maxLength={100}
-                placeholder="Add title here..."
-                required
-              />
+              <input type="text" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={100} placeholder="Add title here..." required/>
               <p className="value-length">{title.length} / 100</p>
             </div>
 
             <div className="description-container">
               <p className="option-text">Description</p>
-              <textarea
-                cols={30}
-                rows={4}
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                maxLength={1000}
-                placeholder="Tell more details about this post..."
-                style={{ resize: 'none' }}
-              />
+              <textarea cols={30} rows={4} value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1000} placeholder="Tell more details about this post..." style={{ resize: 'none' }}/>
               <p className="value-length">{description.length} / 1000</p>
             </div>
 
-            <input
-              type="file"
-              accept="image/*"
-              id="upload-button"
-              multiple
-              onChange={handleImageSelection}
-            />
+            <input type="file" accept="image/*" id="upload-button" multiple onChange={handleImageSelection}/>
             <div className="upload-button-area">
               <label htmlFor="upload-button">Add photos</label>
               <img src={ICONS.addPhoto} alt="" />
@@ -197,56 +181,28 @@ function FormBody() {
                 {imageFiles.map(({ file }, index) => (
                   <li key={`${file.name}-${file.lastModified}-${index}`}>
                     <span>{file.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      aria-label={`Remove ${file.name}`}
-                    >
-                      Remove
-                    </button>
+                    <button type="button" onClick={() => removeImage(index)} aria-label={`Remove ${file.name}`}>Remove</button>
                   </li>
                 ))}
               </ul>
             )}
 
             <div className="visibility" ref={visibilityRef}>
-              <button
-                className="upper"
-                type="button"
-                aria-expanded={visibilityOpen}
-                aria-haspopup="listbox"
-                onClick={() => setVisibilityOpen((open) => !open)}
-              >
+              <button className="upper" type="button" aria-expanded={visibilityOpen} aria-haspopup="listbox" onClick={() => setVisibilityOpen((open) => !open)}>
                 <p className="option-text">Visibility</p>
-                <img
-                  className={visibilityOpen ? 'visibility-arrow open' : 'visibility-arrow'}
-                  src={ICONS.arrowDown}
-                  alt=""
-                />
+                <img className={visibilityOpen ? 'visibility-arrow open' : 'visibility-arrow'} src={ICONS.arrowDown} alt=""/>
               </button>
               <div className="lower">
                 <p className="option-value">
                   {VISIBILITY_OPTIONS.find((option) => option.value === visibility).label}
                 </p>
-                <img
-                  src={VISIBILITY_OPTIONS.find((option) => option.value === visibility).icon}
-                  alt=""
-                />
+                <img src={VISIBILITY_OPTIONS.find((option) => option.value === visibility).icon} alt=""/>
               </div>
               {visibilityOpen && (
                 <div className="visibility-options" role="listbox" aria-label="Post visibility">
                   {VISIBILITY_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      className="visibility-option"
-                      type="button"
-                      role="option"
-                      aria-selected={visibility === option.value}
-                      onClick={() => {
-                        setVisibility(option.value)
-                        setVisibilityOpen(false)
-                      }}
-                    >
+                    <button key={option.value} className="visibility-option" type="button" role="option" aria-selected={visibility === option.value} onClick={() => {
+                        setVisibility(option.value); setVisibilityOpen(false)}}>
                       <img src={option.icon} alt="" />
                       <span>{option.label}</span>
                     </button>
