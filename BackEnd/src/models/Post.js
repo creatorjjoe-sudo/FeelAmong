@@ -11,7 +11,8 @@ const commentSchema = new mongoose.Schema(
 const postSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    title: { type: String, required: true, trim: true },
+    postType: { type: String, enum: ['text', 'image'], default: 'image' },
+    title: { type: String, trim: true, default: '' },
     description: { type: String, default: '' },
     images: [{ type: String }], // Array of image URLs for multi-image grid layouts
     visibility: {

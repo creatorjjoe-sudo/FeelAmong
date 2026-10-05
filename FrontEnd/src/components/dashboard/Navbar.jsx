@@ -4,6 +4,7 @@ import { ICONS } from '../../assets/icons'
 import { AuthContext } from '../../api/context/AuthContext'
 import SearchModal from './SearchModal'
 import LoginRequiredModal from './LoginRequiredModal'
+import CreatePostMenu from './CreatePostMenu'
 import '../../styles/components/dashboard/navbar.css'
 
 function Navbar({ activeView, switchActive }) {
@@ -42,13 +43,17 @@ function Navbar({ activeView, switchActive }) {
     navigate('/', { replace: true })
   }
 
-  async function handleCreate() {
+  function handleCreate(toggleMenu) {
     if (!user || user.isAnonymous === true) {
       setShowLoginModal(true)
       return
     }
 
-    navigate('/post-create-one')
+    toggleMenu()
+  }
+
+  function handlePostTypeSelect(postType) {
+    navigate(`/post-create-one?type=${postType}`)
   }
 
   async function handleLogin() {
@@ -96,7 +101,19 @@ function Navbar({ activeView, switchActive }) {
         </div>
       </Link>
 
-      <button className="create-btn" type="button" onClick={handleCreate}>Create</button>
+      <CreatePostMenu onSelect={handlePostTypeSelect}>
+        {({ isOpen, toggle }) => (
+          <button
+            className="create-btn"
+            type="button"
+            aria-expanded={isOpen}
+            aria-haspopup="menu"
+            onClick={() => handleCreate(toggle)}
+          >
+            Create
+          </button>
+        )}
+      </CreatePostMenu>
 
       <button
         className="logout-btn"

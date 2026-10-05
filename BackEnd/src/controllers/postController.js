@@ -2,6 +2,7 @@ const Post = require('../models/Post');
 const { getIO } = require('../config/socket');
 const fs = require('fs');
 const POST_VISIBILITIES = ['public', 'private', 'friends'];
+const POST_TYPES = ['text', 'image'];
 
 async function removeUploadedFiles(files) {
   const cleanupResults = await Promise.allSettled(
@@ -19,26 +20,46 @@ async function removeUploadedFiles(files) {
 const createPost = async (req, res) => {
   try {
     const { title, description, images, visibility = 'public' } = req.body;
+    const postType = req.body.postType || 'image';
     const uploadedFiles = req.files || [];
-    if (!title) {
+    if (!POST_TYPES.includes(postType)) {
       await removeUploadedFiles(uploadedFiles);
-      return res.status(400).json({ message: 'Title is required' });
+      return res.status(400).json({ message: 'Post type must be text or image' });
     }
     if (!POST_VISIBILITIES.includes(visibility)) {
       await removeUploadedFiles(uploadedFiles);
       return res.status(400).json({ message: 'Visibility must be public, private, or friends' });
     }
 
+    const trimmedTitle = typeof title === 'string' ? title.trim() : '';
+    const trimmedDescription = typeof description === 'string' ? description.trim() : '';
     const imagePaths = uploadedFiles.length > 0
       ? uploadedFiles.map((file) => `/uploads/posts/${file.filename}`)
       : (Array.isArray(images) ? images : []);
+
+    if (postType === 'image' && !trimmedTitle) {
+      await removeUploadedFiles(uploadedFiles);
+      return res.status(400).json({ message: 'Title is required for image posts' });
+    }
+    if (postType === 'image' && imagePaths.length === 0) {
+      return res.status(400).json({ message: 'At least one image is required for image posts' });
+    }
+    if (postType === 'text' && !trimmedDescription) {
+      await removeUploadedFiles(uploadedFiles);
+      return res.status(400).json({ message: 'Text posts require content' });
+    }
+    if (postType === 'text' && imagePaths.length > 0) {
+      await removeUploadedFiles(uploadedFiles);
+      return res.status(400).json({ message: 'Text posts cannot include images' });
+    }
 
     let post;
     try {
       post = await Post.create({
         user: req.user._id,
-        title,
-        description,
+        postType,
+        title: postType === 'image' ? trimmedTitle : '',
+        description: trimmedDescription,
         images: imagePaths,
         visibility
       });

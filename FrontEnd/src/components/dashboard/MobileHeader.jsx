@@ -4,6 +4,7 @@ import { ICONS } from '../../assets/icons'
 import { AuthContext } from '../../api/context/AuthContext'
 import SearchModal from './SearchModal'
 import LoginRequiredModal from './LoginRequiredModal'
+import CreatePostMenu from './CreatePostMenu'
 import '../../styles/components/dashboard/mobileheader.css'
 
 function MobileHeader() {
@@ -13,13 +14,17 @@ function MobileHeader() {
  const { user, logout } = useContext(AuthContext)
  const navigate = useNavigate()
 
- async function handleCreate() {
+ function handleCreate(toggleMenu) {
   if (!user || user.isAnonymous === true) {
    setShowLoginModal(true)
    return
   }
 
-  navigate('/post-create-one')
+  toggleMenu()
+ }
+
+ function handlePostTypeSelect(postType) {
+  navigate(`/post-create-one?type=${postType}`)
  }
 
  async function handleLogin() {
@@ -35,9 +40,13 @@ function MobileHeader() {
     <button className="search-wrapper" type="button" aria-label="Open search" onClick={() => setSearchOpen(true)}>
     <img className='search-icon' src={ICONS.search} alt="" />
     </button>
-   <button className="create-post-mobile" type="button" onClick={handleCreate} aria-label="Create post">
-    <img className='plus-circle' src={ICONS.pluscircle} alt="" />
-   </button>
+   <CreatePostMenu className="create-post-menu-mobile" onSelect={handlePostTypeSelect}>
+    {({ isOpen, toggle }) => (
+     <button className="create-post-mobile" type="button" onClick={() => handleCreate(toggle)} aria-label="Create post" aria-expanded={isOpen} aria-haspopup="menu">
+      <img className='plus-circle' src={ICONS.pluscircle} alt="" />
+     </button>
+    )}
+   </CreatePostMenu>
    <img className='user-avata' src={ICONS.avata} alt="" />
    </div>
     <SearchModal

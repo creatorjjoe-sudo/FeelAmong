@@ -2,11 +2,13 @@
  position: fixed;
  top: 0;
  left: 0;
+ z-index: 25;
  display: flex;
  justify-content: space-between;
  width: 100%;
  padding: 20px;
  background: #ffffff;
+ box-sizing: border-box;
 }
 
 h1 {

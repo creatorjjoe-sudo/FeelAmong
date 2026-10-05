@@ -15,9 +15,10 @@ const VISIBILITY_OPTIONS = [
   { value: 'friends', label: 'Friends', icon: ICONS.userIcon },
 ]
 
-function FormBody() {
+function FormBody({ postType }) {
   const navigate = useNavigate()
   const { user } = useContext(AuthContext)
+  const isTextPost = postType === 'text'
 
   const [title, setTitle] = React.useState('')
   const [description, setDescription] = React.useState('')
@@ -97,8 +98,19 @@ function FormBody() {
     setError('')
 
     const trimmedTitle = title.trim()
-    if (!trimmedTitle) {
+    const trimmedDescription = description.trim()
+    if (isTextPost && !trimmedDescription) {
+      setError('Please write something before sharing your text post.')
+      return
+    }
+
+    if (!isTextPost && !trimmedTitle) {
       setError('Please enter a title.')
+      return
+    }
+
+    if (!isTextPost && imageFiles.length === 0) {
+      setError('Please add at least one image to your image post.')
       return
     }
 
@@ -115,10 +127,11 @@ function FormBody() {
 
     try {
       const body = new FormData()
-      body.append('title', trimmedTitle)
-      body.append('description', description.trim())
+      body.append('postType', postType)
+      if (!isTextPost) body.append('title', trimmedTitle)
+      body.append('description', trimmedDescription)
       body.append('visibility', visibility)
-      imageFiles.forEach(({ file }) => body.append('images', file))
+      if (!isTextPost) imageFiles.forEach(({ file }) => body.append('images', file))
 
       const response = await fetch(API_URL, {
         method: 'POST',
@@ -141,50 +154,60 @@ function FormBody() {
 
   return (
     <div className="create-container">
-      <div className="left-els">
-        <PostImageGrid
-          images={imageFiles.map(({ file, previewUrl }) => ({ src: previewUrl, alt: file.name }))}
-          className="post-image-grid-preview"
-        />
-      </div>
+      {imageFiles.length > 0 && (
+        <div className="left-els">
+          <PostImageGrid
+            images={imageFiles.map(({ file, previewUrl }) => ({ src: previewUrl, alt: file.name }))}
+            className="post-image-grid-preview"
+          />
+        </div>
+      )}
 
       <div className="right-els">
         <div className="form-container">
           <form className="post-form" onSubmit={handleShare}>
-            <div className="post-image-grid-mobile-preview">
-              <PostImageGrid
-                images={imageFiles.map(({ file, previewUrl }) => ({ src: previewUrl, alt: file.name }))}
-              />
-            </div>
-            <h2>Enter details</h2>
+            {imageFiles.length > 0 && (
+              <div className="post-image-grid-mobile-preview">
+                <PostImageGrid
+                  images={imageFiles.map(({ file, previewUrl }) => ({ src: previewUrl, alt: file.name }))}
+                />
+              </div>
+            )}
+            <h2>{isTextPost ? 'Create text post' : 'Enter details'}</h2>
 
-            <div className="title-container">
-              <p className="option-text">Title</p>
-              <input type="text" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={100} placeholder="Add title here..." required/>
-              <p className="value-length">{title.length} / 100</p>
-            </div>
+            {!isTextPost && (
+              <div className="title-container">
+                <p className="option-text">Title</p>
+                <input type="text" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={100} placeholder="Add title here..." required/>
+                <p className="value-length">{title.length} / 100</p>
+              </div>
+            )}
 
             <div className="description-container">
-              <p className="option-text">Description</p>
-              <textarea cols={30} rows={4} value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1000} placeholder="Tell more details about this post..." style={{ resize: 'none' }}/>
+              <p className="option-text">{isTextPost ? "What's on your mind?" : 'Description'}</p>
+              <textarea cols={30} rows={4} value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1000} placeholder={isTextPost ? "Share what's on your mind..." : 'Tell more details about this post...'} required={isTextPost} style={{ resize: 'none' }}/>
               <p className="value-length">{description.length} / 1000</p>
             </div>
 
-            <input type="file" accept="image/*" id="upload-button" multiple onChange={handleImageSelection}/>
-            <div className="upload-button-area">
-              <label htmlFor="upload-button">Add photos</label>
-              <img src={ICONS.addPhoto} alt="" />
-              {imageFiles.length > 0 && <span>{imageFiles.length} attached</span>}
-            </div>
-            {imageFiles.length > 0 && (
-              <ul className="attached-image-list">
-                {imageFiles.map(({ file }, index) => (
-                  <li key={`${file.name}-${file.lastModified}-${index}`}>
-                    <span>{file.name}</span>
-                    <button type="button" onClick={() => removeImage(index)} aria-label={`Remove ${file.name}`}>Remove</button>
-                  </li>
-                ))}
-              </ul>
+            {!isTextPost && (
+              <>
+                <input type="file" accept="image/*" id="upload-button" multiple aria-required="true" onChange={handleImageSelection}/>
+                <div className="upload-button-area">
+                  <label htmlFor="upload-button">Add photos <span className="required-indicator">Required</span></label>
+                  <img src={ICONS.addPhoto} alt="" />
+                  {imageFiles.length > 0 && <span>{imageFiles.length} attached</span>}
+                </div>
+                {imageFiles.length > 0 && (
+                  <ul className="attached-image-list">
+                    {imageFiles.map(({ file }, index) => (
+                      <li key={`${file.name}-${file.lastModified}-${index}`}>
+                        <span>{file.name}</span>
+                        <button type="button" onClick={() => removeImage(index)} aria-label={`Remove ${file.name}`}>Remove</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
             )}
 
             <div className="visibility" ref={visibilityRef}>

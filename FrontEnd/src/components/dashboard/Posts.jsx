@@ -102,14 +102,7 @@ function Posts() {
   return (
     <div className="posts-wrapper">
       {showLoginModal && (
-        <LoginRequiredModal
-          message="Please login to like this post"
-          onClose={() => setShowLoginModal(false)}
-          onLogin={async () => {
-            setShowLoginModal(false)
-            await logout()
-            navigate('/', { replace: true })
-          }}
+        <LoginRequiredModal message="Please login to like this post" onClose={() => setShowLoginModal(false)} onLogin={async () => { setShowLoginModal(false); await logout(); navigate('/', { replace: true })}}
         />
       )}
 
@@ -121,6 +114,7 @@ function Posts() {
           const likedByCurrentUser = Array.isArray(post.likes) && user && post.likes.some((likeId) => String(likeId) === String(user._id))
           const likeCount = typeof post.likesCount === 'number' ? post.likesCount : (Array.isArray(post.likes) ? post.likes.length : 0)
           const visibility = VISIBILITY_ICONS[post.visibility] ? post.visibility : 'public'
+          const isTextPost = post.postType === 'text'
           const postImages = Array.isArray(post.images)
             ? post.images.filter((image) => typeof image === 'string').map((image) => ({
               src: image.startsWith('/') ? `${API_ORIGIN}${image}` : image,
@@ -139,13 +133,7 @@ function Posts() {
                       <h2>{post.user?.username || 'Unknown creator'}</h2>
                       <div className="post-time-visibility">
                         <p className='time-ago'>{formatTimeAgo(post.createdAt)}</p>
-                        <img
-                          className="post-visibility-icon"
-                          src={VISIBILITY_ICONS[visibility]}
-                          alt=""
-                          title={`${visibility[0].toUpperCase()}${visibility.slice(1)} post`}
-                          aria-label={`${visibility[0].toUpperCase()} post`}
-                        />
+                        <img className="post-visibility-icon" src={VISIBILITY_ICONS[visibility]} alt="" title={`${visibility[0].toUpperCase()}${visibility.slice(1)} post`} aria-label={`${visibility[0].toUpperCase()} post`}/>
                       </div>
                     </div>
                   </div>
@@ -157,11 +145,17 @@ function Posts() {
 
                 <div className="top"></div>
                 <div className="middle">
-                  <p>Title: {post.title}</p>
-                  {postImages.length > 0
-                    ? <PostImageGrid images={postImages} className="post-image-grid-feed" />
-                    : <div className="signgle-image" style={{ background: post.color }}></div>}
-                  <p>Description: {post.description}</p>
+                  {isTextPost
+                    ? <p>{post.description}</p>
+                    : (
+                      <>
+                        <p>Title: {post.title}</p>
+                        {postImages.length > 0
+                          ? <PostImageGrid images={postImages} className="post-image-grid-feed" />
+                          : <div className="signgle-image" style={{ background: post.color }}></div>}
+                        <p>Description: {post.description}</p>
+                      </>
+                    )}
                   <div className='liked-users'>
                     <img className='liked-img' src={ICONS.likedusersicon} alt="" />
                     <img className='liked-users-list-img' src={ICONS.usersliked} alt="" />
