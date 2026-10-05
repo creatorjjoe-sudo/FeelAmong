@@ -160,7 +160,7 @@ function LoginForm({ view, switchView }) {
         </div>
       </form>
       <button className='anonymous-btn' onClick={Anonymous} disabled={loading}>
-        {loading ? 'Connecting...' : 'Anonymous'}
+        {loading ? 'Connecting...' : 'Continue without account'}
       </button>
     </div>
   );

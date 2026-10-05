@@ -1,5 +1,6 @@
 const express = require('express');
 const http = require('http'); // 1. Import HTTP module
+const path = require('path');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/db');
@@ -20,6 +21,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // API Endpoints
 app.use('/api/auth', authRoutes);

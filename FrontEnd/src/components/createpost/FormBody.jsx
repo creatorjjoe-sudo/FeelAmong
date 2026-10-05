@@ -3,19 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { useContext } from 'react'
 import { AuthContext } from '../../api/context/AuthContext'
 import { ICONS } from '../../assets/icons'
+import PostImageGrid from './PostImageGrid'
 import '../../styles/components/createpost/formbody.css'
 
 const API_URL = 'http://localhost:5000/api/posts'
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024
-
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = () => reject(new Error('Could not read the selected image.'))
-    reader.readAsDataURL(file)
-  })
-}
+const MAX_IMAGE_COUNT = 25
+const VISIBILITY_OPTIONS = [
+  { value: 'public', label: 'Public', icon: ICONS.publicIcon },
+  { value: 'private', label: 'Private', icon: ICONS.lock },
+  { value: 'friends', label: 'Friends', icon: ICONS.userIcon },
+]
 
 function FormBody() {
   const navigate = useNavigate()
@@ -23,9 +21,76 @@ function FormBody() {
 
   const [title, setTitle] = React.useState('')
   const [description, setDescription] = React.useState('')
-  const [imageFile, setImageFile] = React.useState(null)
+  const [imageFiles, setImageFiles] = React.useState([])
+  const [visibility, setVisibility] = React.useState('public')
+  const [visibilityOpen, setVisibilityOpen] = React.useState(false)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [error, setError] = React.useState('')
+  const visibilityRef = React.useRef(null)
+  const previewUrls = React.useRef(new Set())
+
+  React.useEffect(() => () => {
+    previewUrls.current.forEach((url) => URL.revokeObjectURL(url))
+    previewUrls.current.clear()
+  }, [])
+
+  React.useEffect(() => {
+    if (!visibilityOpen) return undefined
+
+    function handlePointerDown(event) {
+      if (!visibilityRef.current?.contains(event.target)) {
+        setVisibilityOpen(false)
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setVisibilityOpen(false)
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [visibilityOpen])
+
+  function handleImageSelection(event) {
+    const selectedFiles = Array.from(event.target.files || [])
+    event.target.value = ''
+
+    const oversizedFiles = selectedFiles.filter((file) => file.size > MAX_IMAGE_SIZE)
+    const acceptableFiles = selectedFiles.filter(
+      (file) => file.type.startsWith('image/') && file.size <= MAX_IMAGE_SIZE
+    )
+    const remainingSlots = MAX_IMAGE_COUNT - imageFiles.length
+    const filesToAdd = acceptableFiles.slice(0, remainingSlots).map((file) => {
+      const previewUrl = URL.createObjectURL(file)
+      previewUrls.current.add(previewUrl)
+      return { file, previewUrl }
+    })
+
+    setImageFiles((currentFiles) => [...currentFiles, ...filesToAdd])
+
+    if (oversizedFiles.length > 0) {
+      setError('Each image must be smaller than 2 MB.')
+    } else if (acceptableFiles.length < selectedFiles.length) {
+      setError('Please select valid image files.')
+    } else if (filesToAdd.length < acceptableFiles.length) {
+      setError(`You can attach up to ${MAX_IMAGE_COUNT} images.`)
+    } else {
+      setError('')
+    }
+  }
+
+  function removeImage(index) {
+    const imageToRemove = imageFiles[index]
+    if (!imageToRemove) return
+
+    URL.revokeObjectURL(imageToRemove.previewUrl)
+    previewUrls.current.delete(imageToRemove.previewUrl)
+    setImageFiles((currentFiles) => currentFiles.filter((_, fileIndex) => fileIndex !== index))
+  }
 
   async function handleShare(event) {
     event.preventDefault()
@@ -37,32 +102,28 @@ function FormBody() {
       return
     }
 
-    if (imageFile && imageFile.size > MAX_IMAGE_SIZE) {
-      setError('Please choose an image smaller than 2 MB.')
-      return
-    }
-
     const token =
       user?.token ||
       user?.accessToken ||
       user?.data?.token ||
       localStorage.getItem('token')
 
-    const headers = { 'Content-Type': 'application/json' }
+    const headers = {}
     if (token) headers.Authorization = `Bearer ${token}`
 
     setIsSubmitting(true)
 
     try {
-      const images = imageFile ? [await fileToDataUrl(imageFile)] : []
+      const body = new FormData()
+      body.append('title', trimmedTitle)
+      body.append('description', description.trim())
+      body.append('visibility', visibility)
+      imageFiles.forEach(({ file }) => body.append('images', file))
+
       const response = await fetch(API_URL, {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          title: trimmedTitle,
-          description: description.trim(),
-          images,
-        }),
+        body,
       })
 
       const result = await response.json().catch(() => ({}))
@@ -80,7 +141,12 @@ function FormBody() {
 
   return (
     <div className="create-container">
-      <div className="left-els"></div>
+      <div className="left-els">
+        <PostImageGrid
+          images={imageFiles.map(({ file, previewUrl }) => ({ src: previewUrl, alt: file.name }))}
+          className="post-image-grid-preview"
+        />
+      </div>
 
       <div className="right-els">
         <div className="form-container">
@@ -118,30 +184,75 @@ function FormBody() {
               type="file"
               accept="image/*"
               id="upload-button"
-              onChange={(event) => setImageFile(event.target.files?.[0] || null)}
+              multiple
+              onChange={handleImageSelection}
             />
             <div className="upload-button-area">
-              <label htmlFor="upload-button">Add photo</label>
+              <label htmlFor="upload-button">Add photos</label>
               <img src={ICONS.addPhoto} alt="" />
-              {imageFile && (
-                <span>
-                  {imageFile.name}{' '}
-                  <button type="button" onClick={() => setImageFile(null)}>
-                    Remove
-                  </button>
-                </span>
-              )}
+              {imageFiles.length > 0 && <span>{imageFiles.length} attached</span>}
             </div>
+            {imageFiles.length > 0 && (
+              <ul className="attached-image-list">
+                {imageFiles.map(({ file }, index) => (
+                  <li key={`${file.name}-${file.lastModified}-${index}`}>
+                    <span>{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      aria-label={`Remove ${file.name}`}
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
 
-            <div className="visibility">
-              <div className="upper">
+            <div className="visibility" ref={visibilityRef}>
+              <button
+                className="upper"
+                type="button"
+                aria-expanded={visibilityOpen}
+                aria-haspopup="listbox"
+                onClick={() => setVisibilityOpen((open) => !open)}
+              >
                 <p className="option-text">Visibility</p>
-                <img src={ICONS.arrowDown} alt="" />
-              </div>
+                <img
+                  className={visibilityOpen ? 'visibility-arrow open' : 'visibility-arrow'}
+                  src={ICONS.arrowDown}
+                  alt=""
+                />
+              </button>
               <div className="lower">
-                <p className="option-value">Public</p>
-                <img src={ICONS.publicIcon} alt="" />
+                <p className="option-value">
+                  {VISIBILITY_OPTIONS.find((option) => option.value === visibility).label}
+                </p>
+                <img
+                  src={VISIBILITY_OPTIONS.find((option) => option.value === visibility).icon}
+                  alt=""
+                />
               </div>
+              {visibilityOpen && (
+                <div className="visibility-options" role="listbox" aria-label="Post visibility">
+                  {VISIBILITY_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      className="visibility-option"
+                      type="button"
+                      role="option"
+                      aria-selected={visibility === option.value}
+                      onClick={() => {
+                        setVisibility(option.value)
+                        setVisibilityOpen(false)
+                      }}
+                    >
+                      <img src={option.icon} alt="" />
+                      <span>{option.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="tag-people">

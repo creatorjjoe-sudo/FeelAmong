@@ -14,6 +14,11 @@ const postSchema = new mongoose.Schema(
     title: { type: String, required: true, trim: true },
     description: { type: String, default: '' },
     images: [{ type: String }], // Array of image URLs for multi-image grid layouts
+    visibility: {
+      type: String,
+      enum: ['public', 'private', 'friends'],
+      default: 'public'
+    },
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     saves: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     sharesCount: { type: Number, default: 0 },

@@ -3,14 +3,17 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ICONS } from '../../assets/icons'
 import { AuthContext } from '../../api/context/AuthContext'
 import SearchModal from './SearchModal'
+import LoginRequiredModal from './LoginRequiredModal'
 import '../../styles/components/dashboard/navbar.css'
 
 function Navbar({ activeView, switchActive }) {
   const location = useLocation()
   const navigate = useNavigate()
-  const { logout } = useContext(AuthContext)
+  const { user, logout } = useContext(AuthContext)
   const navbarRef = React.useRef(null)
   const [searchOpen, setSearchOpen] = React.useState(false)
+  const [showLoginModal, setShowLoginModal] = React.useState(false)
+  const isAnonymous = !user || user.isAnonymous === true
 
   const posts = []
   const [unreadChats, setUnreadChats] = React.useState(() => {
@@ -34,7 +37,22 @@ function Navbar({ activeView, switchActive }) {
     if (location.pathname.includes('/videos')) switchActive('videos')
   }, [location.pathname, switchActive])
 
-  async function handleLogout() {
+  async function handleAccountAction() {
+    await logout()
+    navigate('/', { replace: true })
+  }
+
+  async function handleCreate() {
+    if (!user || user.isAnonymous === true) {
+      setShowLoginModal(true)
+      return
+    }
+
+    navigate('/post-create-one')
+  }
+
+  async function handleLogin() {
+    setShowLoginModal(false)
     await logout()
     navigate('/', { replace: true })
   }
@@ -78,18 +96,27 @@ function Navbar({ activeView, switchActive }) {
         </div>
       </Link>
 
-      <Link to="/post-create-one" className="create-post-link">
-        <button className="create-btn" type="button">Create</button>
-      </Link>
+      <button className="create-btn" type="button" onClick={handleCreate}>Create</button>
 
-      <button className="logout-btn" type="button" onClick={handleLogout}>
-        Logout
+      <button
+        className="logout-btn"
+        type="button"
+        onClick={handleAccountAction}
+      >
+        {isAnonymous ? 'Login' : 'Logout'}
       </button>
       <SearchModal
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
         anchorRef={navbarRef}
       />
+      {showLoginModal && (
+        <LoginRequiredModal
+          message="Please login to create a post"
+          onClose={() => setShowLoginModal(false)}
+          onLogin={handleLogin}
+        />
+      )}
     </div>
   )
 }

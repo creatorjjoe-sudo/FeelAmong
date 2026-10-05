@@ -293,6 +293,29 @@
  cursor: not-allowed;
 }
 
+.anonymous-btn {
+ width: 100%;
+ margin-top: 15px;
+ padding: 10px;
+ font-size: 16px;
+ font-weight: bold;
+ color: #171817;
+ background: #c7cac7;
+ border: none;
+ border-radius: 10px;
+ cursor: pointer;
+ transition: background-color 0.2s, opacity 0.2s;
+}
+
+.anonymous-btn:hover:not(:disabled) {
+ background: #d4e8d4;
+}
+
+.anonymous-btn:disabled {
+ opacity: 0.6;
+ cursor: not-allowed;
+}
+
 #input-dob, #input-sex {
   background: #c1c6e0;
   width: 100%;

@@ -3,7 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import '../../styles/components/dashboard/posts.css'
 import { ICONS } from '../../assets/icons'
 import { AuthContext } from '../../api/context/AuthContext'
+import LoginRequiredModal from './LoginRequiredModal'
+import PostImageGrid from '../createpost/PostImageGrid'
 
+const API_ORIGIN = 'http://localhost:5000'
 function formatTimeAgo(createdAt) {
   if (!createdAt) return ''
 
@@ -17,6 +20,12 @@ function formatTimeAgo(createdAt) {
   const [unit, secondsPerUnit] = units.find(([, seconds]) => elapsedSeconds >= seconds) || ['second', 1]
   const value = Math.floor(elapsedSeconds / secondsPerUnit)
   return `${value} ${unit}${value === 1 ? '' : 's'} ago`
+}
+
+const VISIBILITY_ICONS = {
+  public: ICONS.publicIcon,
+  private: ICONS.lock,
+  friends: ICONS.userIcon,
 }
 
 function Posts() {
@@ -93,23 +102,15 @@ function Posts() {
   return (
     <div className="posts-wrapper">
       {showLoginModal && (
-        <div className="login-required-modal-backdrop" onClick={() => setShowLoginModal(false)}>
-          <div className="login-required-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Please login to like this post</h3>
-            <div className="login-required-actions">
-              <button type="button" className="login-required-close" onClick={() => setShowLoginModal(false)}>
-                Close
-              </button>
-              <button type="button" className="login-required-go" onClick={async () => {
-                setShowLoginModal(false)
-                await logout()
-                navigate('/', { replace: true })
-              }}>
-                Login
-              </button>
-            </div>
-          </div>
-        </div>
+        <LoginRequiredModal
+          message="Please login to like this post"
+          onClose={() => setShowLoginModal(false)}
+          onLogin={async () => {
+            setShowLoginModal(false)
+            await logout()
+            navigate('/', { replace: true })
+          }}
+        />
       )}
 
       {isLoading && <div>Loading posts...</div>}
@@ -119,6 +120,12 @@ function Posts() {
         {posts.map((post) => {
           const likedByCurrentUser = Array.isArray(post.likes) && user && post.likes.some((likeId) => String(likeId) === String(user._id))
           const likeCount = typeof post.likesCount === 'number' ? post.likesCount : (Array.isArray(post.likes) ? post.likes.length : 0)
+          const visibility = VISIBILITY_ICONS[post.visibility] ? post.visibility : 'public'
+          const postImages = Array.isArray(post.images)
+            ? post.images.filter((image) => typeof image === 'string').map((image) => ({
+              src: image.startsWith('/') ? `${API_ORIGIN}${image}` : image,
+            }))
+            : []
 
           return (
             <div key={post._id} className='post-wrapper'>
@@ -130,7 +137,16 @@ function Posts() {
                     </div>
                     <div className="creator-details">
                       <h2>{post.user?.username || 'Unknown creator'}</h2>
-                      <p className='time-ago'>{formatTimeAgo(post.createdAt)}</p>
+                      <div className="post-time-visibility">
+                        <p className='time-ago'>{formatTimeAgo(post.createdAt)}</p>
+                        <img
+                          className="post-visibility-icon"
+                          src={VISIBILITY_ICONS[visibility]}
+                          alt=""
+                          title={`${visibility[0].toUpperCase()}${visibility.slice(1)} post`}
+                          aria-label={`${visibility[0].toUpperCase()} post`}
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -142,7 +158,9 @@ function Posts() {
                 <div className="top"></div>
                 <div className="middle">
                   <p>Title: {post.title}</p>
-                  <div className="signgle-image" style={{ background: post.color }}></div>
+                  {postImages.length > 0
+                    ? <PostImageGrid images={postImages} className="post-image-grid-feed" />
+                    : <div className="signgle-image" style={{ background: post.color }}></div>}
                   <p>Description: {post.description}</p>
                   <div className='liked-users'>
                     <img className='liked-img' src={ICONS.likedusersicon} alt="" />

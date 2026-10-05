@@ -1,18 +1,51 @@
 const Post = require('../models/Post');
 const { getIO } = require('../config/socket');
+const fs = require('fs');
+const POST_VISIBILITIES = ['public', 'private', 'friends'];
+
+async function removeUploadedFiles(files) {
+  const cleanupResults = await Promise.allSettled(
+    files.map((file) => fs.promises.unlink(file.path))
+  );
+
+  cleanupResults.forEach((result) => {
+    if (result.status === 'rejected' && result.reason.code !== 'ENOENT') {
+      console.error('Could not remove an uploaded image:', result.reason.message);
+    }
+  });
+}
 
 // Create Post
 const createPost = async (req, res) => {
   try {
-    const { title, description, images } = req.body;
-    if (!title) return res.status(400).json({ message: 'Title is required' });
+    const { title, description, images, visibility = 'public' } = req.body;
+    const uploadedFiles = req.files || [];
+    if (!title) {
+      await removeUploadedFiles(uploadedFiles);
+      return res.status(400).json({ message: 'Title is required' });
+    }
+    if (!POST_VISIBILITIES.includes(visibility)) {
+      await removeUploadedFiles(uploadedFiles);
+      return res.status(400).json({ message: 'Visibility must be public, private, or friends' });
+    }
 
-    const post = await Post.create({
-      user: req.user._id,
-      title,
-      description,
-      images: images || []
-    });
+    const imagePaths = uploadedFiles.length > 0
+      ? uploadedFiles.map((file) => `/uploads/posts/${file.filename}`)
+      : (Array.isArray(images) ? images : []);
+
+    let post;
+    try {
+      post = await Post.create({
+        user: req.user._id,
+        title,
+        description,
+        images: imagePaths,
+        visibility
+      });
+    } catch (error) {
+      await removeUploadedFiles(uploadedFiles);
+      throw error;
+    }
 
     const populatedPost = await post.populate('user', 'username avatar');
 
