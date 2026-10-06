@@ -1,0 +1,138 @@
+.save-folder-backdrop {
+ position: fixed;
+ inset: 0;
+ z-index: 1300;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ padding: 16px;
+ background: rgb(0 0 0 / 45%);
+}
+
+.save-folder-dialog {
+ position: relative;
+ width: min(100%, 440px);
+ max-height: min(85vh, 640px);
+ padding: 24px;
+ overflow-y: auto;
+ border-radius: 16px;
+ background: #fff;
+ box-shadow: 0 12px 40px rgb(0 0 0 / 24%);
+ color: #252525;
+}
+
+.save-folder-dialog h2 {
+ margin: 0 36px 18px 0;
+ font-size: 21px;
+}
+
+.save-folder-close {
+ position: absolute;
+ top: 10px;
+ right: 14px;
+ border: 0;
+ background: transparent;
+ color: #5c6065;
+ font-size: 28px;
+ cursor: pointer;
+}
+
+.save-folder-list {
+ display: flex;
+ flex-direction: column;
+ gap: 8px;
+ margin: 0 0 18px;
+ padding: 12px;
+ border: 1px solid #d7dfd7;
+ border-radius: 10px;
+}
+
+.save-folder-list legend,
+.save-folder-create > label {
+ color: #4b5563;
+ font-size: 14px;
+ font-weight: 600;
+}
+
+.save-folder-option {
+ display: flex;
+ align-items: center;
+ gap: 10px;
+ padding: 5px 0;
+ cursor: pointer;
+}
+
+.save-folder-option input {
+ accent-color: #00a800;
+}
+
+.save-folder-create {
+ display: flex;
+ flex-direction: column;
+ gap: 8px;
+}
+
+.save-folder-create > div {
+ display: flex;
+ gap: 8px;
+}
+
+.save-folder-create input {
+ min-width: 0;
+ flex: 1;
+ padding: 9px 10px;
+ border: 1px solid #c8d1c8;
+ border-radius: 8px;
+ font: inherit;
+}
+
+.save-folder-create button,
+.save-folder-submit {
+ padding: 9px 14px;
+ border: 0;
+ border-radius: 8px;
+ background: #00ba00;
+ color: #fff;
+ font: inherit;
+ font-weight: 600;
+ cursor: pointer;
+}
+
+.save-folder-create button:disabled,
+.save-folder-submit:disabled {
+ opacity: .5;
+ cursor: not-allowed;
+}
+
+.save-folder-state {
+ margin: 12px 0;
+ color: #647268;
+}
+
+.save-folder-error {
+ margin-top: 12px;
+ color: #b42318;
+ font-size: 14px;
+}
+
+.save-folder-actions {
+ display: flex;
+ justify-content: flex-end;
+ gap: 10px;
+ margin-top: 20px;
+}
+
+.save-folder-remove {
+ padding: 9px 12px;
+ border: 1px solid #c8d1c8;
+ border-radius: 8px;
+ background: #fff;
+ color: #4b5563;
+ font: inherit;
+ cursor: pointer;
+}
+
+.save-folder-remove:disabled {
+ opacity: .5;
+ cursor: not-allowed;
+}

@@ -4,6 +4,7 @@ import { ICONS } from '../../assets/icons'
 import { AuthContext } from '../../api/context/AuthContext'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import SearchModal from './SearchModal'
+import ProfileMenuModal from './ProfileMenuModal'
 import LoginRequiredModal from './LoginRequiredModal'
 import CreatePostMenu from './CreatePostMenu'
 import '../../styles/components/dashboard/mobileheader.css'
@@ -11,13 +12,17 @@ import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 
 function MobileHeader() {
  const headerRef = React.useRef(null)
+ const profileButtonRef = React.useRef(null)
  const [showLoginModal, setShowLoginModal] = React.useState(false)
  const { user, logout } = useContext(AuthContext)
  const navigate = useNavigate()
  const location = useLocation()
  const searchOpen = location.state?.routedModal === 'mobile-search'
+ const profileMenuOpen = location.state?.routedModal === 'mobile-profile-menu'
  const openSearch = () => pushRoutedModal(navigate, location, 'mobile-search')
  const closeSearch = () => closeRoutedModal(navigate, location)
+ const openProfileMenu = () => pushRoutedModal(navigate, location, 'mobile-profile-menu')
+ const closeProfileMenu = () => closeRoutedModal(navigate, location)
 
  function handleCreate(toggleMenu) {
   if (!user || user.isAnonymous === true) {
@@ -52,7 +57,7 @@ function MobileHeader() {
      </button>
     )}
    </CreatePostMenu>
-   <button className="profile-shortcut" type="button" aria-label="Open profile" onClick={() => navigate('/for-you/profile')}>
+   <button ref={profileButtonRef} className="profile-shortcut" type="button" aria-label="Open account menu" aria-haspopup="dialog" aria-expanded={profileMenuOpen} onClick={openProfileMenu}>
     <img className='user-avata' src={getProfileAvatar(user)} alt="" />
    </button>
    </div>
@@ -61,6 +66,11 @@ function MobileHeader() {
      onClose={closeSearch}
      anchorRef={headerRef}
      modalKey="mobile-search"
+    />
+    <ProfileMenuModal
+     open={profileMenuOpen}
+     onClose={closeProfileMenu}
+     anchorRef={profileButtonRef}
     />
     {showLoginModal && (
      <LoginRequiredModal

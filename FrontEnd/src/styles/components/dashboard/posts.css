@@ -481,6 +481,13 @@
  background: #e4efe4;
  color: #27632a;
  transform: translateX(-50%);
+ opacity: 1;
+ transition: opacity 350ms ease, translate 350ms ease;
+}
+
+.post-action-notice.is-exiting {
+ opacity: 0;
+ translate: 0 -10px;
 }
 
 .post-action-dialog-backdrop {

@@ -1,5 +1,6 @@
 const Post = require('../models/Post');
 const PostReport = require('../models/PostReport');
+const SavedItem = require('../models/SavedItem');
 const { getIO } = require('../config/socket');
 const fs = require('fs');
 const path = require('path');
@@ -233,6 +234,7 @@ const deletePost = async (req, res) => {
 
     const imagePaths = post.images.map(String);
     await post.deleteOne();
+    await SavedItem.deleteMany({ itemType: 'post', item: post._id });
     await removePostImagePaths(imagePaths);
     res.json({ message: 'Post deleted', postId: post._id });
   } catch (error) {
@@ -267,8 +269,9 @@ const addComment = async (req, res) => {
     if (!post) return res.status(404).json({ message: 'Post not found' });
     post.comments.push({ user: req.user._id, text });
     await post.save();
-    const comment = post.comments[post.comments.length - 1];
-    await comment.populate('user', 'username avatar sex');
+    const commentIndex = post.comments.length - 1;
+    await post.populate(`comments.${commentIndex}.user`, 'username avatar sex');
+    const comment = post.comments[commentIndex];
     res.status(201).json({ postId: post._id, comment });
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ICONS } from '../../assets/icons'
 import { AuthContext } from '../../api/context/AuthContext'
 import SearchModal from './SearchModal'
+import ProfileMenuModal from './ProfileMenuModal'
 import LoginRequiredModal from './LoginRequiredModal'
 import CreatePostMenu from './CreatePostMenu'
 import '../../styles/components/dashboard/navbar.css'
@@ -13,11 +14,15 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0 }) {
   const navigate = useNavigate()
   const { user, logout } = useContext(AuthContext)
   const navbarRef = React.useRef(null)
+  const profileButtonRef = React.useRef(null)
   const searchOpen = location.state?.routedModal === 'desktop-search'
+  const profileMenuOpen = location.state?.routedModal === 'desktop-profile-menu'
   const [showLoginModal, setShowLoginModal] = React.useState(false)
   const isAnonymous = !user || user.isAnonymous === true
   const openSearch = () => pushRoutedModal(navigate, location, 'desktop-search')
   const closeSearch = () => closeRoutedModal(navigate, location)
+  const openProfileMenu = () => pushRoutedModal(navigate, location, 'desktop-profile-menu')
+  const closeProfileMenu = () => closeRoutedModal(navigate, location)
 
   const posts = []
   const videos = []
@@ -113,7 +118,14 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0 }) {
       >
         {isAnonymous ? 'Login' : 'Logout'}
       </button>
-      <Link className="dash-link profile-nav-link" to="/for-you/profile">
+      <button
+        ref={profileButtonRef}
+        className="dash-link profile-nav-link"
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={profileMenuOpen}
+        onClick={openProfileMenu}
+      >
         <div className="nav-title profile">
           <div className={`icon-wrapper profile-nav-icon${activeView === 'profile' ? ' is-active' : ''}`}>
             <svg viewBox="0 0 24 24" role="img" aria-label="Profile">
@@ -123,12 +135,17 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0 }) {
           </div>
           <h2 className={`title ${activeView === 'profile' ? 'active' : ''}`}>{user?.username || 'You'}</h2>
         </div>
-      </Link>
+      </button>
       <SearchModal
         open={searchOpen}
         onClose={closeSearch}
         anchorRef={navbarRef}
         modalKey="desktop-search"
+      />
+      <ProfileMenuModal
+        open={profileMenuOpen}
+        onClose={closeProfileMenu}
+        anchorRef={profileButtonRef}
       />
       {showLoginModal && (
         <LoginRequiredModal

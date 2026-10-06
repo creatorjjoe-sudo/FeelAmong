@@ -1,7 +1,8 @@
-import React, { createContext, useState, useEffect } from 'react';
-
+import { createContext, useState, useEffect } from 'react';
+import InitialLoadingScreen from '../../components/InitialLoadingScreen'
 export const AuthContext = createContext();
 const INACTIVITY_LIMIT_MS = 3 * 60 * 1000;
+const INITIAL_LOADING_DURATION_MS = 2000;
 
 export const AuthProvider = ({ children }) => {
  const [user, setUser] = useState(null);
@@ -19,6 +20,10 @@ export const AuthProvider = ({ children }) => {
  };
 
  useEffect(() => {
+  const loadingTimer = window.setTimeout(() => {
+   setLoading(false);
+  }, INITIAL_LOADING_DURATION_MS);
+
   try {
    const storedUser = localStorage.getItem('user');
    const lastActiveAt = Number(localStorage.getItem('lastActiveAt') || Date.now());
@@ -28,11 +33,11 @@ export const AuthProvider = ({ children }) => {
     setUser(parsedUser);
     localStorage.setItem('lastActiveAt', String(lastActiveAt));
    }
-  } catch (error) {
+  } catch {
    clearSession();
-  } finally {
-   setLoading(false);
   }
+
+  return () => window.clearTimeout(loadingTimer);
  }, []);
 
  useEffect(() => {
@@ -73,7 +78,7 @@ export const AuthProvider = ({ children }) => {
 
  return (
     <AuthContext.Provider value={{ user, login, logout, loading }}>
-      {!loading ? children : null}
+      {loading ? <InitialLoadingScreen /> : children}
     </AuthContext.Provider>
   );
 };

@@ -9,6 +9,8 @@ import MobileFooter from '../components/dashboard/MobileFooter'
 import Videos from '../components/dashboard/Videos'
 import Messages from '../components/dashboard/Messages'
 import ProfilePage from './ProfilePage'
+import SavedItemsPage from './SavedItemsPage'
+import SettingsPage from './SettingsPage'
 import { AuthContext } from '../api/context/AuthContext'
 
 function Dashboard() {
@@ -117,6 +119,8 @@ function Dashboard() {
         <Route path="videos" element={<Videos />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="profile/:userId" element={<ProfilePage />} />
+        <Route path="saved" element={<SavedItemsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Routes>
     </div>
   )

@@ -16,6 +16,13 @@
 
 .navbar-wrapper .profile-nav-link {
  margin-top: auto;
+ padding: 0;
+ border: 0;
+ background: transparent;
+ color: #b0b1b5;
+ font: inherit;
+ text-align: left;
+ cursor: pointer;
 }
 
 .navbar-wrapper .app-logo {

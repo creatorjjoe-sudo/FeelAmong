@@ -1,0 +1,140 @@
+.initial-loading-screen {
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  place-items: center;
+  background: #fff;
+}
+
+.initial-loading-footer {
+  position: absolute;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  color: #3b4a3d;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  transform: translateX(-50%);
+}
+
+.initial-loading-footer small {
+  color: #2683d8;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.initial-loading-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  animation: initial-loading-appear 500ms ease-out both;
+}
+
+.initial-loading-brand > img {
+  display: block;
+  width: min(20vw, 44px);
+  height: auto;
+}
+
+.initial-loading-dots {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  opacity: 0;
+  animation: initial-loading-dots-appear 1ms linear 500ms forwards;
+}
+
+.initial-loading-dots span {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #b8c5b8;
+}
+
+.initial-loading-dots span:nth-child(1) {
+  animation: initial-loading-dot-one 1.6s steps(1, end) infinite;
+}
+
+.initial-loading-dots span:nth-child(2) {
+  animation: initial-loading-dot-two 1.6s steps(1, end) infinite;
+}
+
+.initial-loading-dots span:nth-child(3) {
+  animation: initial-loading-dot-three 1.6s steps(1, end) infinite;
+}
+
+@keyframes initial-loading-appear {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes initial-loading-dots-appear {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes initial-loading-dot-one {
+  0%,
+  24%,
+  100% {
+    background: #b8c5b8;
+  }
+
+  25%,
+  99% {
+    background: #00ba00;
+  }
+}
+
+@keyframes initial-loading-dot-two {
+  0%,
+  49%,
+  100% {
+    background: #b8c5b8;
+  }
+
+  50%,
+  99% {
+    background: #00ba00;
+  }
+}
+
+@keyframes initial-loading-dot-three {
+  0%,
+  74%,
+  100% {
+    background: #b8c5b8;
+  }
+
+  75%,
+  99% {
+    background: #00ba00;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .initial-loading-brand,
+  .initial-loading-dots,
+  .initial-loading-dots span {
+    animation: none;
+  }
+
+  .initial-loading-dots {
+    opacity: 1;
+  }
+}

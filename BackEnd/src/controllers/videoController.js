@@ -3,7 +3,7 @@ const Video = require('../models/Video');
 const getVideos = async (req, res) => {
   try {
     const videos = await Video.find()
-      .populate('user', 'username avatar')
+      .populate('user', 'username avatar sex')
       .sort({ createdAt: -1 });
     res.json(videos);
   } catch (error) {

@@ -10,6 +10,7 @@ import { DEFAULT_TEXT_POST_BACKGROUND, getTextPostColor } from '../../utils/text
 import { animatePreviewElement } from '../../utils/animatePreviewElement'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
+import SaveToFolderModal from './SaveToFolderModal'
 
 const API_ORIGIN = 'http://localhost:5000'
 function formatTimeAgo(createdAt) {
@@ -185,8 +186,11 @@ function Posts() {
   const [reportReason, setReportReason] = React.useState('')
   const [reportDetails, setReportDetails] = React.useState('')
   const [notice, setNotice] = React.useState('')
+  const [isNoticeExiting, setIsNoticeExiting] = React.useState(false)
   const [imagePreview, setImagePreview] = React.useState(null)
   const [textPostPreview, setTextPostPreview] = React.useState(null)
+  const [savedItemFolders, setSavedItemFolders] = React.useState({})
+  const [saveModalItem, setSaveModalItem] = React.useState(null)
   const visiblePosts = isPostPreviewOpen
     ? posts.filter((post) => String(post._id) === previewPostId)
     : posts
@@ -199,6 +203,14 @@ function Posts() {
     (modalName) => pushRoutedModal(navigate, location, modalName),
     [location, navigate]
   )
+  const closeSaveFolderModal = React.useCallback(() => {
+    setSaveModalItem(null)
+    closeCurrentModal()
+  }, [closeCurrentModal])
+  const showNotice = React.useCallback((message) => {
+    setIsNoticeExiting(false)
+    setNotice(message)
+  }, [])
 
   const getPosts = async () => {
     try {
@@ -209,12 +221,21 @@ function Posts() {
 
       const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
       if (user && token) {
-        const profileResponse = await fetch('http://localhost:5000/api/auth/profile', {
-          headers: { Authorization: ['Bearer', token].join(' ') },
-        })
-        const profile = await profileResponse.json()
+        const headers = { Authorization: ['Bearer', token].join(' ') }
+        const [profileResponse, savedItemsResponse] = await Promise.all([
+          fetch('http://localhost:5000/api/auth/profile', { headers }),
+          fetch('http://localhost:5000/api/saves', { headers }),
+        ])
+        const [profile, savedItems] = await Promise.all([
+          profileResponse.json(),
+          savedItemsResponse.json(),
+        ])
         if (!profileResponse.ok) throw new Error(profile.message || 'Could not load your friend list.')
+        if (!savedItemsResponse.ok) throw new Error(savedItems.message || 'Could not load your saved items.')
         setFriendIds(new Set((profile.friends || []).map((friend) => String(typeof friend === 'object' ? friend._id : friend))))
+        setSavedItemFolders(Object.fromEntries(
+          (savedItems.items || []).map((item) => [`${item.itemType}:${item.itemId}`, item.folderId])
+        ))
       }
     } catch (err) {
       setError(err.message)
@@ -284,6 +305,17 @@ function Posts() {
     }
   }, [openPostMenuId])
 
+  React.useEffect(() => {
+    if (!notice) return undefined
+
+    const exitTimer = window.setTimeout(() => setIsNoticeExiting(true), 2600)
+    const dismissTimer = window.setTimeout(() => setNotice(''), 2950)
+    return () => {
+      window.clearTimeout(exitTimer)
+      window.clearTimeout(dismissTimer)
+    }
+  }, [notice])
+
   const isGuestUser = !user || user.isAnonymous === true
 
   function getAuthHeaders(contentType = 'application/json') {
@@ -347,29 +379,44 @@ function Posts() {
     }
   }
 
-  async function toggleSave(postId) {
+  function toggleSave(postId) {
     if (!requireLogin()) return
+    setSaveModalItem({ itemType: 'post', itemId: postId })
+    openPostModal('save-folder')
+  }
 
-    try {
-      const response = await fetch(`${baseURL}/${postId}/save`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-      })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.message || 'Unable to save post.')
-
+  function handleSavedItem(result) {
+    const key = `${result.itemType}:${result.itemId}`
+    setSavedItemFolders((current) => {
+      if (!result.isSaved) {
+        const next = { ...current }
+        delete next[key]
+        return next
+      }
+      return { ...current, [key]: result.folderId }
+    })
+    if (result.itemType === 'post') {
       setPosts((currentPosts) => currentPosts.map((post) => {
-        if (post._id !== postId) return post
+        if (String(post._id) !== String(result.itemId)) return post
         const saves = Array.isArray(post.saves) ? post.saves : []
-        const nextSaves = result.isSaved
-          ? [...saves, user._id]
-          : saves.filter((savedUserId) => String(savedUserId) !== String(user._id))
-        return { ...post, saves: nextSaves }
+        const alreadySaved = saves.some((savedUserId) => (
+          String(typeof savedUserId === 'object' ? savedUserId?._id : savedUserId) === String(user?._id)
+        ))
+        if (result.isSaved === alreadySaved) return post
+        return {
+          ...post,
+          saves: result.isSaved
+            ? [...saves, user._id]
+            : saves.filter((savedUserId) => (
+              String(typeof savedUserId === 'object' ? savedUserId?._id : savedUserId) !== String(user?._id)
+            )),
+        }
       }))
-      setNotice(result.isSaved ? 'Post saved.' : 'Post removed from saved posts.')
-    } catch (actionError) {
-      setError(actionError.message)
     }
+    setSaveModalItem(null)
+    closeCurrentModal()
+    const itemLabel = result.itemType === 'video' ? 'Video' : 'Post'
+    showNotice(result.isSaved ? `${itemLabel} saved to folder.` : 'Item removed from saved items.')
   }
 
   async function toggleFriend(postUserId) {
@@ -386,7 +433,7 @@ function Posts() {
       if (!response.ok) throw new Error(result.message || 'Unable to update friend status.')
 
       setFriendIds(new Set((result.friends || []).map((friend) => String(typeof friend === 'object' ? friend._id : friend))))
-      setNotice(result.isFriend ? 'Friend added.' : 'Friend removed.')
+      showNotice(result.isFriend ? 'Friend added.' : 'Friend removed.')
     } catch (actionError) {
       setError(actionError.message)
     }
@@ -415,7 +462,7 @@ function Posts() {
       setCommentDraft('')
       setActiveDialog(null)
       closeCurrentModal()
-      setNotice('Comment added.')
+      showNotice('Comment added.')
     } catch (actionError) {
       setError(actionError.message)
     }
@@ -437,7 +484,7 @@ function Posts() {
       closeCurrentModal()
       setReportReason('')
       setReportDetails('')
-      setNotice('Report submitted. Thank you for letting us know.')
+      showNotice('Report submitted. Thank you for letting us know.')
     } catch (actionError) {
       setError(actionError.message)
     }
@@ -459,7 +506,7 @@ function Posts() {
     }
     await navigator.clipboard.writeText(url)
     await recordShare(postId)
-    setNotice('Post link copied.')
+    showNotice('Post link copied.')
   }
 
   async function sharePost(postId) {
@@ -474,7 +521,7 @@ function Posts() {
         })
       } else if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url)
-        setNotice('Post link copied because sharing is not supported by this browser.')
+        showNotice('Post link copied because sharing is not supported by this browser.')
       } else {
         throw new Error('Sharing is not supported by this browser.')
       }
@@ -496,7 +543,7 @@ function Posts() {
       const result = await response.json()
       if (!response.ok) throw new Error(result.message || 'Unable to delete post.')
       setPosts((currentPosts) => currentPosts.filter((post) => post._id !== postId))
-      setNotice('Post deleted.')
+      showNotice('Post deleted.')
     } catch (actionError) {
       setError(actionError.message)
     }
@@ -532,7 +579,11 @@ function Posts() {
 
       {isLoading && <div>Loading posts...</div>}
       {error && <div>{error}</div>}
-      {notice && <div className="post-action-notice" role="status">{notice}</div>}
+      {notice && (
+        <div className={`post-action-notice${isNoticeExiting ? ' is-exiting' : ''}`} role="status">
+          {notice}
+        </div>
+      )}
 
       <div className={`post-container${isPostPreviewOpen ? ' post-preview-container' : ''}`}>
         {isPostPreviewOpen && !isLoading && !visiblePosts.length && (
@@ -546,7 +597,13 @@ function Posts() {
           const isTextPost = post.postType === 'text'
           const isPostCreator = Boolean(user?._id) && String(post.user?._id) === String(user._id)
           const isPostCreatorFriend = friendIds.has(String(post.user?._id))
-          const savedByCurrentUser = Array.isArray(post.saves) && user && post.saves.some((savedId) => String(typeof savedId === 'object' ? savedId?._id : savedId) === String(user._id))
+          const savedItemKey = `post:${post._id}`
+          const savedByCurrentUser = Boolean(user) && (
+            Object.prototype.hasOwnProperty.call(savedItemFolders, savedItemKey)
+            || (Array.isArray(post.saves) && post.saves.some((savedId) => (
+              String(typeof savedId === 'object' ? savedId?._id : savedId) === String(user._id)
+            )))
+          )
           const postTitle = typeof post.title === 'string' ? post.title.trim() : ''
           const postDescription = typeof post.description === 'string' ? post.description.trim() : ''
           const textPostBackground = /^#[0-9a-f]{6}$/i.test(post.backgroundColor || '')
@@ -909,6 +966,24 @@ function Posts() {
           backgroundColor={textPostPreview.backgroundColor}
           originRect={textPostPreview.originRect}
           onClose={() => closeCurrentModal()}
+        />
+      )}
+      {saveModalItem && routedModal === 'save-folder' && (
+        <SaveToFolderModal
+          itemType={saveModalItem.itemType}
+          itemId={saveModalItem.itemId}
+          currentFolderId={savedItemFolders[`${saveModalItem.itemType}:${saveModalItem.itemId}`]}
+          isSaved={Object.prototype.hasOwnProperty.call(
+            savedItemFolders,
+            `${saveModalItem.itemType}:${saveModalItem.itemId}`
+          ) || posts.some((post) => (
+            String(post._id) === String(saveModalItem.itemId)
+            && post.saves?.some((savedId) => (
+              String(typeof savedId === 'object' ? savedId?._id : savedId) === String(user?._id)
+            ))
+          ))}
+          onClose={closeSaveFolderModal}
+          onSaved={handleSavedItem}
         />
       )}
     </div>
