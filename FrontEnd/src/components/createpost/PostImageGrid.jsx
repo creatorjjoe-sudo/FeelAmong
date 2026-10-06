@@ -16,6 +16,7 @@ function PostImageGrid({ images, className = '', onImageClick }) {
         const alt = typeof image === 'string' ? `Post image ${index + 1}` : image.alt || `Post image ${index + 1}`
 
         const isInteractive = typeof onImageClick === 'function'
+        const openImage = (tile) => onImageClick(index, tile.querySelector('img') || tile)
 
         return (
           <div
@@ -24,11 +25,11 @@ function PostImageGrid({ images, className = '', onImageClick }) {
             role={isInteractive ? 'button' : undefined}
             tabIndex={isInteractive ? 0 : undefined}
             aria-label={isInteractive ? `View image ${index + 1} of ${images.length}` : undefined}
-            onClick={isInteractive ? (event) => onImageClick(index, event.currentTarget) : undefined}
+            onClick={isInteractive ? (event) => openImage(event.currentTarget) : undefined}
             onKeyDown={isInteractive ? (event) => {
               if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault()
-                onImageClick(index, event.currentTarget)
+                openImage(event.currentTarget)
               }
             } : undefined}
           >

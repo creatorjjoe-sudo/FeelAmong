@@ -316,11 +316,52 @@ const incrementShareCount = async (req, res) => {
 // Get Feed Posts
 const getPosts = async (req, res) => {
   try {
-    const posts = await Post.find()
-      .populate('user', 'username avatar sex')
-      .populate('likes', 'username avatar sex')
-      .populate('comments.user', 'username avatar sex')
-      .sort({ createdAt: -1 });
+    const [posts, creatorRankings] = await Promise.all([
+      Post.find()
+        .populate('user', 'username avatar sex')
+        .populate('likes', 'username avatar sex')
+        .populate('comments.user', 'username avatar sex')
+        .lean(),
+      Post.aggregate([
+        {
+          $group: {
+            _id: '$user',
+            totalEngagement: {
+              $sum: {
+                $add: [
+                  { $size: { $ifNull: ['$likes', []] } },
+                  { $size: { $ifNull: ['$comments', []] } },
+                  { $ifNull: ['$sharesCount', 0] }
+                ]
+              }
+            }
+          }
+        }
+      ])
+    ]);
+
+    const creatorEngagementById = new Map(
+      creatorRankings.map(({ _id, totalEngagement }) => [String(_id), totalEngagement])
+    );
+    const getPostEngagement = (post) => (
+      (post.likes?.length || 0)
+      + (post.comments?.length || 0)
+      + (post.sharesCount || 0)
+    );
+
+    posts.sort((left, right) => {
+      const creatorScoreDifference = (
+        (creatorEngagementById.get(String(right.user?._id || right.user)) || 0)
+        - (creatorEngagementById.get(String(left.user?._id || left.user)) || 0)
+      );
+      if (creatorScoreDifference) return creatorScoreDifference;
+
+      const postScoreDifference = getPostEngagement(right) - getPostEngagement(left);
+      if (postScoreDifference) return postScoreDifference;
+
+      return new Date(right.createdAt) - new Date(left.createdAt);
+    });
+
     res.json(posts);
   } catch (error) {
     res.status(500).json({ message: error.message });

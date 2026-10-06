@@ -9,6 +9,7 @@ import ImagePreviewModal from './ImagePreviewModal'
 import { DEFAULT_TEXT_POST_BACKGROUND, getTextPostColor } from '../../utils/textPostColors'
 import { animatePreviewElement } from '../../utils/animatePreviewElement'
 import { getProfileAvatar } from '../../utils/profileAvatar'
+import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 
 const API_ORIGIN = 'http://localhost:5000'
 function formatTimeAgo(createdAt) {
@@ -167,6 +168,7 @@ function Posts() {
   const navigate = useNavigate()
   const { user, logout } = useContext(AuthContext)
   const previewPostId = new URLSearchParams(location.search).get('post')
+  const routedModal = location.state?.routedModal
   const isPostPreviewOpen = Boolean(previewPostId)
 
   const [posts, setPosts] = React.useState([])
@@ -188,6 +190,15 @@ function Posts() {
   const visiblePosts = isPostPreviewOpen
     ? posts.filter((post) => String(post._id) === previewPostId)
     : posts
+
+  const closeCurrentModal = React.useCallback(
+    (fallbackUrl = '/for-you') => closeRoutedModal(navigate, location, fallbackUrl),
+    [location, navigate]
+  )
+  const openPostModal = React.useCallback(
+    (modalName) => pushRoutedModal(navigate, location, modalName),
+    [location, navigate]
+  )
 
   const getPosts = async () => {
     try {
@@ -217,19 +228,40 @@ function Posts() {
   }, [])
 
   React.useEffect(() => {
+    if (!previewPostId || routedModal) return
+    const previewUrl = `${location.pathname}${location.search}${location.hash}`
+    navigate('/for-you', { replace: true })
+    navigate(previewUrl, {
+      state: {
+        routedModal: 'post-preview',
+        routedModalReturn: { url: '/for-you', state: null },
+      },
+    })
+  }, [location.hash, location.pathname, location.search, navigate, previewPostId, routedModal])
+
+  React.useEffect(() => {
     const postId = new URLSearchParams(location.search).get('post')
     if (!postId || posts.length === 0) return
     document.getElementById(`post-${postId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [location.search, posts])
 
   React.useEffect(() => {
-    if (!isPostPreviewOpen) return undefined
+    if (!isPostPreviewOpen || routedModal !== 'post-preview') return undefined
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') navigate('/for-you', { replace: true })
+      if (event.key === 'Escape') closeCurrentModal()
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isPostPreviewOpen, navigate])
+  }, [closeCurrentModal, isPostPreviewOpen, routedModal])
+
+  React.useEffect(() => {
+    if (routedModal !== 'comments' && routedModal !== 'report') return undefined
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') closeCurrentModal()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [closeCurrentModal, routedModal])
 
   React.useEffect(() => {
     if (!openPostMenuId) return undefined
@@ -382,6 +414,7 @@ function Posts() {
       ))
       setCommentDraft('')
       setActiveDialog(null)
+      closeCurrentModal()
       setNotice('Comment added.')
     } catch (actionError) {
       setError(actionError.message)
@@ -401,6 +434,7 @@ function Posts() {
       const result = await response.json()
       if (!response.ok) throw new Error(result.message || 'Unable to submit report.')
       setActiveDialog(null)
+      closeCurrentModal()
       setReportReason('')
       setReportDetails('')
       setNotice('Report submitted. Thank you for letting us know.')
@@ -477,7 +511,7 @@ function Posts() {
       className={`posts-wrapper${isPostPreviewOpen ? ' post-preview-overlay' : ''}`}
       onMouseDown={(event) => {
         if (isPostPreviewOpen && event.target === event.currentTarget) {
-          navigate('/for-you', { replace: true })
+          closeCurrentModal()
         }
       }}
     >
@@ -486,7 +520,7 @@ function Posts() {
           className="post-preview-close"
           type="button"
           aria-label="Close post preview"
-          onClick={() => navigate('/for-you', { replace: true })}
+          onClick={() => closeCurrentModal()}
         >
           ×
         </button>
@@ -525,7 +559,11 @@ function Posts() {
             : []
 
           return (
-            <div id={`post-${post._id}`} key={post._id} className='post-wrapper'>
+            <div
+              id={`post-${post._id}`}
+              key={post._id}
+              className={`post-wrapper${isPostPreviewOpen ? ' post-preview-item' : ''}`}
+            >
               <div className="left-items">
                 <div className="post-header">
                   <div className="header-left-items">
@@ -568,6 +606,7 @@ function Posts() {
                             backgroundColor: textPostBackground,
                             originRect: { left, top, width, height, sourceElement: element },
                           })
+                          openPostModal('text-preview')
                         }}
                       />
                     )
@@ -585,6 +624,7 @@ function Posts() {
                                 initialIndex: index,
                                 originRect: { left, top, width, height, sourceElement: tile },
                               })
+                              openPostModal('image-preview')
                             }}
                           />
                           : <div className="signgle-image" style={{ background: post.color }}></div>}
@@ -630,6 +670,7 @@ function Posts() {
                   if (!requireLogin()) return
                   setCommentDraft('')
                   setActiveDialog({ type: 'comment', postId: post._id })
+                  openPostModal('comments')
                   setOpenPostMenuId(null)
                 }}>
                   <div className="engage-background">
@@ -687,6 +728,7 @@ function Posts() {
                           if (!requireLogin()) return
                           setCommentDraft('')
                           setActiveDialog({ type: 'comment', postId: post._id })
+                          openPostModal('comments')
                           setOpenPostMenuId(null)
                         }}>
                           <img src={ICONS.comment} alt="" />
@@ -762,6 +804,7 @@ function Posts() {
                           setReportReason('')
                           setReportDetails('')
                           setActiveDialog({ type: 'report', postId: post._id })
+                          openPostModal('report')
                           setOpenPostMenuId(null)
                         }}>
                           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -792,12 +835,12 @@ function Posts() {
           )
         })}
       </div>
-      {activeDialog && activePost && (
+      {activeDialog && activePost && (routedModal === 'comments' || routedModal === 'report') && (
         <div className="post-action-dialog-backdrop" onMouseDown={(event) => {
-          if (event.target === event.currentTarget) setActiveDialog(null)
+          if (event.target === event.currentTarget) closeCurrentModal()
         }}>
           <section className="post-action-dialog" role="dialog" aria-modal="true" aria-labelledby="post-action-dialog-title">
-            <button className="post-action-dialog-close" type="button" aria-label="Close dialog" onClick={() => setActiveDialog(null)}>×</button>
+            <button className="post-action-dialog-close" type="button" aria-label="Close dialog" onClick={() => closeCurrentModal()}>×</button>
             {activeDialog.type === 'comment' ? (
               <>
                 <h2 id="post-action-dialog-title">Comments</h2>
@@ -852,20 +895,20 @@ function Posts() {
           </section>
         </div>
       )}
-      {imagePreview && (
+      {imagePreview && routedModal === 'image-preview' && (
         <ImagePreviewModal
           images={imagePreview.images}
           initialIndex={imagePreview.initialIndex}
           originRect={imagePreview.originRect}
-          onClose={() => setImagePreview(null)}
+          onClose={() => closeCurrentModal()}
         />
       )}
-      {textPostPreview && (
+      {textPostPreview && routedModal === 'text-preview' && (
         <TextPostPreviewModal
           text={textPostPreview.text}
           backgroundColor={textPostPreview.backgroundColor}
           originRect={textPostPreview.originRect}
-          onClose={() => setTextPostPreview(null)}
+          onClose={() => closeCurrentModal()}
         />
       )}
     </div>

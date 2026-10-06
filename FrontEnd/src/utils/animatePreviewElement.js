@@ -12,7 +12,8 @@ export async function animatePreviewElement(sourceElement, targetElement, origin
   const targetRect = targetElement.getBoundingClientRect()
   if (!targetRect.width || !targetRect.height) return
 
-  const clone = sourceElement.cloneNode(true)
+  const sourceImage = sourceElement instanceof HTMLImageElement ? sourceElement : null
+  const clone = sourceImage ? sourceImage.cloneNode(false) : sourceElement.cloneNode(true)
   clone.setAttribute('aria-hidden', 'true')
   clone.removeAttribute('role')
   clone.removeAttribute('tabindex')
@@ -24,10 +25,17 @@ export async function animatePreviewElement(sourceElement, targetElement, origin
     height: `${targetRect.height}px`,
     boxSizing: 'border-box',
     margin: '0',
-    zIndex: '1000',
+    zIndex: '1300',
     pointerEvents: 'none',
     transformOrigin: 'top left',
   })
+  if (sourceImage) {
+    const sourceStyle = window.getComputedStyle(sourceImage)
+    clone.src = sourceImage.currentSrc || sourceImage.src
+    clone.style.objectFit = sourceStyle.objectFit
+    clone.style.objectPosition = sourceStyle.objectPosition
+    clone.style.borderRadius = sourceStyle.borderRadius
+  }
   document.body.appendChild(clone)
 
   const animation = clone.animate(

@@ -45,6 +45,10 @@ const searchAll = async (req, res) => {
         type: 'post',
         title: matcher.test(post.title || '') ? post.title : post.description,
         description: post.user?.username || '',
+        postType: post.postType,
+        previewImage: post.images?.[0] || '',
+        backgroundColor: post.backgroundColor,
+        previewText: post.postType === 'text' ? post.description : '',
         avatar: post.user?.avatar || '',
         sex: post.user?.sex || '',
         createdAt: post.createdAt

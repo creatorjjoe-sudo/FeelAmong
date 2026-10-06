@@ -1,10 +1,12 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { ICONS } from '../../assets/icons'
 import '../../styles/components/dashboard/searchmodal.css'
 import { getProfileAvatar } from '../../utils/profileAvatar'
+import { replaceWithRoutedModal } from '../../utils/routedModal'
 
 const RECENT_SEARCHES_KEY = 'recentSearchItems'
+const API_ORIGIN = 'http://localhost:5000'
 
 function readRecentSearches() {
   try {
@@ -56,7 +58,7 @@ function highlightMatches(value, query) {
   ))
 }
 
-function SearchModal({ open, onClose, anchorRef }) {
+function SearchModal({ open, onClose, anchorRef, modalKey }) {
   const [query, setQuery] = React.useState('')
   const [results, setResults] = React.useState([])
   const [recentSearches, setRecentSearches] = React.useState(readRecentSearches)
@@ -65,6 +67,7 @@ function SearchModal({ open, onClose, anchorRef }) {
   const [anchorStyle, setAnchorStyle] = React.useState({})
   const inputRef = React.useRef(null)
   const navigate = useNavigate()
+  const location = useLocation()
 
   React.useEffect(() => {
     if (!open) return undefined
@@ -147,12 +150,21 @@ function SearchModal({ open, onClose, anchorRef }) {
 
   const openResult = (item) => {
     saveRecentSearch(item)
-    onClose()
     if (item.type === 'user') {
-      navigate(`/for-you/profile/${item.id}`)
+      replaceWithRoutedModal(navigate, `/for-you/profile/${item.id}`, null, location)
       return
     }
-    navigate(item.type === 'video' ? '/for-you/videos' : `/for-you?post=${encodeURIComponent(item.id)}`)
+    if (item.type === 'video') {
+      replaceWithRoutedModal(navigate, '/for-you/videos', null, location)
+      return
+    }
+
+    replaceWithRoutedModal(
+      navigate,
+      `/for-you?post=${encodeURIComponent(item.id)}`,
+      location.state?.routedModal === modalKey ? 'post-preview' : null,
+      location
+    )
   }
 
   const clearRecentSearches = () => {
@@ -219,7 +231,25 @@ function SearchModal({ open, onClose, anchorRef }) {
               key={`${item.type}-${item.id}`}
               onClick={() => openResult(item)}
             >
-              <img className="search-result-avatar" src={getProfileAvatar(item)} alt="" />
+              {item.type === 'post' ? (
+                item.previewImage ? (
+                  <img
+                    className="search-result-avatar search-result-post-image"
+                    src={item.previewImage.startsWith('/') ? `${API_ORIGIN}${item.previewImage}` : item.previewImage}
+                    alt=""
+                  />
+                ) : (
+                  <span
+                    className="search-result-avatar search-result-text-post"
+                    style={{ backgroundColor: item.backgroundColor || '#f1f7f1' }}
+                    aria-hidden="true"
+                  >
+                    {item.previewText || item.title}
+                  </span>
+                )
+              ) : (
+                <img className="search-result-avatar" src={getProfileAvatar(item)} alt="" />
+              )}
               <span className="search-result-copy">
                 <span className="search-result-title">{highlightMatches(item.title, query)}</span>
                 <span className="search-result-meta">

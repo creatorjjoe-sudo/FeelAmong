@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: rgba(20, 31, 24, 0.24);
+  background: transparent;
 }
 
 .search-modal-panel {
@@ -143,6 +143,27 @@
 
 .search-modal-panel .search-result-avatar {
   width: 32px;
+}
+
+.search-result-post-image {
+  border-radius: 5px;
+}
+
+.search-result-text-post {
+  display: -webkit-box;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  overflow: hidden;
+  border-radius: 5px;
+  color: #28352b;
+  font-size: 5px;
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
 }
 
 .search-result-copy {

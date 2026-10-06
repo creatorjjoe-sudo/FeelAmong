@@ -6,15 +6,18 @@ import SearchModal from './SearchModal'
 import LoginRequiredModal from './LoginRequiredModal'
 import CreatePostMenu from './CreatePostMenu'
 import '../../styles/components/dashboard/navbar.css'
+import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 
 function Navbar({ activeView, switchActive, unreadMessageCount = 0 }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useContext(AuthContext)
   const navbarRef = React.useRef(null)
-  const [searchOpen, setSearchOpen] = React.useState(false)
+  const searchOpen = location.state?.routedModal === 'desktop-search'
   const [showLoginModal, setShowLoginModal] = React.useState(false)
   const isAnonymous = !user || user.isAnonymous === true
+  const openSearch = () => pushRoutedModal(navigate, location, 'desktop-search')
+  const closeSearch = () => closeRoutedModal(navigate, location)
 
   const posts = []
   const videos = []
@@ -54,7 +57,7 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0 }) {
     <div className="navbar-wrapper" ref={navbarRef}>
       <h1 className="app-logo">feelamong</h1>
 
-      <button className="search-wrapper" type="button" onClick={() => setSearchOpen(true)}>
+      <button className="search-wrapper" type="button" onClick={openSearch}>
         <img className="search-icon" src={ICONS.search} alt="" />
         <span className="search-holder">Search</span>
       </button>
@@ -118,13 +121,14 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0 }) {
               <path d="M4 21a8 8 0 0 1 16 0" />
             </svg>
           </div>
-          <h2 className={`title ${activeView === 'profile' ? 'active' : ''}`}>You</h2>
+          <h2 className={`title ${activeView === 'profile' ? 'active' : ''}`}>{user?.username || 'You'}</h2>
         </div>
       </Link>
       <SearchModal
         open={searchOpen}
-        onClose={() => setSearchOpen(false)}
+        onClose={closeSearch}
         anchorRef={navbarRef}
+        modalKey="desktop-search"
       />
       {showLoginModal && (
         <LoginRequiredModal
