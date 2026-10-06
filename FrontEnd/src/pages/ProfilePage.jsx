@@ -1,10 +1,13 @@
 import React from 'react'
 import { useContext } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AuthContext } from '../api/context/AuthContext'
 import LoginRequiredModal from '../components/dashboard/LoginRequiredModal'
+import CreatePostMenu from '../components/dashboard/CreatePostMenu'
 import '../styles/pages/profile.css'
 import { getProfileAvatar } from '../utils/profileAvatar'
+import { closeRoutedModal, pushRoutedModal } from '../utils/routedModal'
+import { animatePreviewElement } from '../utils/animatePreviewElement'
 
 const API_ORIGIN = 'http://localhost:5000'
 
@@ -17,6 +20,8 @@ function ProfilePage() {
   const { user, login, logout } = useContext(AuthContext)
   const { userId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const isAvatarPreviewOpen = location.state?.routedModal === 'profile-avatar-preview'
   const isOwnProfile = !userId || String(userId) === String(user?._id)
   const [profile, setProfile] = React.useState(isOwnProfile ? user : null)
   const [posts, setPosts] = React.useState([])
@@ -29,11 +34,35 @@ function ProfilePage() {
   const [isEditing, setIsEditing] = React.useState(false)
   const [isSaving, setIsSaving] = React.useState(false)
   const [editDraft, setEditDraft] = React.useState({})
+  const [avatarSelection, setAvatarSelection] = React.useState(null)
+  const [editError, setEditError] = React.useState('')
+  const [avatarOriginRect, setAvatarOriginRect] = React.useState(null)
+  const avatarImageRef = React.useRef(null)
+  const avatarPreviewImageRef = React.useRef(null)
   const [isMoreOpen, setIsMoreOpen] = React.useState(false)
   const [showReport, setShowReport] = React.useState(false)
   const [reportReason, setReportReason] = React.useState('')
   const [reportDetails, setReportDetails] = React.useState('')
   const [showLoginModal, setShowLoginModal] = React.useState(false)
+
+  React.useEffect(() => () => {
+    if (avatarSelection) URL.revokeObjectURL(avatarSelection.previewUrl)
+  }, [avatarSelection])
+
+  React.useEffect(() => {
+    if (!isAvatarPreviewOpen) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') closeRoutedModal(navigate, location)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isAvatarPreviewOpen, location, navigate])
 
   React.useEffect(() => {
     let isActive = true
@@ -114,6 +143,40 @@ function ProfilePage() {
     navigate(`/for-you/messages?user=${encodeURIComponent(profile._id)}`)
   }
 
+  function openAvatarPreview() {
+    const sourceElement = avatarImageRef.current
+    if (!sourceElement) return
+    const { left, top, width, height } = sourceElement.getBoundingClientRect()
+    setAvatarOriginRect({ left, top, width, height, sourceElement })
+    pushRoutedModal(navigate, location, 'profile-avatar-preview')
+  }
+
+  function closeAvatarPreview() {
+    setAvatarOriginRect(null)
+    closeRoutedModal(navigate, location)
+  }
+
+  React.useLayoutEffect(() => {
+    if (!isAvatarPreviewOpen || !avatarOriginRect) return undefined
+
+    let isActive = true
+    animatePreviewElement(
+      avatarOriginRect.sourceElement,
+      avatarPreviewImageRef.current,
+      avatarOriginRect,
+    ).then(() => {
+      if (isActive) setAvatarOriginRect(null)
+    })
+
+    return () => {
+      isActive = false
+    }
+  }, [avatarOriginRect, isAvatarPreviewOpen])
+
+  function handleCreatePost(toggleMenu) {
+    if (requireLogin()) toggleMenu()
+  }
+
   async function handleAccountLogin() {
     setShowLoginModal(false)
     await logout()
@@ -125,16 +188,20 @@ function ProfilePage() {
     if (!requireLogin()) return
     setIsSaving(true)
     setError('')
+    setEditError('')
     setNotice('')
 
     try {
+      const formData = new FormData()
+      Object.entries(editDraft).forEach(([field, value]) => formData.append(field, value || ''))
+      if (avatarSelection) formData.append('avatar', avatarSelection.file)
+
       const response = await fetch(`${API_ORIGIN}/api/users/${user._id}`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(editDraft),
+        body: formData,
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.message || 'Could not update your profile.')
@@ -142,12 +209,42 @@ function ProfilePage() {
       setProfile((current) => ({ ...current, ...result }))
       login({ ...user, ...result, token })
       setIsEditing(false)
+      setAvatarSelection(null)
       setNotice('Profile updated.')
     } catch (actionError) {
-      setError(actionError.message)
+      setEditError(actionError.message)
     } finally {
       setIsSaving(false)
     }
+  }
+
+  function openEditProfile() {
+    setAvatarSelection(null)
+    setEditError('')
+    setIsEditing(true)
+  }
+
+  function closeEditProfile() {
+    if (isSaving) return
+    setIsEditing(false)
+    setAvatarSelection(null)
+    setEditError('')
+  }
+
+  function selectAvatar(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      setEditError('Choose a JPEG, PNG, WebP, or GIF image.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setEditError('Profile pictures must be smaller than 5 MB.')
+      return
+    }
+    setEditError('')
+    setAvatarSelection({ file, previewUrl: URL.createObjectURL(file) })
   }
 
   async function toggleFriend() {
@@ -219,14 +316,16 @@ function ProfilePage() {
         <section className="profile-card" aria-labelledby="profile-name">
           <div className="profile-cover" aria-hidden="true" />
           <div className="profile-identity">
-            <img className="profile-avatar" src={avatar} alt="" />
+            <button className="profile-avatar-trigger" type="button" onClick={openAvatarPreview} aria-label="View profile picture">
+              <img ref={avatarImageRef} className="profile-avatar" src={avatar} alt="" />
+            </button>
             <div className="profile-heading">
               <h1 id="profile-name">{fullName || profile?.username || 'Your profile'}</h1>
               {profile?.username && fullName && <p className="profile-username">@{profile.username}</p>}
             </div>
             <div className="profile-actions">
               {isOwnProfile ? (
-                <button className="profile-action-button profile-edit-button" type="button" onClick={() => setIsEditing(true)}>
+                <button className="profile-action-button profile-edit-button" type="button" onClick={openEditProfile}>
                   Edit profile
                 </button>
               ) : (
@@ -279,16 +378,62 @@ function ProfilePage() {
           </dl>
         </section>
 
+        {isAvatarPreviewOpen && (
+          <div
+            className="profile-avatar-preview-backdrop"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) closeAvatarPreview()
+            }}
+          >
+            <section className="profile-avatar-preview-modal" role="dialog" aria-modal="true" aria-label="Profile picture">
+              <button className="profile-avatar-preview-close" type="button" onClick={closeAvatarPreview} aria-label="Close profile picture">
+                ×
+              </button>
+              <img
+                ref={avatarPreviewImageRef}
+                className={`profile-avatar-large${avatarOriginRect ? ' is-transitioning' : ''}`}
+                src={avatar}
+                alt={`${fullName || profile?.username || 'Profile'} profile picture`}
+              />
+            </section>
+          </div>
+        )}
+
         {notice && <p className="profile-notice" role="status">{notice}</p>}
         {error && <p className="profile-page-error" role="alert">{error}</p>}
 
         {isEditing && (
           <div className="profile-dialog-backdrop" role="presentation" onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setIsEditing(false)
+            if (event.target === event.currentTarget) closeEditProfile()
           }}>
             <section className="profile-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-profile-title">
               <h2 id="edit-profile-title">Edit profile</h2>
               <form onSubmit={saveProfile}>
+                <div className="profile-avatar-editor">
+                  <img
+                    className="profile-avatar-preview"
+                    src={avatarSelection?.previewUrl || avatar}
+                    alt="Profile picture preview"
+                  />
+                  <div className="profile-avatar-controls">
+                    <label className="profile-avatar-upload" htmlFor="profile-picture-input">Choose picture</label>
+                    <input
+                      className="profile-avatar-input"
+                      id="profile-picture-input"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={selectAvatar}
+                    />
+                    <small>JPEG, PNG, WebP, or GIF. Maximum 5 MB.</small>
+                    {avatarSelection && (
+                      <button className="profile-avatar-remove" type="button" onClick={() => setAvatarSelection(null)}>
+                        Remove selected picture
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {editError && <p className="profile-edit-error" role="alert">{editError}</p>}
                 <label>
                   First name
                   <input value={editDraft.firstName || ''} onChange={(event) => setEditDraft({ ...editDraft, firstName: event.target.value })} required maxLength={80} />
@@ -310,7 +455,7 @@ function ProfilePage() {
                   <input value={editDraft.status || ''} onChange={(event) => setEditDraft({ ...editDraft, status: event.target.value })} maxLength={80} />
                 </label>
                 <div className="profile-dialog-actions">
-                  <button type="button" onClick={() => setIsEditing(false)}>Cancel</button>
+                  <button type="button" onClick={closeEditProfile} disabled={isSaving}>Cancel</button>
                   <button type="submit" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save changes'}</button>
                 </div>
               </form>
@@ -358,7 +503,24 @@ function ProfilePage() {
           {isLoading && <p className="profile-state">Loading your profile…</p>}
           {error && <p className="profile-state profile-state-error" role="alert">{error}</p>}
           {!isLoading && !error && posts.length === 0 && (
-            <p className="profile-state">{isOwnProfile ? 'You haven’t shared any posts yet.' : 'This user hasn’t shared any posts yet.'}</p>
+            <div className="profile-empty-state">
+              <p className="profile-state">{isOwnProfile ? 'You haven’t shared any posts yet.' : 'This user hasn’t shared any posts yet.'}</p>
+              {isOwnProfile && (
+                <CreatePostMenu className="profile-create-post-menu" onSelect={(postType) => navigate(`/post-create-one?type=${postType}`)}>
+                  {({ isOpen, toggle }) => (
+                    <button
+                      className="profile-create-post-button"
+                      type="button"
+                      aria-expanded={isOpen}
+                      aria-haspopup="menu"
+                      onClick={() => handleCreatePost(toggle)}
+                    >
+                      Create post
+                    </button>
+                  )}
+                </CreatePostMenu>
+              )}
+            </div>
           )}
 
           {!isLoading && !error && posts.length > 0 && (

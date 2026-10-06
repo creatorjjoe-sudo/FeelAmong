@@ -1,8 +1,35 @@
 const User = require('../models/User');
 const mongoose = require('mongoose');
 const UserReport = require('../models/UserReport');
+const fs = require('fs');
+const path = require('path');
+const { uploadDirectory } = require('../middleware/profileAvatarUpload');
 
 const REPORT_REASONS = ['Spam', 'Harassment', 'Inappropriate content', 'False information', 'Other'];
+
+async function removeUploadedAvatar(file) {
+  if (!file) return;
+  try {
+    await fs.promises.unlink(file.path);
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      console.error('Could not remove an uploaded profile picture:', error.message);
+    }
+  }
+}
+
+async function removeStoredAvatar(avatar) {
+  if (typeof avatar !== 'string' || !avatar.startsWith('/uploads/avatars/')) return;
+  const filePath = path.resolve(uploadDirectory, path.basename(avatar));
+  if (path.dirname(filePath) !== uploadDirectory) return;
+  try {
+    await fs.promises.unlink(filePath);
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      console.error('Could not remove a replaced profile picture:', error.message);
+    }
+  }
+}
 
 const getPublicProfile = async (req, res) => {
   try {
@@ -31,8 +58,11 @@ const getPublicProfile = async (req, res) => {
 };
 
 const updateProfile = async (req, res) => {
+  let profileUpdated = false;
+  let previousAvatar = '';
   try {
     if (String(req.params.id) !== String(req.user._id)) {
+      await removeUploadedAvatar(req.file);
       return res.status(403).json({ message: 'You can only edit your own profile' });
     }
 
@@ -42,19 +72,37 @@ const updateProfile = async (req, res) => {
       if (typeof req.body[field] === 'string') updates[field] = req.body[field].trim();
     }
     if (!updates.firstName || !updates.lastName) {
+      await removeUploadedAvatar(req.file);
       return res.status(400).json({ message: 'First name and last name are required' });
     }
     if ((updates.bio || '').length > 500) {
+      await removeUploadedAvatar(req.file);
       return res.status(400).json({ message: 'Bio must be 500 characters or fewer' });
+    }
+    if (req.file) updates.avatar = `/uploads/avatars/${req.file.filename}`;
+
+    if (req.file) {
+      const currentProfile = await User.findById(req.user._id).select('avatar');
+      if (!currentProfile) {
+        await removeUploadedAvatar(req.file);
+        return res.status(404).json({ message: 'User not found' });
+      }
+      previousAvatar = currentProfile.avatar;
     }
 
     const profile = await User.findByIdAndUpdate(req.user._id, updates, {
       new: true,
       runValidators: true
     }).select('-password');
-    if (!profile) return res.status(404).json({ message: 'User not found' });
+    if (!profile) {
+      await removeUploadedAvatar(req.file);
+      return res.status(404).json({ message: 'User not found' });
+    }
+    profileUpdated = true;
+    if (req.file) await removeStoredAvatar(previousAvatar);
     res.json(profile);
   } catch (error) {
+    if (!profileUpdated) await removeUploadedAvatar(req.file);
     res.status(500).json({ message: error.message });
   }
 };

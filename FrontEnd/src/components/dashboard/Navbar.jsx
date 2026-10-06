@@ -6,6 +6,7 @@ import SearchModal from './SearchModal'
 import ProfileMenuModal from './ProfileMenuModal'
 import LoginRequiredModal from './LoginRequiredModal'
 import CreatePostMenu from './CreatePostMenu'
+import { getProfileAvatar } from '../../utils/profileAvatar'
 import '../../styles/components/dashboard/navbar.css'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 
@@ -128,10 +129,14 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0 }) {
       >
         <div className="nav-title profile">
           <div className={`icon-wrapper profile-nav-icon${activeView === 'profile' ? ' is-active' : ''}`}>
-            <svg viewBox="0 0 24 24" role="img" aria-label="Profile">
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 21a8 8 0 0 1 16 0" />
-            </svg>
+            {typeof user?.avatar === 'string' && user.avatar.trim()
+              ? <img className="profile-nav-avatar" src={getProfileAvatar(user)} alt="" />
+              : (
+                <svg viewBox="0 0 24 24" role="img" aria-label="Profile">
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 21a8 8 0 0 1 16 0" />
+                </svg>
+              )}
           </div>
           <h2 className={`title ${activeView === 'profile' ? 'active' : ''}`}>{user?.username || 'You'}</h2>
         </div>

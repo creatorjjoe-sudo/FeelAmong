@@ -13,7 +13,7 @@ import SavedItemsPage from './SavedItemsPage'
 import SettingsPage from './SettingsPage'
 import { AuthContext } from '../api/context/AuthContext'
 
-function Dashboard() {
+function Dashboard({ isDarkMode, setIsDarkMode }) {
   const { user } = React.useContext(AuthContext)
   const location = useLocation()
   const [activeView, setActiveView] = React.useState('for-you')
@@ -120,7 +120,10 @@ function Dashboard() {
         <Route path="profile" element={<ProfilePage />} />
         <Route path="profile/:userId" element={<ProfilePage />} />
         <Route path="saved" element={<SavedItemsPage />} />
-        <Route path="settings" element={<SettingsPage />} />
+        <Route
+          path="settings"
+          element={<SettingsPage isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />}
+        />
       </Routes>
     </div>
   )

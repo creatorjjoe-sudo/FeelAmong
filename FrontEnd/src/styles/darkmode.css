@@ -1,0 +1,301 @@
+.settings-placeholder > p {
+ margin-bottom: 20px;
+}
+
+.theme-setting {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ gap: 16px;
+ padding: 16px;
+ border: 1px solid #dce6dc;
+ border-radius: 12px;
+ background: #fff;
+}
+
+.theme-setting-copy {
+ display: flex;
+ flex-direction: column;
+ gap: 4px;
+}
+
+.theme-setting-copy strong {
+ font-size: 15px;
+}
+
+.theme-setting-copy small {
+ color: #718077;
+ font-size: 12px;
+}
+
+.theme-setting-toggle {
+ position: relative;
+ flex: 0 0 46px;
+ width: 46px;
+ height: 26px;
+ padding: 3px;
+ border: 0;
+ border-radius: 999px;
+ background: #aab4ab;
+ cursor: pointer;
+ transition: background-color 160ms ease;
+}
+
+.theme-setting-toggle[aria-checked="true"] {
+ background: #00a800;
+}
+
+.theme-setting-toggle-thumb {
+ display: block;
+ width: 20px;
+ height: 20px;
+ border-radius: 50%;
+ background: #fff;
+ box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+ transition: transform 160ms ease;
+}
+
+.theme-setting-toggle[aria-checked="true"] .theme-setting-toggle-thumb {
+ transform: translateX(20px);
+}
+
+.theme-setting-toggle:focus-visible {
+ outline: 2px solid #00ba00;
+ outline-offset: 3px;
+}
+
+.sr-only {
+ position: absolute;
+ width: 1px;
+ height: 1px;
+ padding: 0;
+ overflow: hidden;
+ clip: rect(0, 0, 0, 0);
+ white-space: nowrap;
+ border: 0;
+}
+
+html[data-theme="dark"] {
+ color-scheme: dark;
+ background: #121614;
+ --background: #121614;
+ --input-background: #202722;
+}
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] #root,
+html[data-theme="dark"] .dashboard-container {
+ background: #121614;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .header-wrapper,
+html[data-theme="dark"] .footer-wrapper,
+html[data-theme="dark"] .profile-menu-panel,
+html[data-theme="dark"] .theme-setting,
+html[data-theme="dark"] .video-card,
+html[data-theme="dark"] .profile-card,
+html[data-theme="dark"] .profile-posts,
+html[data-theme="dark"] .profile-post-card,
+html[data-theme="dark"] .profile-dialog,
+html[data-theme="dark"] .profile-avatar-preview-modal,
+html[data-theme="dark"] .post-action-dialog,
+html[data-theme="dark"] .post-comment,
+html[data-theme="dark"] .profile-avatar-preview,
+html[data-theme="dark"] .login-required-modal,
+html[data-theme="dark"] .saved-folder-card,
+html[data-theme="dark"] .saved-item-card,
+html[data-theme="dark"] .save-folder-dialog,
+html[data-theme="dark"] .search-modal-panel,
+html[data-theme="dark"] .create-post-menu {
+ border-color: #303a33;
+ background-color: #1b211e;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .profile-menu-option:hover,
+html[data-theme="dark"] .profile-menu-option:focus-visible,
+html[data-theme="dark"] .saved-folder-card:hover,
+html[data-theme="dark"] .saved-folder-card:focus-visible,
+html[data-theme="dark"] .chat-conversation-row:hover,
+html[data-theme="dark"] .chat-conversation-row.is-selected,
+html[data-theme="dark"] .search-result-item:hover,
+html[data-theme="dark"] .search-result-item:focus-visible,
+html[data-theme="dark"] .message-row.their p,
+html[data-theme="dark"] .post-more-options,
+html[data-theme="dark"] .create-post-menu-options {
+ background-color: #252e28;
+}
+
+html[data-theme="dark"] .navbar-wrapper .search-wrapper,
+html[data-theme="dark"] .header-wrapper .search-wrapper,
+html[data-theme="dark"] .profile-shortcut,
+html[data-theme="dark"] .logout-btn,
+html[data-theme="dark"] .video-card-footer button,
+html[data-theme="dark"] .profile-action-button,
+html[data-theme="dark"] .saved-folder-icon,
+html[data-theme="dark"] .profile-menu-option-icon {
+ background-color: #29352d;
+}
+
+html[data-theme="dark"] .profile-dialog-actions button:not([type="submit"]) {
+ border-color: #455148;
+ background-color: #29352d;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .profile-dialog .profile-avatar-upload {
+ border-color: #416f45;
+ background-color: #29352d;
+ color: #b9f1bd;
+}
+
+html[data-theme="dark"] .profile-avatar-controls small {
+ color: #a5b2a8;
+}
+
+html[data-theme="dark"] .profile-page,
+html[data-theme="dark"] .post-create-container,
+html[data-theme="dark"] .welcome-container {
+ background-color: #121614;
+}
+
+html[data-theme="dark"] .form-wrapper,
+html[data-theme="dark"] .profile-details-panel,
+html[data-theme="dark"] .title-container,
+html[data-theme="dark"] .option-value,
+html[data-theme="dark"] .visibility-options,
+html[data-theme="dark"] .visibility-option,
+html[data-theme="dark"] .settings,
+html[data-theme="dark"] .post-form {
+ border-color: #303a33;
+ background-color: #1b211e;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .visibility-option,
+html[data-theme="dark"] .visibility-option span,
+html[data-theme="dark"] select option {
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] select option {
+ background-color: #202722;
+}
+
+html[data-theme="dark"] .visibility-option:hover,
+html[data-theme="dark"] .visibility-option[aria-selected="true"] {
+ background-color: #29352d;
+}
+
+html[data-theme="dark"] .search-modal-input-wrap,
+html[data-theme="dark"] .save-folder-list,
+html[data-theme="dark"] .profile-more-menu {
+ border-color: #303a33;
+ background-color: #202722;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .videos-page > h1,
+html[data-theme="dark"] .welcome-container,
+html[data-theme="dark"] .form-wrapper,
+html[data-theme="dark"] .video-card-header h2,
+html[data-theme="dark"] .video-card-header p,
+html[data-theme="dark"] .video-card-footer,
+html[data-theme="dark"] .videos-state,
+html[data-theme="dark"] .saved-folder-copy,
+html[data-theme="dark"] .saved-item-copy,
+html[data-theme="dark"] .profile-menu-option-copy,
+html[data-theme="dark"] .settings-placeholder,
+html[data-theme="dark"] .saved-items-page,
+html[data-theme="dark"] .profile-page,
+html[data-theme="dark"] .profile-dialog,
+html[data-theme="dark"] .post-action-dialog,
+html[data-theme="dark"] .post-wrapper,
+html[data-theme="dark"] .chat-cover,
+html[data-theme="dark"] .main-screen,
+html[data-theme="dark"] .left-section,
+html[data-theme="dark"] .middle-section,
+html[data-theme="dark"] .right-section,
+html[data-theme="dark"] .search-modal-panel,
+html[data-theme="dark"] .search-modal-panel h2,
+html[data-theme="dark"] .search-modal-panel h3,
+html[data-theme="dark"] .search-result-title,
+html[data-theme="dark"] .search-result-meta,
+html[data-theme="dark"] .save-folder-dialog,
+html[data-theme="dark"] .save-folder-list legend,
+html[data-theme="dark"] .save-folder-create > label,
+html[data-theme="dark"] .chat-conversation-name,
+html[data-theme="dark"] .chat-conversation-preview,
+html[data-theme="dark"] .user-cover .username,
+html[data-theme="dark"] .user-cover .msg-body,
+html[data-theme="dark"] .post-create-container,
+html[data-theme="dark"] .create-container {
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .profile-menu-option-copy small,
+html[data-theme="dark"] .theme-setting-copy small,
+html[data-theme="dark"] .settings-placeholder p,
+html[data-theme="dark"] .saved-items-heading p,
+html[data-theme="dark"] .saved-item-copy small,
+html[data-theme="dark"] .saved-folder-copy small,
+html[data-theme="dark"] .chat-empty-state,
+html[data-theme="dark"] .search-modal-state,
+html[data-theme="dark"] .search-modal-list-heading h3,
+html[data-theme="dark"] .save-folder-close,
+html[data-theme="dark"] .save-folder-state {
+ color: #a5b2a8;
+}
+
+html[data-theme="dark"] .theme-setting {
+ border-color: #303a33;
+}
+
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select {
+ border-color: #455148;
+ background-color: #202722;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+ color: #a5b2a8;
+}
+
+html[data-theme="dark"] .navbar-wrapper .search-wrapper span,
+html[data-theme="dark"] .header-wrapper .search-wrapper,
+html[data-theme="dark"] .profile-menu-close,
+html[data-theme="dark"] .saved-items-back {
+ color: #b7c3ba;
+}
+
+html[data-theme="dark"] .profile-menu-option-copy > span,
+html[data-theme="dark"] .profile-card,
+html[data-theme="dark"] .profile-posts,
+html[data-theme="dark"] .saved-folder-card,
+html[data-theme="dark"] .saved-item-card,
+html[data-theme="dark"] .post-action-dialog h2,
+html[data-theme="dark"] .post-action-dialog label {
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .post-action-dialog textarea,
+html[data-theme="dark"] .post-action-dialog select {
+ border-color: #455148;
+ background: #202722;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .message-row.their p {
+ color: #e5ebe6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+ .theme-setting-toggle,
+ .theme-setting-toggle-thumb {
+  transition: none;
+ }
+}

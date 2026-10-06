@@ -1,6 +1,8 @@
 import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useContext } from 'react'
 import { ICONS } from '../../assets/icons'
+import { AuthContext } from '../../api/context/AuthContext'
 import '../../styles/components/dashboard/searchmodal.css'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { replaceWithRoutedModal } from '../../utils/routedModal'
@@ -8,9 +10,13 @@ import { replaceWithRoutedModal } from '../../utils/routedModal'
 const RECENT_SEARCHES_KEY = 'recentSearchItems'
 const API_ORIGIN = 'http://localhost:5000'
 
-function readRecentSearches() {
+function getRecentSearchesKey(userId) {
+  return userId ? `${RECENT_SEARCHES_KEY}:${userId}` : `${RECENT_SEARCHES_KEY}:guest`
+}
+
+function readRecentSearches(storageKey) {
   try {
-    const value = JSON.parse(localStorage.getItem(RECENT_SEARCHES_KEY) || '[]')
+    const value = JSON.parse(localStorage.getItem(storageKey) || '[]')
     return Array.isArray(value) ? value : []
   } catch {
     return []
@@ -59,9 +65,11 @@ function highlightMatches(value, query) {
 }
 
 function SearchModal({ open, onClose, anchorRef, modalKey }) {
+  const { user } = useContext(AuthContext)
+  const recentSearchesKey = getRecentSearchesKey(user?._id || user?.id)
   const [query, setQuery] = React.useState('')
   const [results, setResults] = React.useState([])
-  const [recentSearches, setRecentSearches] = React.useState(readRecentSearches)
+  const [recentSearches, setRecentSearches] = React.useState(() => readRecentSearches(recentSearchesKey))
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState('')
   const [anchorStyle, setAnchorStyle] = React.useState({})
@@ -74,7 +82,7 @@ function SearchModal({ open, onClose, anchorRef, modalKey }) {
 
     setQuery('')
     setResults([])
-    setRecentSearches(readRecentSearches())
+    setRecentSearches(readRecentSearches(recentSearchesKey))
 
     const updateAnchor = () => {
       if (window.innerWidth < 800) {
@@ -95,7 +103,7 @@ function SearchModal({ open, onClose, anchorRef, modalKey }) {
     inputRef.current?.focus()
     window.addEventListener('resize', updateAnchor)
     return () => window.removeEventListener('resize', updateAnchor)
-  }, [open, anchorRef])
+  }, [open, anchorRef, recentSearchesKey])
 
   React.useEffect(() => {
     if (!open) return undefined
@@ -145,7 +153,7 @@ function SearchModal({ open, onClose, anchorRef, modalKey }) {
   const saveRecentSearch = (item) => {
     const next = [item, ...recentSearches.filter((recent) => recent.id !== item.id || recent.type !== item.type)].slice(0, 8)
     setRecentSearches(next)
-    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(next))
+    localStorage.setItem(recentSearchesKey, JSON.stringify(next))
   }
 
   const openResult = (item) => {
@@ -169,7 +177,7 @@ function SearchModal({ open, onClose, anchorRef, modalKey }) {
 
   const clearRecentSearches = () => {
     setRecentSearches([])
-    localStorage.removeItem(RECENT_SEARCHES_KEY)
+    localStorage.removeItem(recentSearchesKey)
   }
 
   if (!open) return null

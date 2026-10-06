@@ -11,6 +11,7 @@ import { animatePreviewElement } from '../../utils/animatePreviewElement'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 import SaveToFolderModal from './SaveToFolderModal'
+import FeedLoadingModal from './FeedLoadingModal'
 
 const API_ORIGIN = 'http://localhost:5000'
 function formatTimeAgo(createdAt) {
@@ -577,7 +578,7 @@ function Posts() {
         />
       )}
 
-      {isLoading && <div>Loading posts...</div>}
+      {isLoading && <FeedLoadingModal />}
       {error && <div>{error}</div>}
       {notice && (
         <div className={`post-action-notice${isNoticeExiting ? ' is-exiting' : ''}`} role="status">
@@ -653,15 +654,7 @@ function Posts() {
                 <div className="middle">
                   {isTextPost
                     ? postDescription && (
-                      <TextPostContent
-                        text={postDescription}
-                        backgroundColor={textPostBackground}
-                        onClick={(element) => {
-                          const { left, top, width, height } = element.getBoundingClientRect()
-                          setTextPostPreview({
-                            text: postDescription,
-                            backgroundColor: textPostBackground,
-                            originRect: { left, top, width, height, sourceElement: element },
+                      <TextPostContent text={postDescription} backgroundColor={textPostBackground} onClick={(element) => { const { left, top, width, height } = element.getBoundingClientRect(); setTextPostPreview({ text: postDescription, backgroundColor: textPostBackground, originRect: { left, top, width, height, sourceElement: element },
                           })
                           openPostModal('text-preview')
                         }}
@@ -671,15 +664,7 @@ function Posts() {
                       <>
                         {postTitle && <p>Title: {postTitle}</p>}
                         {postImages.length > 0
-                          ? <PostImageGrid
-                            images={postImages}
-                            className="post-image-grid-feed"
-                            onImageClick={(index, tile) => {
-                              const { left, top, width, height } = tile.getBoundingClientRect()
-                              setImagePreview({
-                                images: postImages,
-                                initialIndex: index,
-                                originRect: { left, top, width, height, sourceElement: tile },
+                          ? <PostImageGrid images={postImages} className="post-image-grid-feed" onImageClick={(index, tile) => { const { left, top, width, height } = tile.getBoundingClientRect(); setImagePreview({ images: postImages, initialIndex: index, originRect: { left, top, width, height, sourceElement: tile },
                               })
                               openPostModal('image-preview')
                             }}
@@ -695,16 +680,7 @@ function Posts() {
                         const liker = typeof like === 'object' && like !== null ? like : null
                         const likerName = liker?.username || 'User'
                         return (
-                          <img
-                            className="liked-user-avatar"
-                            key={getLikeUserId(like) || index}
-                            src={getAvatarSrc(liker)}
-                            alt=""
-                            title={likerName}
-                            role="listitem"
-                            onError={(event) => {
-                              event.currentTarget.onerror = null
-                              event.currentTarget.src = getProfileAvatar(liker)
+                          <img className="liked-user-avatar" key={getLikeUserId(like) || index} src={getAvatarSrc(liker)} alt="" title={likerName} role="listitem" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = getProfileAvatar(liker)
                             }}
                           />
                         )
@@ -723,12 +699,7 @@ function Posts() {
                   </div>
                   <p className='engage-count'>{likeCount}</p>
                 </div>
-                <button className="engage-folder comments" type="button" onClick={() => {
-                  if (!requireLogin()) return
-                  setCommentDraft('')
-                  setActiveDialog({ type: 'comment', postId: post._id })
-                  openPostModal('comments')
-                  setOpenPostMenuId(null)
+                <button className="engage-folder comments" type="button" onClick={() => { if (!requireLogin()) return; setCommentDraft(''); setActiveDialog({ type: 'comment', postId: post._id }); openPostModal('comments'); setOpenPostMenuId(null);
                 }}>
                   <div className="engage-background">
                     <img src={ICONS.comment} alt="" />
@@ -757,13 +728,7 @@ function Posts() {
                     else postMenuRefs.current.delete(post._id)
                   }}
                 >
-                  <button
-                    className="engage-folder post-more-trigger"
-                    type="button"
-                    aria-label="More post options"
-                    aria-expanded={openPostMenuId === post._id}
-                    aria-haspopup="menu"
-                    onClick={() => setOpenPostMenuId((currentId) => currentId === post._id ? null : post._id)}
+                  <button className="engage-folder post-more-trigger" type="button" aria-label="More post options" aria-expanded={openPostMenuId === post._id} aria-haspopup="menu" onClick={() => setOpenPostMenuId((currentId) => currentId === post._id ? null : post._id)}
                   >
                     <span className="engage-background">
                       <img src={ICONS.more} alt="" />
@@ -781,12 +746,7 @@ function Posts() {
                         </button>
                       </li>
                       <li role="none">
-                        <button className="post-more-option" type="button" role="menuitem" onClick={() => {
-                          if (!requireLogin()) return
-                          setCommentDraft('')
-                          setActiveDialog({ type: 'comment', postId: post._id })
-                          openPostModal('comments')
-                          setOpenPostMenuId(null)
+                        <button className="post-more-option" type="button" role="menuitem" onClick={() => {if (!requireLogin()) return; setCommentDraft(''); setActiveDialog({ type: 'comment', postId: post._id }); openPostModal('comments'); setOpenPostMenuId(null);
                         }}>
                           <img src={ICONS.comment} alt="" />
                           <span>Comment</span>
@@ -856,13 +816,7 @@ function Posts() {
                         </li>
                       )}
                       <li role="none">
-                        <button className="post-more-option" type="button" role="menuitem" onClick={() => {
-                          if (!requireLogin()) return
-                          setReportReason('')
-                          setReportDetails('')
-                          setActiveDialog({ type: 'report', postId: post._id })
-                          openPostModal('report')
-                          setOpenPostMenuId(null)
+                        <button className="post-more-option" type="button" role="menuitem" onClick={() => { if (!requireLogin()) return; setReportReason(''); setReportDetails(''); setActiveDialog({ type: 'report', postId: post._id }); openPostModal('report'); setOpenPostMenuId(null);
                         }}>
                           <svg viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M12 9v4" />
@@ -912,13 +866,7 @@ function Posts() {
                 </div>
                 <form onSubmit={addComment}>
                   <label htmlFor="post-comment-input">Add a comment</label>
-                  <textarea
-                    id="post-comment-input"
-                    value={commentDraft}
-                    onChange={(event) => setCommentDraft(event.target.value)}
-                    maxLength={1000}
-                    required
-                    rows={3}
+                  <textarea id="post-comment-input" value={commentDraft} onChange={(event) => setCommentDraft(event.target.value)} maxLength={1000} required rows={3}
                   />
                   <button className="post-dialog-submit" type="submit">Comment</button>
                 </form>
@@ -938,12 +886,7 @@ function Posts() {
                     <option value="Other">Other</option>
                   </select>
                   <label htmlFor="post-report-details">Details (optional)</label>
-                  <textarea
-                    id="post-report-details"
-                    value={reportDetails}
-                    onChange={(event) => setReportDetails(event.target.value)}
-                    maxLength={1000}
-                    rows={3}
+                  <textarea id="post-report-details" value={reportDetails} onChange={(event) => setReportDetails(event.target.value)} maxLength={1000} rows={3}
                   />
                   <button className="post-dialog-submit" type="submit">Submit report</button>
                 </form>
@@ -953,29 +896,15 @@ function Posts() {
         </div>
       )}
       {imagePreview && routedModal === 'image-preview' && (
-        <ImagePreviewModal
-          images={imagePreview.images}
-          initialIndex={imagePreview.initialIndex}
-          originRect={imagePreview.originRect}
-          onClose={() => closeCurrentModal()}
+        <ImagePreviewModal images={imagePreview.images} initialIndex={imagePreview.initialIndex} originRect={imagePreview.originRect} onClose={() => closeCurrentModal()}
         />
       )}
       {textPostPreview && routedModal === 'text-preview' && (
-        <TextPostPreviewModal
-          text={textPostPreview.text}
-          backgroundColor={textPostPreview.backgroundColor}
-          originRect={textPostPreview.originRect}
-          onClose={() => closeCurrentModal()}
+        <TextPostPreviewModal text={textPostPreview.text} backgroundColor={textPostPreview.backgroundColor} originRect={textPostPreview.originRect} onClose={() => closeCurrentModal()}
         />
       )}
       {saveModalItem && routedModal === 'save-folder' && (
-        <SaveToFolderModal
-          itemType={saveModalItem.itemType}
-          itemId={saveModalItem.itemId}
-          currentFolderId={savedItemFolders[`${saveModalItem.itemType}:${saveModalItem.itemId}`]}
-          isSaved={Object.prototype.hasOwnProperty.call(
-            savedItemFolders,
-            `${saveModalItem.itemType}:${saveModalItem.itemId}`
+        <SaveToFolderModal itemType={saveModalItem.itemType} itemId={saveModalItem.itemId} currentFolderId={savedItemFolders[`${saveModalItem.itemType}:${saveModalItem.itemId}`]} isSaved={Object.prototype.hasOwnProperty.call(savedItemFolders,`${saveModalItem.itemType}:${saveModalItem.itemId}`
           ) || posts.some((post) => (
             String(post._id) === String(saveModalItem.itemId)
             && post.saves?.some((savedId) => (

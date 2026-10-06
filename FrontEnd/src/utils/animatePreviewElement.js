@@ -30,11 +30,11 @@ export async function animatePreviewElement(sourceElement, targetElement, origin
     transformOrigin: 'top left',
   })
   if (sourceImage) {
-    const sourceStyle = window.getComputedStyle(sourceImage)
+    const targetStyle = window.getComputedStyle(targetElement)
     clone.src = sourceImage.currentSrc || sourceImage.src
-    clone.style.objectFit = sourceStyle.objectFit
-    clone.style.objectPosition = sourceStyle.objectPosition
-    clone.style.borderRadius = sourceStyle.borderRadius
+    clone.style.objectFit = targetStyle.objectFit
+    clone.style.objectPosition = targetStyle.objectPosition
+    clone.style.borderRadius = targetStyle.borderRadius
   }
   document.body.appendChild(clone)
 

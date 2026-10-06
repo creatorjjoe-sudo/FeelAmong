@@ -31,6 +31,7 @@ function FormBody({ postType, editPostId }) {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [isLoadingPost, setIsLoadingPost] = React.useState(Boolean(editPostId))
   const [error, setError] = React.useState('')
+  const imageInputRef = React.useRef(null)
   const visibilityRef = React.useRef(null)
   const textPostDescriptionRef = React.useRef(null)
   const textPostContainerRef = React.useRef(null)
@@ -333,12 +334,12 @@ function FormBody({ postType, editPostId }) {
 
             {!isTextPost && (
               <>
-                <input type="file" accept="image/*" id="upload-button" multiple aria-required="true" onChange={handleImageSelection}/>
-                <div className="upload-button-area">
-                  <label htmlFor="upload-button">Add photos <span className="required-indicator">Required</span></label>
+                <input ref={imageInputRef} type="file" accept="image/*" id="upload-button" multiple aria-required="true" onChange={handleImageSelection}/>
+                <button className="upload-button-area" type="button" onClick={() => imageInputRef.current?.click()}>
+                  <span className="upload-label">Add photos <span className="required-indicator">Required</span></span>
                   <img src={ICONS.addPhoto} alt="" />
                   {imageFiles.length > 0 && <span>{imageFiles.length} attached</span>}
-                </div>
+                </button>
                 {imageFiles.length > 0 && (
                   <ul className="attached-image-list">
                     {imageFiles.map(({ file }, index) => (
