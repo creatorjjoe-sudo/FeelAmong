@@ -92,7 +92,7 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
           </button>
           <button type="button" className="profile-menu-option" onClick={() => openDestination('/for-you/settings')}>
             <span className="profile-menu-option-icon" aria-hidden="true">
-              <img src={ICONS.themeToggle} alt="" />
+              <img src={ICONS.settings} alt="" />
             </span>
             <span className="profile-menu-option-copy">
               <span>Settings</span>

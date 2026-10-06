@@ -28,6 +28,8 @@ import background from './icons/blub-background.png'
 import cancelUpload from './icons/cancel-file-upload.png'
 import backArrow from './icons/back-arrow.png'
 import backArrowLong from './icons/back-arrow-long.png'
+import likeDark from './icons/like-icon-dark.png'
+import settings from './icons/setting-icon.png'
 
 import eyeClose from './icons/eye-close.png'
 import eyeOpen from './icons/eye-open.png'
@@ -44,5 +46,5 @@ import maleUser from './icons/male-user.png'
 import femaleUser from './icons/female-user.png'
 
 export const ICONS = {
-  userGreen, userBlack, userBlue, info, search, themeToggle, appLogo, arrowForward, avata, homeActive, homeInactive, messageActive, messageInactive, videoActive, videoInactive, like, liked, play, pluscircle, save, saved, share, userIcon, comment, more, likedusersicon, feelLogo, eyeClose, eyeOpen, background, facebook, google, email, lock, cancelUpload, backArrow, backArrowLong, addPhoto, publicIcon, arrowDown, micGreen, maleUser, femaleUser
+  userGreen, userBlack, userBlue, info, search, themeToggle, appLogo, arrowForward, avata, homeActive, homeInactive, messageActive, messageInactive, videoActive, videoInactive, like, liked, play, pluscircle, save, saved, share, userIcon, comment, more, likedusersicon, feelLogo, eyeClose, eyeOpen, background, facebook, google, email, lock, cancelUpload, backArrow, backArrowLong, addPhoto, publicIcon, arrowDown, micGreen, maleUser, femaleUser, likeDark, settings
 }
