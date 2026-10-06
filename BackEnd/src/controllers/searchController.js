@@ -43,8 +43,8 @@ const searchAll = async (req, res) => {
       ...posts.map((post) => ({
         id: String(post._id),
         type: 'post',
-        title: post.title,
-        description: post.user?.username || post.description,
+        title: matcher.test(post.title || '') ? post.title : post.description,
+        description: post.user?.username || '',
         avatar: post.user?.avatar || '',
         sex: post.user?.sex || '',
         createdAt: post.createdAt

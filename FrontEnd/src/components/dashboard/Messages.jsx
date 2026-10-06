@@ -217,7 +217,7 @@ function Messages() {
           <h1>Chats</h1>
           {conversations.map((conversation) => (
             <button
-              className={`chat-conversation-row${requestedUserId === String(conversation._id) ? ' is-selected' : ''}`}
+              className={`chat-conversation-row${requestedUserId === String(conversation._id) ? ' is-selected' : ''}${conversation.unreadCount > 0 ? ' is-unread' : ''}`}
               key={conversation._id}
               type="button"
               onClick={() => handleSelect(String(conversation._id))}
@@ -230,7 +230,10 @@ function Messages() {
               <span className="user-container">
                 <span className="chat-conversation-text">
                   <p className="chat-conversation-name">{conversation.username}</p>
-                  <p className="chat-conversation-preview">{conversation.lastMessage || 'Say hello!'}</p>
+                  <p className="chat-conversation-preview">
+                    {String(conversation.lastMessageSender) === String(user?._id) ? 'You: ' : ''}
+                    {conversation.lastMessage || 'Say hello!'}
+                  </p>
                 </span>
                 {conversation.unreadCount > 0 && <span className="msg-unread">{conversation.unreadCount}</span>}
               </span>

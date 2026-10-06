@@ -48,7 +48,11 @@ const getMessages = async (req, res) => {
 
 const getUnreadMessageCount = async (req, res) => {
   try {
-    const count = await Message.countDocuments({ recipient: req.user._id, read: false });
+    const unreadSenders = await Message.distinct('sender', {
+      recipient: req.user._id,
+      read: false
+    });
+    const count = unreadSenders.length;
     res.json({ count });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -103,6 +107,7 @@ const getConversations = async (req, res) => {
           avatar: '$contact.avatar',
           sex: '$contact.sex',
           lastMessage: '$latestMessage.text',
+          lastMessageSender: '$latestMessage.sender',
           lastMessageAt: '$latestMessage.createdAt',
           unreadCount: 1
         }

@@ -152,7 +152,7 @@ function SearchModal({ open, onClose, anchorRef }) {
       navigate(`/for-you/profile/${item.id}`)
       return
     }
-    navigate(item.type === 'video' ? '/for-you/videos' : '/for-you')
+    navigate(item.type === 'video' ? '/for-you/videos' : `/for-you?post=${encodeURIComponent(item.id)}`)
   }
 
   const clearRecentSearches = () => {

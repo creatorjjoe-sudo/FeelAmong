@@ -82,6 +82,12 @@
  font-weight: 400;
 }
 
+.chat-conversation-row.is-unread .chat-conversation-name,
+.chat-conversation-row.is-unread .chat-conversation-preview {
+ color: #1f2937;
+ font-weight: 700;
+}
+
 .chat-conversation-row a,
 .user-cover a {
  color: #4b5563 !important;

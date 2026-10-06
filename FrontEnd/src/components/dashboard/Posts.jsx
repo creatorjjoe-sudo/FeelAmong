@@ -166,6 +166,8 @@ function Posts() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useContext(AuthContext)
+  const previewPostId = new URLSearchParams(location.search).get('post')
+  const isPostPreviewOpen = Boolean(previewPostId)
 
   const [posts, setPosts] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(true)
@@ -183,6 +185,9 @@ function Posts() {
   const [notice, setNotice] = React.useState('')
   const [imagePreview, setImagePreview] = React.useState(null)
   const [textPostPreview, setTextPostPreview] = React.useState(null)
+  const visiblePosts = isPostPreviewOpen
+    ? posts.filter((post) => String(post._id) === previewPostId)
+    : posts
 
   const getPosts = async () => {
     try {
@@ -216,6 +221,15 @@ function Posts() {
     if (!postId || posts.length === 0) return
     document.getElementById(`post-${postId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [location.search, posts])
+
+  React.useEffect(() => {
+    if (!isPostPreviewOpen) return undefined
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') navigate('/for-you', { replace: true })
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isPostPreviewOpen, navigate])
 
   React.useEffect(() => {
     if (!openPostMenuId) return undefined
@@ -459,7 +473,24 @@ function Posts() {
     : null
 
   return (
-    <div className="posts-wrapper">
+    <div
+      className={`posts-wrapper${isPostPreviewOpen ? ' post-preview-overlay' : ''}`}
+      onMouseDown={(event) => {
+        if (isPostPreviewOpen && event.target === event.currentTarget) {
+          navigate('/for-you', { replace: true })
+        }
+      }}
+    >
+      {isPostPreviewOpen && (
+        <button
+          className="post-preview-close"
+          type="button"
+          aria-label="Close post preview"
+          onClick={() => navigate('/for-you', { replace: true })}
+        >
+          ×
+        </button>
+      )}
       {showLoginModal && (
         <LoginRequiredModal message="Please login to interact with posts" onClose={() => setShowLoginModal(false)} onLogin={async () => { setShowLoginModal(false); await logout(); navigate('/', { replace: true })}}
         />
@@ -469,8 +500,11 @@ function Posts() {
       {error && <div>{error}</div>}
       {notice && <div className="post-action-notice" role="status">{notice}</div>}
 
-      <div className="post-container">
-        {posts.map((post) => {
+      <div className={`post-container${isPostPreviewOpen ? ' post-preview-container' : ''}`}>
+        {isPostPreviewOpen && !isLoading && !visiblePosts.length && (
+          <p className="post-preview-state">This post is unavailable.</p>
+        )}
+        {visiblePosts.map((post) => {
           const postLikes = Array.isArray(post.likes) ? post.likes : []
           const likedByCurrentUser = Boolean(user && postLikes.some((like) => getLikeUserId(like) === String(user._id)))
           const likeCount = typeof post.likesCount === 'number' ? post.likesCount : (Array.isArray(post.likes) ? post.likes.length : 0)
