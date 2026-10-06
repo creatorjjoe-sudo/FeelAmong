@@ -14,6 +14,7 @@ const postSchema = new mongoose.Schema(
     postType: { type: String, enum: ['text', 'image'], default: 'image' },
     title: { type: String, trim: true, default: '' },
     description: { type: String, default: '' },
+    backgroundColor: { type: String, default: '#f1f7f1' },
     images: [{ type: String }], // Array of image URLs for multi-image grid layouts
     visibility: {
       type: String,

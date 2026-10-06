@@ -7,7 +7,7 @@ import LoginRequiredModal from './LoginRequiredModal'
 import CreatePostMenu from './CreatePostMenu'
 import '../../styles/components/dashboard/navbar.css'
 
-function Navbar({ activeView, switchActive }) {
+function Navbar({ activeView, switchActive, unreadMessageCount = 0 }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useContext(AuthContext)
@@ -17,25 +17,13 @@ function Navbar({ activeView, switchActive }) {
   const isAnonymous = !user || user.isAnonymous === true
 
   const posts = []
-  const [unreadChats, setUnreadChats] = React.useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('unreadChats') || '[]')
-      return Array.isArray(saved) && saved.length > 0 ? saved : [1, 2, 3]
-    } catch {
-      return [1, 2, 3]
-    }
-  })
   const videos = []
-  const unreadChatCount = unreadChats.length
 
   React.useEffect(() => {
-    localStorage.setItem('unreadChats', JSON.stringify(unreadChats))
-  }, [unreadChats])
-
-  React.useEffect(() => {
-    if (location.pathname.includes('/for-you')) switchActive('for-you')
-    if (location.pathname.includes('/messages')) switchActive('messages')
-    if (location.pathname.includes('/videos')) switchActive('videos')
+    if (location.pathname.includes('/profile')) switchActive('profile')
+    else if (location.pathname.includes('/for-you')) switchActive('for-you')
+    else if (location.pathname.includes('/messages')) switchActive('messages')
+    else if (location.pathname.includes('/videos')) switchActive('videos')
   }, [location.pathname, switchActive])
 
   async function handleAccountAction() {
@@ -85,7 +73,7 @@ function Navbar({ activeView, switchActive }) {
         <div className="nav-title msgs">
           <div className="icon-wrapper msg">
             <img src={activeView !== 'messages' ? ICONS.messageInactive : ICONS.messageActive} alt="" />
-            {unreadChatCount > 0 && <p className="notif-length msg">{unreadChatCount}</p>}
+            {unreadMessageCount > 0 && <p className="notif-length msg">{unreadMessageCount}</p>}
           </div>
           <h2 className={`title ${activeView === 'messages' ? 'active' : ''}`}>Messages</h2>
         </div>
@@ -122,6 +110,17 @@ function Navbar({ activeView, switchActive }) {
       >
         {isAnonymous ? 'Login' : 'Logout'}
       </button>
+      <Link className="dash-link profile-nav-link" to="/for-you/profile">
+        <div className="nav-title profile">
+          <div className={`icon-wrapper profile-nav-icon${activeView === 'profile' ? ' is-active' : ''}`}>
+            <svg viewBox="0 0 24 24" role="img" aria-label="Profile">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 21a8 8 0 0 1 16 0" />
+            </svg>
+          </div>
+          <h2 className={`title ${activeView === 'profile' ? 'active' : ''}`}>You</h2>
+        </div>
+      </Link>
       <SearchModal
         open={searchOpen}
         onClose={() => setSearchOpen(false)}

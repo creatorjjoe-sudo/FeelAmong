@@ -47,6 +47,16 @@
  background: #161616;
 }
 
+.post-image-grid-tile-interactive {
+ cursor: pointer;
+}
+
+.post-image-grid-tile-interactive:focus-visible {
+ outline: 3px solid #00ba00;
+ outline-offset: -3px;
+ z-index: 1;
+}
+
 .post-image-grid-tile img {
  display: block;
  width: 100%;

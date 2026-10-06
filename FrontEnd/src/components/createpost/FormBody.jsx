@@ -4,9 +4,11 @@ import { useContext } from 'react'
 import { AuthContext } from '../../api/context/AuthContext'
 import { ICONS } from '../../assets/icons'
 import PostImageGrid from './PostImageGrid'
+import { DEFAULT_TEXT_POST_BACKGROUND, getTextPostColor, TEXT_POST_BACKGROUNDS } from '../../utils/textPostColors'
 import '../../styles/components/createpost/formbody.css'
 
 const API_URL = 'http://localhost:5000/api/posts'
+const API_ORIGIN = 'http://localhost:5000'
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024
 const MAX_IMAGE_COUNT = 25
 const VISIBILITY_OPTIONS = [
@@ -15,25 +17,128 @@ const VISIBILITY_OPTIONS = [
   { value: 'friends', label: 'Friends', icon: ICONS.userIcon },
 ]
 
-function FormBody({ postType }) {
+function FormBody({ postType, editPostId }) {
   const navigate = useNavigate()
   const { user } = useContext(AuthContext)
   const isTextPost = postType === 'text'
 
   const [title, setTitle] = React.useState('')
   const [description, setDescription] = React.useState('')
+  const [textPostBackground, setTextPostBackground] = React.useState(DEFAULT_TEXT_POST_BACKGROUND)
   const [imageFiles, setImageFiles] = React.useState([])
   const [visibility, setVisibility] = React.useState('public')
   const [visibilityOpen, setVisibilityOpen] = React.useState(false)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [isLoadingPost, setIsLoadingPost] = React.useState(Boolean(editPostId))
   const [error, setError] = React.useState('')
   const visibilityRef = React.useRef(null)
+  const textPostDescriptionRef = React.useRef(null)
+  const textPostContainerRef = React.useRef(null)
   const previewUrls = React.useRef(new Set())
 
   React.useEffect(() => () => {
     previewUrls.current.forEach((url) => URL.revokeObjectURL(url))
     previewUrls.current.clear()
   }, [])
+
+  React.useEffect(() => {
+    if (!editPostId) return undefined
+
+    const controller = new AbortController()
+    async function loadPost() {
+      const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
+      try {
+        const response = await fetch(`${API_URL}/${editPostId}/edit`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          signal: controller.signal,
+        })
+        const result = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(result.message || 'Could not load the post for editing.')
+
+        setTitle(result.title || '')
+        setDescription(result.description || '')
+        setTextPostBackground(result.backgroundColor || DEFAULT_TEXT_POST_BACKGROUND)
+        setVisibility(result.visibility || 'public')
+        setImageFiles((result.images || []).map((imagePath) => ({
+          file: null,
+          previewUrl: imagePath.startsWith('/') ? `${API_ORIGIN}${imagePath}` : imagePath,
+          existingPath: imagePath,
+        })))
+      } catch (loadError) {
+        if (loadError.name !== 'AbortError') setError(loadError.message)
+      } finally {
+        if (!controller.signal.aborted) setIsLoadingPost(false)
+      }
+    }
+
+    loadPost()
+    return () => controller.abort()
+  }, [editPostId, user])
+
+  React.useLayoutEffect(() => {
+    if (!isTextPost) return undefined
+
+    const textarea = textPostDescriptionRef.current
+    const container = textPostContainerRef.current
+    if (!textarea || !container) return undefined
+
+    let lastObservedWidth = 0
+    function resizeTextPost() {
+      const width = container.clientWidth
+      if (!width || width === lastObservedWidth) return
+      lastObservedWidth = width
+
+      container.style.height = 'auto'
+      container.style.aspectRatio = 'auto'
+      container.style.flexBasis = 'auto'
+      container.style.minHeight = '0'
+      container.style.maxHeight = 'none'
+      container.classList.remove('text-post-square')
+      textarea.style.fontSize = '30px'
+      textarea.style.height = 'auto'
+      textarea.style.overflowY = 'hidden'
+      textarea.style.minHeight = '0'
+
+      const naturalTextareaContentHeight = textarea.scrollHeight
+      const containerOverhead = container.offsetHeight - textarea.offsetHeight
+
+      if (naturalTextareaContentHeight + containerOverhead <= width) {
+        textarea.style.height = `${naturalTextareaContentHeight}px`
+        return
+      }
+
+      container.classList.add('text-post-square')
+      container.style.height = `${width}px`
+      container.style.minHeight = `${width}px`
+      container.style.maxHeight = `${width}px`
+      container.style.flexBasis = `${width}px`
+      container.style.aspectRatio = '1'
+      const availableTextHeight = Math.max(1, width - containerOverhead)
+
+      let smallestFontSize = 6
+      let largestFontSize = 30
+      textarea.style.height = `${availableTextHeight}px`
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const fontSize = (smallestFontSize + largestFontSize) / 2
+        textarea.style.fontSize = `${fontSize}px`
+
+        if (textarea.scrollHeight <= textarea.clientHeight) {
+          smallestFontSize = fontSize
+        } else {
+          largestFontSize = fontSize
+        }
+      }
+
+      textarea.style.fontSize = `${smallestFontSize}px`
+      textarea.style.height = `${availableTextHeight}px`
+      textarea.style.overflowY = textarea.scrollHeight > textarea.clientHeight ? 'auto' : 'hidden'
+    }
+
+    resizeTextPost()
+    const resizeObserver = new ResizeObserver(() => resizeTextPost())
+    resizeObserver.observe(container)
+    return () => resizeObserver.disconnect()
+  }, [description, isTextPost])
 
   React.useEffect(() => {
     if (!visibilityOpen) return undefined
@@ -88,8 +193,10 @@ function FormBody({ postType }) {
     const imageToRemove = imageFiles[index]
     if (!imageToRemove) return
 
-    URL.revokeObjectURL(imageToRemove.previewUrl)
-    previewUrls.current.delete(imageToRemove.previewUrl)
+    if (imageToRemove.file) {
+      URL.revokeObjectURL(imageToRemove.previewUrl)
+      previewUrls.current.delete(imageToRemove.previewUrl)
+    }
     setImageFiles((currentFiles) => currentFiles.filter((_, fileIndex) => fileIndex !== index))
   }
 
@@ -131,10 +238,16 @@ function FormBody({ postType }) {
       if (!isTextPost) body.append('title', trimmedTitle)
       body.append('description', trimmedDescription)
       body.append('visibility', visibility)
-      if (!isTextPost) imageFiles.forEach(({ file }) => body.append('images', file))
+      if (isTextPost) body.append('backgroundColor', textPostBackground)
+      if (editPostId) {
+        body.append('existingImages', JSON.stringify(imageFiles.filter(({ existingPath }) => existingPath).map(({ existingPath }) => existingPath)))
+      }
+      if (!isTextPost) imageFiles.forEach(({ file }) => {
+        if (file) body.append('images', file)
+      })
 
-      const response = await fetch(API_URL, {
-        method: 'POST',
+      const response = await fetch(editPostId ? `${API_URL}/${editPostId}` : API_URL, {
+        method: editPostId ? 'PATCH' : 'POST',
         headers,
         body,
       })
@@ -157,7 +270,7 @@ function FormBody({ postType }) {
       {imageFiles.length > 0 && (
         <div className="left-els">
           <PostImageGrid
-            images={imageFiles.map(({ file, previewUrl }) => ({ src: previewUrl, alt: file.name }))}
+            images={imageFiles.map(({ file, previewUrl }, index) => ({ src: previewUrl, alt: file?.name || `Post image ${index + 1}` }))}
             className="post-image-grid-preview"
           />
         </div>
@@ -169,11 +282,11 @@ function FormBody({ postType }) {
             {imageFiles.length > 0 && (
               <div className="post-image-grid-mobile-preview">
                 <PostImageGrid
-                  images={imageFiles.map(({ file, previewUrl }) => ({ src: previewUrl, alt: file.name }))}
+                  images={imageFiles.map(({ file, previewUrl }, index) => ({ src: previewUrl, alt: file?.name || `Post image ${index + 1}` }))}
                 />
               </div>
             )}
-            <h2>{isTextPost ? 'Create text post' : 'Enter details'}</h2>
+            <h2>{editPostId ? 'Edit post' : isTextPost ? 'Create text post' : 'Enter details'}</h2>
 
             {!isTextPost && (
               <div className="title-container">
@@ -183,11 +296,40 @@ function FormBody({ postType }) {
               </div>
             )}
 
-            <div className="description-container">
+            <div
+              ref={isTextPost ? textPostContainerRef : null}
+              className={isTextPost ? 'description-container text-post-description' : 'description-container'}
+              style={isTextPost ? {
+                backgroundColor: textPostBackground,
+                color: getTextPostColor(textPostBackground),
+              } : undefined}
+            >
               <p className="option-text">{isTextPost ? "What's on your mind?" : 'Description'}</p>
-              <textarea cols={30} rows={4} value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1000} placeholder={isTextPost ? "Share what's on your mind..." : 'Tell more details about this post...'} required={isTextPost} style={{ resize: 'none' }}/>
+              <textarea ref={isTextPost ? textPostDescriptionRef : null} cols={30} rows={isTextPost ? 1 : 4} value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1000} placeholder={isTextPost ? "Share what's on your mind..." : 'Tell more details about this post...'} required={isTextPost} style={isTextPost ? { resize: 'none', color: getTextPostColor(textPostBackground) } : { resize: 'none' }}/>
               <p className="value-length">{description.length} / 1000</p>
             </div>
+
+            {isTextPost && (
+              <fieldset className="text-post-background-picker">
+                <legend className="option-text">Choose a background</legend>
+                <div className="text-post-background-options">
+                  {TEXT_POST_BACKGROUNDS.map(({ color, label }) => (
+                    <button
+                      key={color}
+                      className="text-post-background-option"
+                      type="button"
+                      style={{ backgroundColor: color }}
+                      aria-label={label}
+                      aria-pressed={textPostBackground === color}
+                      title={label}
+                      onClick={() => setTextPostBackground(color)}
+                    >
+                      {textPostBackground === color && <span aria-hidden="true">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            )}
 
             {!isTextPost && (
               <>
@@ -200,9 +342,9 @@ function FormBody({ postType }) {
                 {imageFiles.length > 0 && (
                   <ul className="attached-image-list">
                     {imageFiles.map(({ file }, index) => (
-                      <li key={`${file.name}-${file.lastModified}-${index}`}>
-                        <span>{file.name}</span>
-                        <button type="button" onClick={() => removeImage(index)} aria-label={`Remove ${file.name}`}>Remove</button>
+                      <li key={file ? `${file.name}-${file.lastModified}-${index}` : `existing-${index}`}>
+                        <span>{file?.name || `Post image ${index + 1}`}</span>
+                        <button type="button" onClick={() => removeImage(index)} aria-label={`Remove image ${index + 1}`}>Remove</button>
                       </li>
                     ))}
                   </ul>
@@ -246,8 +388,8 @@ function FormBody({ postType }) {
 
             {error && <p role="alert">{error}</p>}
 
-            <button className="share-btn" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Sharing…' : 'Share'}
+            <button className="share-btn" type="submit" disabled={isSubmitting || isLoadingPost}>
+              {isSubmitting ? (editPostId ? 'Saving…' : 'Sharing…') : (editPostId ? 'Save changes' : 'Share')}
             </button>
           </form>
         </div>

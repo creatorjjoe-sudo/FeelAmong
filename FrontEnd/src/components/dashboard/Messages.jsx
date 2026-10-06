@@ -1,19 +1,23 @@
 import React, { useContext } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ICONS } from '../../assets/icons'
 import '../../styles/components/dashboard/message.css'
 import { AuthContext } from '../../api/context/AuthContext'
+import { getProfileAvatar } from '../../utils/profileAvatar'
 
-const defaultContact = {
-  _id: 'precious-philip-demo',
-  username: 'Precious Philip'
-}
+const API_ORIGIN = 'http://localhost:5000'
 
 function Messages() {
   const { user } = useContext(AuthContext)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requestedUserId = searchParams.get('user')
+  const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
 
-  const [chatActive, setChatActive] = React.useState(false)
   const [windWidth, setWindWidth] = React.useState(window.innerWidth)
-  const [selectedContact, setSelectedContact] = React.useState(defaultContact)
+  const [selectedContact, setSelectedContact] = React.useState(null)
+  const [conversations, setConversations] = React.useState([])
+  const activeContact = selectedContact
+  const chatActive = Boolean(requestedUserId && selectedContact?._id === requestedUserId)
   const [messages, setMessages] = React.useState([])
   const [draft, setDraft] = React.useState('')
   const [sending, setSending] = React.useState(false)
@@ -30,49 +34,113 @@ function Messages() {
   }, [])
 
   React.useEffect(() => {
-    const sampleMessages = [
-      {
-        _id: 'sample-1',
-        sender: defaultContact._id,
-        recipient: user?._id || 'me',
-        text: 'Where are you?',
-        createdAt: new Date(Date.now() - 60 * 1000).toISOString()
-      },
-      {
-        _id: 'sample-2',
-        sender: user?._id || 'me',
-        recipient: defaultContact._id,
-        text: 'I am on my way.',
-        createdAt: new Date().toISOString()
-      }
-    ]
+    if (!requestedUserId) return undefined
 
-    if (!user?.token) {
-      setMessages(sampleMessages)
-      return
+    let isActive = true
+
+    async function loadContact() {
+      try {
+        const response = await fetch(`${API_ORIGIN}/api/users/${requestedUserId}`)
+        const contact = await response.json()
+        if (!response.ok) throw new Error(contact.message || 'Could not load this user.')
+        if (String(contact._id) === String(user?._id)) {
+          throw new Error('You cannot start a chat with yourself.')
+        }
+        if (isActive) setSelectedContact(contact)
+      } catch (loadError) {
+        if (isActive) setError(loadError.message)
+      }
     }
 
+    loadContact()
+    return () => {
+      isActive = false
+    }
+  }, [requestedUserId, user?._id])
+
+  React.useEffect(() => {
+    if (!token || !user?._id) return undefined
+
+    let isActive = true
+    async function loadConversations() {
+      try {
+        const response = await fetch(`${API_ORIGIN}/api/chats/conversations`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.message || 'Could not load conversations.')
+        if (isActive) setConversations(Array.isArray(result) ? result : [])
+      } catch (loadError) {
+        if (isActive) setError(loadError.message)
+      }
+    }
+
+    loadConversations()
+    return () => {
+      isActive = false
+    }
+  }, [token, user?._id, requestedUserId])
+
+  React.useEffect(() => {
     const loadMessages = async () => {
       try {
-        const res = await fetch(`/api/chats/${selectedContact._id}`, {
+        if (!token) throw new Error('Log in to load this conversation.')
+        const res = await fetch(`${API_ORIGIN}/api/chats/${activeContact._id}`, {
           headers: {
             Authorization: `Bearer ${user.token}`
           }
         })
 
         if (!res.ok) {
-          throw new Error('Unable to load messages')
+          const result = await res.json()
+          throw new Error(result.message || 'Unable to load messages')
         }
 
         const data = await res.json()
-        setMessages(data.length ? data : sampleMessages)
-      } catch (err) {
-        setMessages(sampleMessages)
+        setMessages(Array.isArray(data) ? data : [])
+        const conversationsResponse = await fetch(`${API_ORIGIN}/api/chats/conversations`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const conversationData = await conversationsResponse.json()
+        if (!conversationsResponse.ok) {
+          throw new Error(conversationData.message || 'Could not refresh conversations.')
+        }
+        setConversations(Array.isArray(conversationData) ? conversationData : [])
+        window.dispatchEvent(new Event('unread-messages-changed'))
+      } catch (loadError) {
+        setError(loadError.message)
       }
     }
 
+    if (!requestedUserId || !activeContact || String(activeContact._id) !== requestedUserId) return
     loadMessages()
-  }, [selectedContact._id, user?._id, user?.token])
+  }, [requestedUserId, activeContact, token, user?._id, user?.token])
+
+  React.useEffect(() => {
+    const handleIncomingMessage = (event) => {
+      const message = event.detail
+      if (message && String(message.sender?._id || message.sender) === String(requestedUserId)) {
+        setMessages((current) => (
+          current.some((item) => String(item._id) === String(message._id))
+            ? current
+            : [...current, message]
+        ))
+      }
+
+      if (!token) return
+      fetch(`${API_ORIGIN}/api/chats/conversations`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(async (response) => {
+          const result = await response.json()
+          if (!response.ok) throw new Error(result.message || 'Could not refresh conversations.')
+          setConversations(Array.isArray(result) ? result : [])
+        })
+        .catch((loadError) => setError(loadError.message))
+    }
+    window.addEventListener('chat-message-received', handleIncomingMessage)
+    return () => window.removeEventListener('chat-message-received', handleIncomingMessage)
+  }, [requestedUserId, token])
 
   const middleClassName = windWidth < 800 && chatActive ? 'middle-section-mobile' : windWidth > 800 && chatActive ? 'middle-section-desk' : 'middle-section'
   const leftClassName = windWidth < 800 && chatActive ? 'left-section-active' : 'left-section'
@@ -81,12 +149,12 @@ function Messages() {
     e.preventDefault()
 
     const trimmedMessage = draft.trim()
-    if (!trimmedMessage || !user?.token || !selectedContact?._id) return
+    if (!trimmedMessage || !token || !activeContact?._id) return
 
     const pendingMessage = {
       _id: `pending-${Date.now()}`,
       sender: user._id,
-      recipient: selectedContact._id,
+      recipient: activeContact._id,
       text: trimmedMessage,
       createdAt: new Date().toISOString()
     }
@@ -104,7 +172,7 @@ function Messages() {
           Authorization: `Bearer ${user.token}`
         },
         body: JSON.stringify({
-          recipientId: selectedContact._id,
+          recipientId: activeContact._id,
           text: trimmedMessage
         })
       })
@@ -118,6 +186,14 @@ function Messages() {
       setMessages((prev) =>
         prev.map((msg) => (msg._id === pendingMessage._id ? data : msg))
       )
+      const conversationsResponse = await fetch(`${API_ORIGIN}/api/chats/conversations`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const conversationData = await conversationsResponse.json()
+      if (!conversationsResponse.ok) {
+        throw new Error(conversationData.message || 'Message sent, but conversations could not refresh.')
+      }
+      setConversations(Array.isArray(conversationData) ? conversationData : [])
     } catch (err) {
       setError(err.message)
       setMessages((prev) => prev.filter((msg) => msg._id !== pendingMessage._id))
@@ -126,9 +202,10 @@ function Messages() {
     }
   }
 
-  const handleSelect = () => {
-    setSelectedContact(defaultContact)
-    setChatActive(true)
+  const handleSelect = (contactId) => {
+    setMessages([])
+    setError('')
+    setSearchParams({ user: contactId })
   }
 
   return (
@@ -138,18 +215,43 @@ function Messages() {
 
         <div className={leftClassName}>
           <h1>Chats</h1>
-          <div className="user-cover" onClick={handleSelect}>
-            <div className="user-avata-msg"></div>
-            <div className="user-container">
-              <div className="user-username">
-                <h2 className='username'>{selectedContact.username}</h2>
-                <p className='msg-body'>
-                  {messages.at(-1)?.text || 'Say hello!'}
-                </p>
-              </div>
-              <p className="msg-unread">1</p>
-            </div>
-          </div>
+          {conversations.map((conversation) => (
+            <button
+              className={`chat-conversation-row${requestedUserId === String(conversation._id) ? ' is-selected' : ''}`}
+              key={conversation._id}
+              type="button"
+              onClick={() => handleSelect(String(conversation._id))}
+            >
+              <img
+                className="user-avata-msg"
+                src={getProfileAvatar(conversation)}
+                alt=""
+              />
+              <span className="user-container">
+                <span className="chat-conversation-text">
+                  <p className="chat-conversation-name">{conversation.username}</p>
+                  <p className="chat-conversation-preview">{conversation.lastMessage || 'Say hello!'}</p>
+                </span>
+                {conversation.unreadCount > 0 && <span className="msg-unread">{conversation.unreadCount}</span>}
+              </span>
+            </button>
+          ))}
+          {requestedUserId && selectedContact && !conversations.some((item) => String(item._id) === requestedUserId) && (
+            <button className="chat-conversation-row is-selected" type="button" onClick={() => handleSelect(selectedContact._id)}>
+              <img
+                className="user-avata-msg"
+                src={getProfileAvatar(selectedContact)}
+                alt=""
+              />
+              <span className="user-container">
+                <span className="chat-conversation-text">
+                  <p className="chat-conversation-name">{selectedContact.username}</p>
+                  <p className="chat-conversation-preview">Say hello!</p>
+                </span>
+              </span>
+            </button>
+          )}
+          {!conversations.length && !requestedUserId && <p className="chat-empty-state">No conversations yet.</p>}
         </div>
 
         <div className={middleClassName}>
@@ -191,11 +293,15 @@ function Messages() {
         </div>
 
         <div className="right-section">
-          <div className="chat-user-avata"></div>
+          <img
+            className="chat-user-avata"
+            src={getProfileAvatar(activeContact)}
+            alt=""
+          />
           <div className="username-egts">
             {chatActive && (
               <>
-                <h1>{selectedContact.username}</h1>
+                <h1>{activeContact?.username}</h1>
                 <button>Add friend</button>
                 <p>1.8K</p>
               </>

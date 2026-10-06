@@ -1,10 +1,14 @@
 import React, { useContext } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import '../../styles/components/dashboard/posts.css'
 import { ICONS } from '../../assets/icons'
 import { AuthContext } from '../../api/context/AuthContext'
 import LoginRequiredModal from './LoginRequiredModal'
 import PostImageGrid from '../createpost/PostImageGrid'
+import ImagePreviewModal from './ImagePreviewModal'
+import { DEFAULT_TEXT_POST_BACKGROUND, getTextPostColor } from '../../utils/textPostColors'
+import { animatePreviewElement } from '../../utils/animatePreviewElement'
+import { getProfileAvatar } from '../../utils/profileAvatar'
 
 const API_ORIGIN = 'http://localhost:5000'
 function formatTimeAgo(createdAt) {
@@ -22,14 +26,144 @@ function formatTimeAgo(createdAt) {
   return `${value} ${unit}${value === 1 ? '' : 's'} ago`
 }
 
+function getLikeUserId(like) {
+  return String(typeof like === 'object' && like !== null ? like._id : like)
+}
+
+function getAvatarSrc(user) {
+  return getProfileAvatar(user)
+}
+
 const VISIBILITY_ICONS = {
   public: ICONS.publicIcon,
   private: ICONS.lock,
   friends: ICONS.userIcon,
 }
 
+function TextPostContent({ text, backgroundColor, onClick, contentRef, maxFontSize = 24 }) {
+  const containerRef = React.useRef(null)
+  const textRef = React.useRef(null)
+
+  React.useLayoutEffect(() => {
+    const container = containerRef.current
+    const textElement = textRef.current
+    if (!container || !textElement) return undefined
+
+    function fitText() {
+      const styles = window.getComputedStyle(container)
+      const availableHeight = container.clientHeight
+        - parseFloat(styles.paddingTop)
+        - parseFloat(styles.paddingBottom)
+
+      let smallestFontSize = 6
+      let largestFontSize = maxFontSize
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        const fontSize = (smallestFontSize + largestFontSize) / 2
+        textElement.style.fontSize = `${fontSize}px`
+
+        if (textElement.scrollHeight <= availableHeight) {
+          smallestFontSize = fontSize
+        } else {
+          largestFontSize = fontSize
+        }
+      }
+
+      textElement.style.fontSize = `${smallestFontSize}px`
+    }
+
+    fitText()
+    const resizeObserver = new ResizeObserver(fitText)
+    resizeObserver.observe(container)
+    return () => resizeObserver.disconnect()
+  }, [text, maxFontSize])
+
+  return (
+    <div
+      className={`text-post-content${onClick ? ' text-post-content-interactive' : ''}`}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      aria-label={onClick ? 'Open text post' : undefined}
+      onClick={onClick ? (event) => onClick(event.currentTarget) : undefined}
+      onKeyDown={onClick ? (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onClick(event.currentTarget)
+        }
+      } : undefined}
+      ref={(element) => {
+        containerRef.current = element
+        if (contentRef) contentRef.current = element
+      }}
+      style={{
+        backgroundColor,
+        color: getTextPostColor(backgroundColor),
+      }}
+    >
+      <p ref={textRef}>{text}</p>
+    </div>
+  )
+}
+
+function TextPostPreviewModal({ text, backgroundColor, originRect, onClose }) {
+  const contentRef = React.useRef(null)
+  const [isTransitioning, setIsTransitioning] = React.useState(Boolean(originRect))
+
+  React.useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [onClose])
+
+  React.useLayoutEffect(() => {
+    let cancelled = false
+    animatePreviewElement(originRect?.sourceElement, contentRef.current, originRect).then(() => {
+      if (!cancelled) setIsTransitioning(false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [originRect])
+
+  return (
+    <div
+      className={`text-post-preview-backdrop${isTransitioning ? ' is-transitioning' : ''}`}
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
+    >
+      <section
+        className={`text-post-preview-dialog${isTransitioning ? ' is-transitioning' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Text post preview"
+      >
+        <button className="text-post-preview-close" type="button" aria-label="Close text post preview" onClick={onClose}>
+          ×
+        </button>
+        <TextPostContent
+          text={text}
+          backgroundColor={backgroundColor}
+          contentRef={contentRef}
+          maxFontSize={48}
+        />
+      </section>
+    </div>
+  )
+}
+
 function Posts() {
   const baseURL = 'http://localhost:5000/api/posts'
+  const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useContext(AuthContext)
 
@@ -37,6 +171,18 @@ function Posts() {
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
   const [showLoginModal, setShowLoginModal] = React.useState(false)
+  const [openPostMenuId, setOpenPostMenuId] = React.useState(null)
+  const postMenuRefs = React.useRef(new Map())
+  const [friendIds, setFriendIds] = React.useState(() => new Set(
+    (user?.friends || []).map((friend) => String(typeof friend === 'object' ? friend._id : friend))
+  ))
+  const [activeDialog, setActiveDialog] = React.useState(null)
+  const [commentDraft, setCommentDraft] = React.useState('')
+  const [reportReason, setReportReason] = React.useState('')
+  const [reportDetails, setReportDetails] = React.useState('')
+  const [notice, setNotice] = React.useState('')
+  const [imagePreview, setImagePreview] = React.useState(null)
+  const [textPostPreview, setTextPostPreview] = React.useState(null)
 
   const getPosts = async () => {
     try {
@@ -44,6 +190,16 @@ function Posts() {
       if (!res.ok) throw new Error('Error getting post!', res.status)
       const data = await res.json()
       setPosts(data)
+
+      const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
+      if (user && token) {
+        const profileResponse = await fetch('http://localhost:5000/api/auth/profile', {
+          headers: { Authorization: ['Bearer', token].join(' ') },
+        })
+        const profile = await profileResponse.json()
+        if (!profileResponse.ok) throw new Error(profile.message || 'Could not load your friend list.')
+        setFriendIds(new Set((profile.friends || []).map((friend) => String(typeof friend === 'object' ? friend._id : friend))))
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -55,7 +211,48 @@ function Posts() {
     getPosts()
   }, [])
 
+  React.useEffect(() => {
+    const postId = new URLSearchParams(location.search).get('post')
+    if (!postId || posts.length === 0) return
+    document.getElementById(`post-${postId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [location.search, posts])
+
+  React.useEffect(() => {
+    if (!openPostMenuId) return undefined
+
+    function handlePointerDown(event) {
+      if (!postMenuRefs.current.get(openPostMenuId)?.contains(event.target)) {
+        setOpenPostMenuId(null)
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setOpenPostMenuId(null)
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [openPostMenuId])
+
   const isGuestUser = !user || user.isAnonymous === true
+
+  function getAuthHeaders(contentType = 'application/json') {
+    const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
+    return {
+      ...(contentType ? { 'Content-Type': contentType } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    }
+  }
+
+  function requireLogin() {
+    if (!isGuestUser) return true
+    setShowLoginModal(true)
+    return false
+  }
 
   const toggleLike = async (postId) => {
     if (isGuestUser) {
@@ -81,11 +278,16 @@ function Posts() {
 
           const existingLikes = Array.isArray(post.likes) ? post.likes : []
           const currentUserId = user?._id
-          const alreadyLiked = existingLikes.some((likeId) => String(likeId) === String(currentUserId))
+          const alreadyLiked = existingLikes.some((like) => getLikeUserId(like) === String(currentUserId))
 
           const nextLikes = alreadyLiked
-            ? existingLikes.filter((likeId) => String(likeId) !== String(currentUserId))
-            : [...existingLikes, currentUserId]
+            ? existingLikes.filter((like) => getLikeUserId(like) !== String(currentUserId))
+            : [...existingLikes, {
+              _id: currentUserId,
+              username: user?.username || 'User',
+              avatar: user?.avatar || '',
+              sex: user?.sex || '',
+            }]
 
           return {
             ...post,
@@ -99,22 +301,189 @@ function Posts() {
     }
   }
 
+  async function toggleSave(postId) {
+    if (!requireLogin()) return
+
+    try {
+      const response = await fetch(`${baseURL}/${postId}/save`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.message || 'Unable to save post.')
+
+      setPosts((currentPosts) => currentPosts.map((post) => {
+        if (post._id !== postId) return post
+        const saves = Array.isArray(post.saves) ? post.saves : []
+        const nextSaves = result.isSaved
+          ? [...saves, user._id]
+          : saves.filter((savedUserId) => String(savedUserId) !== String(user._id))
+        return { ...post, saves: nextSaves }
+      }))
+      setNotice(result.isSaved ? 'Post saved.' : 'Post removed from saved posts.')
+    } catch (actionError) {
+      setError(actionError.message)
+    }
+  }
+
+  async function toggleFriend(postUserId) {
+    if (!requireLogin()) return
+    if (!postUserId || String(postUserId) === String(user?._id)) return
+
+    const isFriend = friendIds.has(String(postUserId))
+    try {
+      const response = await fetch(`http://localhost:5000/api/users/${postUserId}/friend`, {
+        method: isFriend ? 'DELETE' : 'PUT',
+        headers: getAuthHeaders(),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.message || 'Unable to update friend status.')
+
+      setFriendIds(new Set((result.friends || []).map((friend) => String(typeof friend === 'object' ? friend._id : friend))))
+      setNotice(result.isFriend ? 'Friend added.' : 'Friend removed.')
+    } catch (actionError) {
+      setError(actionError.message)
+    }
+  }
+
+  async function addComment(event) {
+    event.preventDefault()
+    if (!requireLogin() || !activeDialog) return
+
+    const text = commentDraft.trim()
+    if (!text) return
+
+    try {
+      const response = await fetch(`${baseURL}/${activeDialog.postId}/comments`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ text }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.message || 'Unable to add comment.')
+      setPosts((currentPosts) => currentPosts.map((post) =>
+        post._id === activeDialog.postId
+          ? { ...post, comments: [...(post.comments || []), result.comment] }
+          : post
+      ))
+      setCommentDraft('')
+      setActiveDialog(null)
+      setNotice('Comment added.')
+    } catch (actionError) {
+      setError(actionError.message)
+    }
+  }
+
+  async function submitReport(event) {
+    event.preventDefault()
+    if (!requireLogin() || !activeDialog) return
+
+    try {
+      const response = await fetch(`${baseURL}/${activeDialog.postId}/report`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ reason: reportReason, details: reportDetails }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.message || 'Unable to submit report.')
+      setActiveDialog(null)
+      setReportReason('')
+      setReportDetails('')
+      setNotice('Report submitted. Thank you for letting us know.')
+    } catch (actionError) {
+      setError(actionError.message)
+    }
+  }
+
+  async function recordShare(postId) {
+    const response = await fetch(`${baseURL}/${postId}/share`, { method: 'POST' })
+    const result = await response.json()
+    if (!response.ok) throw new Error(result.message || 'Unable to record the share.')
+    setPosts((currentPosts) => currentPosts.map((post) =>
+      post._id === postId ? { ...post, sharesCount: result.sharesCount } : post
+    ))
+  }
+
+  async function copyPostLink(postId) {
+    const url = new URL(`/for-you?post=${encodeURIComponent(postId)}`, window.location.origin).toString()
+    if (!navigator.clipboard?.writeText) {
+      throw new Error('Copying links is not supported by this browser.')
+    }
+    await navigator.clipboard.writeText(url)
+    await recordShare(postId)
+    setNotice('Post link copied.')
+  }
+
+  async function sharePost(postId) {
+    const url = new URL(`/for-you?post=${encodeURIComponent(postId)}`, window.location.origin).toString()
+    const post = posts.find((item) => item._id === postId)
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: post?.title || 'FeelAmong post',
+          text: post?.description || 'See this post on FeelAmong',
+          url,
+        })
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url)
+        setNotice('Post link copied because sharing is not supported by this browser.')
+      } else {
+        throw new Error('Sharing is not supported by this browser.')
+      }
+      await recordShare(postId)
+    } catch (shareError) {
+      if (shareError.name !== 'AbortError') throw shareError
+    }
+  }
+
+  async function deletePost(postId) {
+    if (!requireLogin()) return
+    if (!window.confirm('Delete this post? This cannot be undone.')) return
+
+    try {
+      const response = await fetch(`${baseURL}/${postId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(null),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.message || 'Unable to delete post.')
+      setPosts((currentPosts) => currentPosts.filter((post) => post._id !== postId))
+      setNotice('Post deleted.')
+    } catch (actionError) {
+      setError(actionError.message)
+    }
+  }
+
+  const activePost = activeDialog
+    ? posts.find((post) => post._id === activeDialog.postId)
+    : null
+
   return (
     <div className="posts-wrapper">
       {showLoginModal && (
-        <LoginRequiredModal message="Please login to like this post" onClose={() => setShowLoginModal(false)} onLogin={async () => { setShowLoginModal(false); await logout(); navigate('/', { replace: true })}}
+        <LoginRequiredModal message="Please login to interact with posts" onClose={() => setShowLoginModal(false)} onLogin={async () => { setShowLoginModal(false); await logout(); navigate('/', { replace: true })}}
         />
       )}
 
       {isLoading && <div>Loading posts...</div>}
       {error && <div>{error}</div>}
+      {notice && <div className="post-action-notice" role="status">{notice}</div>}
 
       <div className="post-container">
         {posts.map((post) => {
-          const likedByCurrentUser = Array.isArray(post.likes) && user && post.likes.some((likeId) => String(likeId) === String(user._id))
+          const postLikes = Array.isArray(post.likes) ? post.likes : []
+          const likedByCurrentUser = Boolean(user && postLikes.some((like) => getLikeUserId(like) === String(user._id)))
           const likeCount = typeof post.likesCount === 'number' ? post.likesCount : (Array.isArray(post.likes) ? post.likes.length : 0)
           const visibility = VISIBILITY_ICONS[post.visibility] ? post.visibility : 'public'
           const isTextPost = post.postType === 'text'
+          const isPostCreator = Boolean(user?._id) && String(post.user?._id) === String(user._id)
+          const isPostCreatorFriend = friendIds.has(String(post.user?._id))
+          const savedByCurrentUser = Array.isArray(post.saves) && user && post.saves.some((savedId) => String(typeof savedId === 'object' ? savedId?._id : savedId) === String(user._id))
+          const postTitle = typeof post.title === 'string' ? post.title.trim() : ''
+          const postDescription = typeof post.description === 'string' ? post.description.trim() : ''
+          const textPostBackground = /^#[0-9a-f]{6}$/i.test(post.backgroundColor || '')
+            ? post.backgroundColor
+            : DEFAULT_TEXT_POST_BACKGROUND
           const postImages = Array.isArray(post.images)
             ? post.images.filter((image) => typeof image === 'string').map((image) => ({
               src: image.startsWith('/') ? `${API_ORIGIN}${image}` : image,
@@ -122,15 +491,23 @@ function Posts() {
             : []
 
           return (
-            <div key={post._id} className='post-wrapper'>
+            <div id={`post-${post._id}`} key={post._id} className='post-wrapper'>
               <div className="left-items">
                 <div className="post-header">
                   <div className="header-left-items">
                     <div className="creator-avata">
-                      <img className='creator-icon' src={post.user?.avatar || ICONS.maleUser} alt={post.user?.username || 'Creator'} />
+                      <img className='creator-icon' src={getProfileAvatar(post.user)} alt={post.user?.username || 'Creator'} />
                     </div>
                     <div className="creator-details">
-                      <h2>{post.user?.username || 'Unknown creator'}</h2>
+                      {post.user?._id ? (
+                        <h2>
+                          <Link className="post-creator-link" to={`/for-you/profile/${post.user._id}`}>
+                            {post.user.username || 'Unknown creator'}
+                          </Link>
+                        </h2>
+                      ) : (
+                        <h2>{post.user?.username || 'Unknown creator'}</h2>
+                      )}
                       <div className="post-time-visibility">
                         <p className='time-ago'>{formatTimeAgo(post.createdAt)}</p>
                         <img className="post-visibility-icon" src={VISIBILITY_ICONS[visibility]} alt="" title={`${visibility[0].toUpperCase()}${visibility.slice(1)} post`} aria-label={`${visibility[0].toUpperCase()} post`}/>
@@ -146,19 +523,62 @@ function Posts() {
                 <div className="top"></div>
                 <div className="middle">
                   {isTextPost
-                    ? <p>{post.description}</p>
+                    ? postDescription && (
+                      <TextPostContent
+                        text={postDescription}
+                        backgroundColor={textPostBackground}
+                        onClick={(element) => {
+                          const { left, top, width, height } = element.getBoundingClientRect()
+                          setTextPostPreview({
+                            text: postDescription,
+                            backgroundColor: textPostBackground,
+                            originRect: { left, top, width, height, sourceElement: element },
+                          })
+                        }}
+                      />
+                    )
                     : (
                       <>
-                        <p>Title: {post.title}</p>
+                        {postTitle && <p>Title: {postTitle}</p>}
                         {postImages.length > 0
-                          ? <PostImageGrid images={postImages} className="post-image-grid-feed" />
+                          ? <PostImageGrid
+                            images={postImages}
+                            className="post-image-grid-feed"
+                            onImageClick={(index, tile) => {
+                              const { left, top, width, height } = tile.getBoundingClientRect()
+                              setImagePreview({
+                                images: postImages,
+                                initialIndex: index,
+                                originRect: { left, top, width, height, sourceElement: tile },
+                              })
+                            }}
+                          />
                           : <div className="signgle-image" style={{ background: post.color }}></div>}
-                        <p>Description: {post.description}</p>
+                        {postDescription && <p>Description: {postDescription}</p>}
                       </>
                     )}
                   <div className='liked-users'>
                     <img className='liked-img' src={ICONS.likedusersicon} alt="" />
-                    <img className='liked-users-list-img' src={ICONS.usersliked} alt="" />
+                    <div className="liked-users-list" role="list" aria-label={`${likeCount} people liked this post`}>
+                      {postLikes.map((like, index) => {
+                        const liker = typeof like === 'object' && like !== null ? like : null
+                        const likerName = liker?.username || 'User'
+                        return (
+                          <img
+                            className="liked-user-avatar"
+                            key={getLikeUserId(like) || index}
+                            src={getAvatarSrc(liker)}
+                            alt=""
+                            title={likerName}
+                            role="listitem"
+                            onError={(event) => {
+                              event.currentTarget.onerror = null
+                              event.currentTarget.src = getProfileAvatar(liker)
+                            }}
+                          />
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
 
@@ -172,34 +592,248 @@ function Posts() {
                   </div>
                   <p className='engage-count'>{likeCount}</p>
                 </div>
-                <div className="engage-folder comments">
+                <button className="engage-folder comments" type="button" onClick={() => {
+                  if (!requireLogin()) return
+                  setCommentDraft('')
+                  setActiveDialog({ type: 'comment', postId: post._id })
+                  setOpenPostMenuId(null)
+                }}>
                   <div className="engage-background">
                     <img src={ICONS.comment} alt="" />
                   </div>
-                  <p className='engage-count'></p>
-                </div>
-                <div className="engage-folder shares">
+                  <p className='engage-count'>{post.comments?.length || 0}</p>
+                </button>
+                <button className="engage-folder shares" type="button" onClick={() => {
+                  setOpenPostMenuId(null)
+                  sharePost(post._id).catch((shareError) => setError(shareError.message))
+                }}>
                   <div className="engage-background">
                     <img src={ICONS.share} alt="" />
                   </div>
-                  <p className='engage-count'></p>
-                </div>
-                <div className="engage-folder saves">
+                  <p className='engage-count'>{post.sharesCount || 0}</p>
+                </button>
+                <button className="engage-folder saves" type="button" onClick={() => toggleSave(post._id)}>
                   <div className="engage-background">
-                    <img src={ICONS.save} alt="" />
+                    <img src={savedByCurrentUser ? ICONS.saved : ICONS.save} alt="" />
                   </div>
-                  <p className='engage-count'>{}</p>
-                </div>
-                <div className="engage-folder">
-                  <div className="engage-background">
-                    <img src={ICONS.more} alt="" />
-                  </div>
+                  <p className='engage-count'>{post.saves?.length || 0}</p>
+                </button>
+                <div
+                  className="post-more-menu"
+                  ref={(element) => {
+                    if (element) postMenuRefs.current.set(post._id, element)
+                    else postMenuRefs.current.delete(post._id)
+                  }}
+                >
+                  <button
+                    className="engage-folder post-more-trigger"
+                    type="button"
+                    aria-label="More post options"
+                    aria-expanded={openPostMenuId === post._id}
+                    aria-haspopup="menu"
+                    onClick={() => setOpenPostMenuId((currentId) => currentId === post._id ? null : post._id)}
+                  >
+                    <span className="engage-background">
+                      <img src={ICONS.more} alt="" />
+                    </span>
+                  </button>
+                  {openPostMenuId === post._id && (
+                    <ul className="post-more-options" role="menu" aria-label="Post options">
+                      <li role="none">
+                        <button className={`post-more-option ${likedByCurrentUser ? 'is-active' : ''}`} type="button" role="menuitem" onClick={() => {
+                          setOpenPostMenuId(null)
+                          toggleLike(post._id)
+                        }}>
+                          <img src={likedByCurrentUser ? ICONS.liked : ICONS.like} alt="" />
+                          <span>{likedByCurrentUser ? 'Liked' : 'Like'}</span>
+                        </button>
+                      </li>
+                      <li role="none">
+                        <button className="post-more-option" type="button" role="menuitem" onClick={() => {
+                          if (!requireLogin()) return
+                          setCommentDraft('')
+                          setActiveDialog({ type: 'comment', postId: post._id })
+                          setOpenPostMenuId(null)
+                        }}>
+                          <img src={ICONS.comment} alt="" />
+                          <span>Comment</span>
+                        </button>
+                      </li>
+                      <li role="none">
+                        <button className="post-more-option" type="button" role="menuitem" onClick={() => {
+                          setOpenPostMenuId(null)
+                          sharePost(post._id).catch((shareError) => setError(shareError.message))
+                        }}>
+                          <img src={ICONS.share} alt="" />
+                          <span>Share</span>
+                        </button>
+                      </li>
+                      <li role="none">
+                        <button className={`post-more-option ${savedByCurrentUser ? 'is-active' : ''}`} type="button" role="menuitem" onClick={() => {
+                          setOpenPostMenuId(null)
+                          toggleSave(post._id)
+                        }}>
+                          <img src={savedByCurrentUser ? ICONS.saved : ICONS.save} alt="" />
+                          <span>{savedByCurrentUser ? 'Saved' : 'Save'}</span>
+                        </button>
+                      </li>
+                      {isPostCreator && (
+                        <li role="none">
+                          <button className="post-more-option" type="button" role="menuitem" onClick={() => {
+                            setOpenPostMenuId(null)
+                            navigate(`/post-create-one?type=${isTextPost ? 'text' : 'image'}&edit=${post._id}`)
+                          }}>
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M12 20h9" />
+                              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" />
+                            </svg>
+                            <span>Edit</span>
+                          </button>
+                        </li>
+                      )}
+                      {isPostCreator && (
+                        <li role="none">
+                          <button className="post-more-option" type="button" role="menuitem" onClick={() => {
+                            setOpenPostMenuId(null)
+                            deletePost(post._id)
+                          }}>
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M3 6h18" />
+                              <path d="M8 6V4h8v2" />
+                              <path d="m19 6-1 14H6L5 6" />
+                              <path d="M10 11v5M14 11v5" />
+                            </svg>
+                            <span>Delete</span>
+                          </button>
+                        </li>
+                      )}
+                      {!isPostCreator && (
+                        <li role="none">
+                          <button className="post-more-option" type="button" role="menuitem" onClick={() => {
+                            setOpenPostMenuId(null)
+                            toggleFriend(post.user?._id)
+                          }}>
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                              <circle cx="10" cy="7" r="4" />
+                              <path d="M19 8v6M22 11h-6" />
+                            </svg>
+                            <span>{isPostCreatorFriend ? 'Unfriend' : 'Add friend'}</span>
+                          </button>
+                        </li>
+                      )}
+                      <li role="none">
+                        <button className="post-more-option" type="button" role="menuitem" onClick={() => {
+                          if (!requireLogin()) return
+                          setReportReason('')
+                          setReportDetails('')
+                          setActiveDialog({ type: 'report', postId: post._id })
+                          setOpenPostMenuId(null)
+                        }}>
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 9v4" />
+                            <path d="M12 17h.01" />
+                            <path d="M10.3 3.9 1.8 18.2A2 2 0 0 0 3.5 21h17a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+                          </svg>
+                          <span>Report</span>
+                        </button>
+                      </li>
+                      <li role="none">
+                        <button className="post-more-option" type="button" role="menuitem" onClick={() => {
+                          setOpenPostMenuId(null)
+                          copyPostLink(post._id).catch((copyError) => setError(copyError.message))
+                        }}>
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <rect x="8" y="8" width="13" height="13" rx="2" />
+                            <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+                          </svg>
+                          <span>Copy link</span>
+                        </button>
+                      </li>
+                    </ul>
+                  )}
                 </div>
               </div>
             </div>
           )
         })}
       </div>
+      {activeDialog && activePost && (
+        <div className="post-action-dialog-backdrop" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setActiveDialog(null)
+        }}>
+          <section className="post-action-dialog" role="dialog" aria-modal="true" aria-labelledby="post-action-dialog-title">
+            <button className="post-action-dialog-close" type="button" aria-label="Close dialog" onClick={() => setActiveDialog(null)}>×</button>
+            {activeDialog.type === 'comment' ? (
+              <>
+                <h2 id="post-action-dialog-title">Comments</h2>
+                <div className="post-comments-list">
+                  {(activePost.comments || []).map((comment) => (
+                    <article className="post-comment" key={comment._id}>
+                      <strong>{comment.user?.username || 'User'}</strong>
+                      <p>{comment.text}</p>
+                    </article>
+                  ))}
+                  {!activePost.comments?.length && <p className="post-dialog-empty">No comments yet.</p>}
+                </div>
+                <form onSubmit={addComment}>
+                  <label htmlFor="post-comment-input">Add a comment</label>
+                  <textarea
+                    id="post-comment-input"
+                    value={commentDraft}
+                    onChange={(event) => setCommentDraft(event.target.value)}
+                    maxLength={1000}
+                    required
+                    rows={3}
+                  />
+                  <button className="post-dialog-submit" type="submit">Comment</button>
+                </form>
+              </>
+            ) : (
+              <>
+                <h2 id="post-action-dialog-title">Report post</h2>
+                <p>Choose the reason that best describes your concern.</p>
+                <form onSubmit={submitReport}>
+                  <label htmlFor="post-report-reason">Reason</label>
+                  <select id="post-report-reason" value={reportReason} onChange={(event) => setReportReason(event.target.value)} required>
+                    <option value="">Select a reason</option>
+                    <option value="Spam">Spam</option>
+                    <option value="Harassment">Harassment</option>
+                    <option value="Inappropriate content">Inappropriate content</option>
+                    <option value="False information">False information</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <label htmlFor="post-report-details">Details (optional)</label>
+                  <textarea
+                    id="post-report-details"
+                    value={reportDetails}
+                    onChange={(event) => setReportDetails(event.target.value)}
+                    maxLength={1000}
+                    rows={3}
+                  />
+                  <button className="post-dialog-submit" type="submit">Submit report</button>
+                </form>
+              </>
+            )}
+          </section>
+        </div>
+      )}
+      {imagePreview && (
+        <ImagePreviewModal
+          images={imagePreview.images}
+          initialIndex={imagePreview.initialIndex}
+          originRect={imagePreview.originRect}
+          onClose={() => setImagePreview(null)}
+        />
+      )}
+      {textPostPreview && (
+        <TextPostPreviewModal
+          text={textPostPreview.text}
+          backgroundColor={textPostPreview.backgroundColor}
+          originRect={textPostPreview.originRect}
+          onClose={() => setTextPostPreview(null)}
+        />
+      )}
     </div>
   )
 }

@@ -8,23 +8,36 @@ const generateToken = (id) => {
 
 const registerUser = async (req, res) => {
   try {
-    const { email, username, password, dateOfBirth, sex, status, from, bio } = req.body;
+    const { email, firstName, lastName, password, dateOfBirth, sex, status, from, bio } = req.body;
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const normalizedFirstName = typeof firstName === 'string' ? firstName.trim().replace(/\s+/g, ' ') : '';
+    const normalizedLastName = typeof lastName === 'string' ? lastName.trim().replace(/\s+/g, ' ') : '';
 
-    if (!email || !username || !password) {
+    if (!normalizedEmail || !normalizedFirstName || !normalizedLastName || !password) {
       return res.status(400).json({ message: 'Please add all required fields' });
     }
 
-    const userExists = await User.findOne({ $or: [{ email }, { username }] });
+    const userExists = await User.findOne({ email: normalizedEmail });
     if (userExists) {
-      return res.status(400).json({ message: 'User with this email or username already exists' });
+      return res.status(400).json({ message: 'A user with this email already exists' });
+    }
+
+    const baseUsername = `${normalizedFirstName} ${normalizedLastName}`;
+    let username = baseUsername;
+    let suffix = 2;
+    while (await User.exists({ username })) {
+      username = `${baseUsername} ${suffix}`;
+      suffix += 1;
     }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const user = await User.create({
-      email,
+      email: normalizedEmail,
       username,
+      firstName: normalizedFirstName,
+      lastName: normalizedLastName,
       password: hashedPassword,
       dateOfBirth: dateOfBirth || '',
       sex: sex || '',
@@ -37,7 +50,12 @@ const registerUser = async (req, res) => {
     res.status(201).json({
       _id: user._id,
       username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      sex: user.sex,
+      avatar: user.avatar,
       email: user.email,
+      friends: user.friends,
       token: generateToken(user._id)
     });
   } catch (error) {
@@ -61,7 +79,12 @@ const loginUser = async (req, res) => {
       res.json({
         _id: user._id,
         username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        sex: user.sex,
+        avatar: user.avatar,
         email: user.email,
+        friends: user.friends,
         token: generateToken(user._id)
       });
     } else {

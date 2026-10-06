@@ -17,6 +17,8 @@ const userSchema = new mongoose.Schema(
       sparse: true,
       trim: true
     },
+    firstName: { type: String, trim: true, default: '' },
+    lastName: { type: String, trim: true, default: '' },
     password: {
       type: String,
       required: function () { return !this.isAnonymous; }
@@ -27,6 +29,7 @@ const userSchema = new mongoose.Schema(
     from: { type: String, default: '' },
     bio: { type: String, default: '' },
     avatar: { type: String, default: '' },
+    friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     isAnonymous: { type: Boolean, default: false }
   },
   { timestamps: true }

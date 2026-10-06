@@ -5,10 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../../src/api/context/AuthContext';
 
 function SignupForm({ switchView }) {
-  // Configured with 5 separate operational step panels
+  // Signup uses six slider panels, with first and last name collected separately.
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [password, setPassword] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [sex, setSex] = useState('');
@@ -35,11 +36,13 @@ function SignupForm({ switchView }) {
       setEmailError(false);
       if (email.trim() !== '') setStep(2);
     } else if (step === 2) {
-      if (username.trim() !== '') setStep(3);
+      if (firstName.trim()) setStep(3);
     } else if (step === 3) {
-      if (password.trim() !== '') setStep(4);
+      if (lastName.trim()) setStep(4);
     } else if (step === 4) {
-      if (dateOfBirth.trim() !== '') setStep(5);
+      if (password.trim() !== '') setStep(5);
+    } else if (step === 5) {
+      if (dateOfBirth.trim() !== '') setStep(6);
     }
   };
 
@@ -65,7 +68,8 @@ function SignupForm({ switchView }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
-          username,
+          firstName,
+          lastName,
           password,
           dateOfBirth,
           sex,
@@ -112,7 +116,7 @@ function SignupForm({ switchView }) {
     <div className='form-wrapper'>
       {serverError && <div className="server-error-container">{serverError}</div>}
 
-      <form onSubmit={step === 5 ? handleSignupSubmit : handleNextStep} className='login-form'>
+      <form onSubmit={step === 6 ? handleSignupSubmit : handleNextStep} className='login-form'>
         <div className="top-group">
           {step > 1 && (
             <p onClick={() => setStep(step - 1)} style={{ cursor: 'pointer', fontSize: '14px', color: '#8089b0' }}>
@@ -145,22 +149,34 @@ function SignupForm({ switchView }) {
                   </div>
                 </div>
 
-                {/* STEP 2: Username */}
+                {/* STEP 2: First name */}
                 <div className="signup-slide-panel">
-                  <div className='input-group username'>
-                    <input id='input-username' type="text" placeholder=' ' value={username} onChange={(e) => setUsername(e.target.value)} required={step === 2}
+                  <div className='input-group name-input-group'>
+                    <input id='input-first-name' type="text" placeholder=' ' autoComplete="given-name" value={firstName} onChange={(e) => setFirstName(e.target.value)} required={step === 2}
                     />
-                    <label htmlFor="input-username">Enter username</label>
-                    <label htmlFor="input-username" className='input-icon'>
+                    <label htmlFor="input-first-name">First name</label>
+                    <label htmlFor="input-first-name" className='input-icon'>
                       <img src={ICONS.userGreen} alt="" style={{ width: '20px', height: '20px' }} />
                     </label>
                   </div>
                 </div>
 
-                {/* STEP 3: Password */}
+                {/* STEP 3: Last name */}
+                <div className="signup-slide-panel">
+                  <div className='input-group name-input-group'>
+                    <input id='input-last-name' type="text" placeholder=' ' autoComplete="family-name" value={lastName} onChange={(e) => setLastName(e.target.value)} required={step === 3}
+                    />
+                    <label htmlFor="input-last-name">Last name</label>
+                    <label htmlFor="input-last-name" className='input-icon'>
+                      <img src={ICONS.userGreen} alt="" style={{ width: '20px', height: '20px' }} />
+                    </label>
+                  </div>
+                </div>
+
+                {/* STEP 4: Password */}
                 <div className="signup-slide-panel">
                   <div className='input-group password'>
-                    <input id='input-password' type={passwordToggle ? 'text' : 'password'} placeholder=' ' value={password} onChange={(e) => setPassword(e.target.value)} required={step === 3}
+                    <input id='input-password' type={passwordToggle ? 'text' : 'password'} placeholder=' ' value={password} onChange={(e) => setPassword(e.target.value)} required={step === 4}
                     />
                     <label htmlFor="input-password">Password</label>
                     <label htmlFor="input-password" className='input-icon'>
@@ -170,19 +186,19 @@ function SignupForm({ switchView }) {
                   </div>
                 </div>
 
-                {/* STEP 4: Date of Birth */}
+                {/* STEP 5: Date of Birth */}
                 <div className="signup-slide-panel profile-details-panel">
                   <div className='input-group dob-input-group'>
-                    <input id='input-dob' type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required={step === 4}
+                    <input id='input-dob' type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required={step === 5}
                     />
                     <label htmlFor="input-dob" className="static-select-label">Date of Birth</label>
                   </div>
                 </div>
 
-                {/* STEP 5: Gender / Sex */}
+                {/* STEP 6: Gender / Sex */}
                 <div className="signup-slide-panel profile-details-panel">
                   <div className='input-group gender-select-group'>
-                    <select id="input-sex" value={sex} onChange={(e) => setSex(e.target.value)} required={step === 5}
+                    <select id="input-sex" value={sex} onChange={(e) => setSex(e.target.value)} required={step === 6}
                     >
                       <option value="" disabled hidden>Select Gender</option>
                       <option value="Male">Male</option>
@@ -198,7 +214,7 @@ function SignupForm({ switchView }) {
 
           <div className="bottom-group password">
             <button type="submit" className='login-btn' disabled={loading}>
-              {loading ? '...' : (step === 5 ? 'Register' : 'Next')}
+              {loading ? '...' : (step === 6 ? 'Register' : 'Next')}
             </button>
 
             {step === 1 && (

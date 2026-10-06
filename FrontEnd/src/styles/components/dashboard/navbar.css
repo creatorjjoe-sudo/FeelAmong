@@ -1,14 +1,21 @@
 .navbar-wrapper {
  position: fixed;
+ top: 10px;
  left: 5px;
  display: flex;
  flex-direction: column;
  gap: 20px;
  width: 100%;
+ height: calc(100vh - 20px);
  max-width: 200px;
  padding: 10px;
+ box-sizing: border-box;
  border-radius: 15px;
  transition: bottom, top .3s ease;
+}
+
+.navbar-wrapper .profile-nav-link {
+ margin-top: auto;
 }
 
 .navbar-wrapper .app-logo {
@@ -46,6 +53,21 @@
 
 .nav-title .title.active {
  color: #00ba00;
+}
+
+.profile-nav-icon svg {
+ display: block;
+ width: 25px;
+ height: 25px;
+ fill: none;
+ stroke: #828582;
+ stroke-linecap: round;
+ stroke-linejoin: round;
+ stroke-width: 1.8;
+}
+
+.profile-nav-icon.is-active svg {
+ stroke: #00ba00;
 }
 
 .active-mobile-indicator {

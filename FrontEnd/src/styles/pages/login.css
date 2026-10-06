@@ -137,35 +137,38 @@
   transform: translateX(calc(-50% - 10px)); 
 }
 
-/* Extended 5-step signup configuration slider window overrides */
+/* Six-step signup configuration slider window overrides */
 .input-group-wrapper.custom-signup-slider {
-  width: 500% !important; /* Spans across five complete pane sections width side-by-side */
+  width: 600% !important; /* Spans across six complete pane sections width side-by-side */
   gap: 0px !important;
 }
 
 .signup-slide-panel {
-  width: 20% !important; /* Outlines exactly one-fifth width partition space */
+  width: 16.666667% !important; /* Outlines exactly one-sixth width partition space */
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   padding: 0 10px;
 }
 
-/* 5-step transform translations increments metrics */
+/* Six-step transform translations increment by one pane each */
 .input-group-wrapper.custom-signup-slider.step-1 {
   transform: translateX(0%);
 }
 .input-group-wrapper.custom-signup-slider.step-2 {
-  transform: translateX(-20%);
+  transform: translateX(-16.666667%);
 }
 .input-group-wrapper.custom-signup-slider.step-3 {
-  transform: translateX(-40%);
+  transform: translateX(-33.333333%);
 }
 .input-group-wrapper.custom-signup-slider.step-4 {
-  transform: translateX(-60%);
+  transform: translateX(-50%);
 }
 .input-group-wrapper.custom-signup-slider.step-5 {
-  transform: translateX(-80%);
+  transform: translateX(-66.666667%);
+}
+.input-group-wrapper.custom-signup-slider.step-6 {
+  transform: translateX(-83.333333%);
 }
 
 /* Forces input element items to map full panel boundaries comfortably */
@@ -180,7 +183,7 @@
   box-sizing: border-box;
 }
 
-#input-email, #input-password, #input-username {
+#input-email, #input-password, #input-first-name, #input-last-name {
   background: none;
   width: 100%;
   padding: 18px 45px;
@@ -197,8 +200,10 @@
 #input-email:not(:placeholder-shown),
 #input-password:focus,
 #input-password:not(:placeholder-shown),
-#input-username:focus,
-#input-username:not(:placeholder-shown) {
+#input-first-name:focus,
+#input-first-name:not(:placeholder-shown),
+#input-last-name:focus,
+#input-last-name:not(:placeholder-shown) {
   border: 2px solid #454c6c;
   background: none;
 }
@@ -268,7 +273,7 @@
  align-self: flex-end;
  font-weight: bold;
  cursor: pointer;
- text-decoration: underline;
+ text-decoration: none;
 }
 
 .lost-email:hover {
@@ -347,6 +352,7 @@
   padding-top: 15px;
 }
 
+
 .other-options {
  display: flex;
  width: 100%;
@@ -372,7 +378,7 @@ span {
  font-weight: bold;
  color: #00ba00;
  cursor: pointer;
- text-decoration: underline;
+ text-decoration: none;
 }
 
 @media screen and (max-width:1000PX) {

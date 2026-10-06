@@ -15,16 +15,16 @@ const searchAll = async (req, res) => {
     );
     const [users, posts, videos] = await Promise.all([
       User.find({ username: matcher, isAnonymous: { $ne: true } })
-        .select('username avatar bio createdAt')
+        .select('username avatar sex bio createdAt')
         .limit(8)
         .lean(),
       Post.find({ $or: [{ title: matcher }, { description: matcher }] })
-        .populate('user', 'username avatar')
+        .populate('user', 'username avatar sex')
         .sort({ createdAt: -1 })
         .limit(8)
         .lean(),
       Video.find({ caption: matcher })
-        .populate('user', 'username avatar')
+        .populate('user', 'username avatar sex')
         .sort({ createdAt: -1 })
         .limit(8)
         .lean()
@@ -37,6 +37,7 @@ const searchAll = async (req, res) => {
         title: user.username,
         description: user.bio,
         avatar: user.avatar,
+        sex: user.sex,
         createdAt: user.createdAt
       })),
       ...posts.map((post) => ({
@@ -45,6 +46,7 @@ const searchAll = async (req, res) => {
         title: post.title,
         description: post.user?.username || post.description,
         avatar: post.user?.avatar || '',
+        sex: post.user?.sex || '',
         createdAt: post.createdAt
       })),
       ...videos.map((video) => ({
@@ -53,6 +55,7 @@ const searchAll = async (req, res) => {
         title: video.caption || 'Untitled video',
         description: video.user?.username || '',
         avatar: video.user?.avatar || '',
+        sex: video.user?.sex || '',
         createdAt: video.createdAt
       }))
     ].sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));

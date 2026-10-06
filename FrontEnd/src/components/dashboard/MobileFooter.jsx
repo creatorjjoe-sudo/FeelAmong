@@ -3,41 +3,19 @@ import { Link, useLocation } from 'react-router-dom'
 import { ICONS } from '../../assets/icons'
 import '../../styles/components/dashboard/mobilefooter.css'
 
-function MobileFooter({activeView, switchActive}) {
+function MobileFooter({activeView, switchActive, unreadMessageCount = 0}) {
 
   const location = useLocation()
 
   const posts = []
-  const [unreadChats, setUnreadChats] = React.useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('unreadChats') || '[]')
-      return Array.isArray(saved) && saved.length > 0 ? saved : [1, 2, 3]
-    } catch {
-      return [1, 2, 3]
-    }
-  })
   const videos = []
-  const unreadChatCount = unreadChats.length
 
   React.useEffect(() => {
-    localStorage.setItem('unreadChats', JSON.stringify(unreadChats))
-  }, [unreadChats])
-
-  React.useEffect(() => {
-    if(location.pathname.includes('/for-you')) setForYou()
-    if(location.pathname.includes('/messages')) setMessages()
-    if(location.pathname.includes('/videos')) setVideos()
-  }, [location.pathname])
-
-  function setForYou() {
-    switchActive('for-you')
-  }
-  function setMessages() {
-    switchActive('messages')
-  }
-  function setVideos() {
-    switchActive('videos')
-  }
+    if(location.pathname.includes('/profile')) switchActive('profile')
+    else if(location.pathname.includes('/messages')) switchActive('messages')
+    else if(location.pathname.includes('/videos')) switchActive('videos')
+    else if(location.pathname.includes('/for-you')) switchActive('for-you')
+  }, [location.pathname, switchActive])
   return (
     <div className='footer-wrapper'>
 
@@ -56,7 +34,7 @@ function MobileFooter({activeView, switchActive}) {
         <h2 className={`title ${activeView === 'messages' ? 'active' : ''}`}>Messages</h2>
         <div className="icon-wrapper msg">
           <img src={activeView !== 'messages'? ICONS.messageInactive : ICONS.messageActive} alt="" />
-          {unreadChatCount > 0 && <p className='notif-length msg'>{unreadChatCount}</p>}
+          {unreadMessageCount > 0 && <p className='notif-length msg'>{unreadMessageCount}</p>}
         </div>
       </div>
       </Link>

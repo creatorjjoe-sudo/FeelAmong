@@ -2,6 +2,7 @@ import React, { useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ICONS } from '../../assets/icons'
 import { AuthContext } from '../../api/context/AuthContext'
+import { getProfileAvatar } from '../../utils/profileAvatar'
 import SearchModal from './SearchModal'
 import LoginRequiredModal from './LoginRequiredModal'
 import CreatePostMenu from './CreatePostMenu'
@@ -47,7 +48,9 @@ function MobileHeader() {
      </button>
     )}
    </CreatePostMenu>
-   <img className='user-avata' src={ICONS.avata} alt="" />
+   <button className="profile-shortcut" type="button" aria-label="Open profile" onClick={() => navigate('/for-you/profile')}>
+    <img className='user-avata' src={getProfileAvatar(user)} alt="" />
+   </button>
    </div>
     <SearchModal
      open={searchOpen}

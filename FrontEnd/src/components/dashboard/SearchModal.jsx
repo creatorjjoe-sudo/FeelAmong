@@ -2,6 +2,7 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ICONS } from '../../assets/icons'
 import '../../styles/components/dashboard/searchmodal.css'
+import { getProfileAvatar } from '../../utils/profileAvatar'
 
 const RECENT_SEARCHES_KEY = 'recentSearchItems'
 
@@ -147,6 +148,10 @@ function SearchModal({ open, onClose, anchorRef }) {
   const openResult = (item) => {
     saveRecentSearch(item)
     onClose()
+    if (item.type === 'user') {
+      navigate(`/for-you/profile/${item.id}`)
+      return
+    }
     navigate(item.type === 'video' ? '/for-you/videos' : '/for-you')
   }
 
@@ -214,7 +219,7 @@ function SearchModal({ open, onClose, anchorRef }) {
               key={`${item.type}-${item.id}`}
               onClick={() => openResult(item)}
             >
-              <img className="search-result-avatar" src={item.avatar || ICONS.avata} alt="" />
+              <img className="search-result-avatar" src={getProfileAvatar(item)} alt="" />
               <span className="search-result-copy">
                 <span className="search-result-title">{highlightMatches(item.title, query)}</span>
                 <span className="search-result-meta">
