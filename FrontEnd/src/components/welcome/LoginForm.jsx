@@ -3,31 +3,68 @@ import '../../styles/pages/login.css';
 import { ICONS } from '../../assets/icons';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../../src/api/context/AuthContext'; // Hooked global context
+import { getProfileAvatar } from '../../utils/profileAvatar'
 
-function LoginForm({ view, switchView }) {
-  const [step, setStep] = useState(1);
-  const [email, setEmail] = useState('');
+function LoginForm({ view, switchView, selectedAccount }) {
+  const [step, setStep] = useState(selectedAccount ? 2 : 1);
+  const [accountPreview, setAccountPreview] = useState(selectedAccount || null);
+  const [email, setEmail] = useState(selectedAccount?.email || selectedAccount?.username || '');
   const [password, setPassword] = useState('');
   const [passwordToggle, setPasswordToggle] = useState(false);
   const [error, setError] = useState(false);
   const [serverError, setServerError] = useState(''); // Holds API request errors
+  const [showIncorrectPasswordModal, setShowIncorrectPasswordModal] = useState(false);
   const [loading, setLoading] = useState(false); // Manages button submission states
+  const passwordInputRef = React.useRef(null);
 
   const { login } = useContext(AuthContext);
   const passwordNotEmpty = password.trim() !== '';
   const EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
   const navigate = useNavigate();
 
-  const handleNext = (e) => {
+  useEffect(() => {
+    if (selectedAccount) passwordInputRef.current?.focus();
+  }, [selectedAccount]);
+
+  const handleNext = async (e) => {
     e.preventDefault();
-    if (!EMAIL_REGEX.test(email)) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!EMAIL_REGEX.test(normalizedEmail)) {
       setError(true);
       return;
-    } else {
-      setError(false);
     }
-    if (email.trim() !== '') {
+
+    setError(false);
+    setServerError('');
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/login-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Could not look up the account');
+      }
+
+      if (!data.profile) {
+        setAccountPreview(null);
+        setServerError('Account not found');
+        return;
+      }
+
+      setEmail(normalizedEmail);
+      setAccountPreview(data.profile);
+      setPassword('');
+      setServerError('');
       setStep(2);
+    } catch (lookupError) {
+      setServerError(lookupError.message || 'Could not look up the account');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -64,7 +101,11 @@ function LoginForm({ view, switchView }) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Invalid credentials');
+        if (response.status === 401) {
+          setShowIncorrectPasswordModal(true);
+          return;
+        }
+        throw new Error(data.message || 'Unable to log in');
       }
 
       login(data);
@@ -77,11 +118,18 @@ function LoginForm({ view, switchView }) {
   };
 
   const Anonymous = () => {
+    login({ isAnonymous: true });
     navigate('/for-you', { replace: true });
   };
 
   const showPassword = () => {
     setPasswordToggle(!passwordToggle);
+  };
+
+  const retryPassword = () => {
+    setShowIncorrectPasswordModal(false);
+    setPassword('');
+    window.requestAnimationFrame(() => passwordInputRef.current?.focus());
   };
 
   function signup() {
@@ -91,7 +139,20 @@ function LoginForm({ view, switchView }) {
   return (
     <div className='form-wrapper'>
       {/* Backend API server responses placeholder display */}
-      {serverError && <div className="server-error-container">{serverError}</div>}
+      {serverError && <div className="server-error-container" role="alert">{serverError}</div>}
+      {showIncorrectPasswordModal && (
+        <div className="login-modal-backdrop">
+          <section
+            className="login-error-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="login-error-title"
+          >
+            <h2 id="login-error-title">Incorrect password</h2>
+            <button type="button" onClick={retryPassword}>Try again</button>
+          </section>
+        </div>
+      )}
 
       <form onSubmit={step === 1 ? handleNext : handleLogin} className='login-form'>
         <div className="top-group">
@@ -105,15 +166,23 @@ function LoginForm({ view, switchView }) {
         <div className="login-body">
           <div className="middle-group">
             <div className="middle-top">
-              <h1>Login</h1>
-              <img src={ICONS.userGreen} alt="" />
+              <h1>
+                {step === 2 && accountPreview?.firstName
+                  ? `Login, ${accountPreview.firstName}`
+                  : 'Login'}
+              </h1>
+              {step === 2 && accountPreview ? (
+                <img className="login-account-avatar" src={getProfileAvatar(accountPreview)} alt="" />
+              ) : (
+                <img src={ICONS.userGreen} alt="" />
+              )}
             </div>
 
             <div className="input-slider-window">
               <div className={`input-group-wrapper step-${step}`}>
 
                 <div className='input-group email'>
-                  <input id='input-email' type="text" placeholder=' ' value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} required
+                  <input id='input-email' type="text" placeholder=' ' value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading || step === 2} required
                   />
                   <label htmlFor="input-email">Enter email</label>
                   <label htmlFor="input-email" className='input-icon'>
@@ -123,7 +192,7 @@ function LoginForm({ view, switchView }) {
                 </div>
 
                 <div className='input-group password'>
-                  <input id='input-password' type={passwordToggle ? 'text' : 'password'} placeholder=' ' value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} required={step === 2}
+                  <input ref={passwordInputRef} id='input-password' type={passwordToggle ? 'text' : 'password'} placeholder=' ' value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} required={step === 2}
                   />
                   <label htmlFor="input-password">Password</label>
                   <label htmlFor="input-password" className='input-icon'>

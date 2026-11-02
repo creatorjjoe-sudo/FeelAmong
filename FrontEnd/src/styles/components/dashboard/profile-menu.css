@@ -95,6 +95,16 @@
   stroke-width: 1.8;
 }
 
+.profile-menu-logout-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: #4c6b50;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
 .profile-menu-option-copy {
   display: flex;
   flex-direction: column;

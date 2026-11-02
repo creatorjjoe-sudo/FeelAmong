@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ICONS } from '../../assets/icons'
+import { AuthContext } from '../../api/context/AuthContext'
 import { replaceWithRoutedModal } from '../../utils/routedModal'
 import '../../styles/components/dashboard/profile-menu.css'
 
@@ -8,6 +9,8 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
   const [anchorStyle, setAnchorStyle] = React.useState({})
   const navigate = useNavigate()
   const location = useLocation()
+  const { user, logout } = useContext(AuthContext)
+  const isAnonymous = !user || user.isAnonymous === true
 
   React.useEffect(() => {
     if (!open) return undefined
@@ -46,6 +49,11 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
 
   const openDestination = (path) => {
     replaceWithRoutedModal(navigate, path, null, location)
+  }
+
+  const handleAccountAction = async () => {
+    await logout()
+    navigate('/', { replace: true })
   }
 
   return (
@@ -97,6 +105,19 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
             <span className="profile-menu-option-copy">
               <span>Settings</span>
               <small>Coming soon</small>
+            </span>
+          </button>
+          <button type="button" className="profile-menu-option profile-menu-logout" onClick={handleAccountAction}>
+            <span className="profile-menu-option-icon profile-menu-logout-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M10 17l5-5-5-5" />
+                <path d="M15 12H3" />
+                <path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" />
+              </svg>
+            </span>
+            <span className="profile-menu-option-copy">
+              <span>{isAnonymous ? 'Login' : 'Logout'}</span>
+              <small>{isAnonymous ? 'Return to the login page' : 'Sign out of this account'}</small>
             </span>
           </button>
         </nav>

@@ -165,18 +165,6 @@ h2 {
  border-radius: 10px;
 }
 
-.logout-btn {
- padding: 7px;
- font-size: 16px;
- border: none;
- background: #e4efe4;
- width: 100%;
- color: #00ba00;
- font-weight: bold;
- cursor: pointer;
- border-radius: 10px;
-}
-
 .navbar-wrapper link {
  text-decoration: none;
 }

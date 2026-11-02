@@ -207,7 +207,7 @@ function ProfilePage() {
       if (!response.ok) throw new Error(result.message || 'Could not update your profile.')
 
       setProfile((current) => ({ ...current, ...result }))
-      login({ ...user, ...result, token })
+      login({ ...user, ...result, token }, { recordDeviceLogin: false })
       setIsEditing(false)
       setAvatarSelection(null)
       setNotice('Profile updated.')

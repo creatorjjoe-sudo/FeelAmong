@@ -10,16 +10,15 @@ import { getProfileAvatar } from '../../utils/profileAvatar'
 import '../../styles/components/dashboard/navbar.css'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 
-function Navbar({ activeView, switchActive, unreadMessageCount = 0 }) {
+function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfileRoute }) {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, logout } = useContext(AuthContext)
+  const { user } = useContext(AuthContext)
   const navbarRef = React.useRef(null)
   const profileButtonRef = React.useRef(null)
   const searchOpen = location.state?.routedModal === 'desktop-search'
   const profileMenuOpen = location.state?.routedModal === 'desktop-profile-menu'
   const [showLoginModal, setShowLoginModal] = React.useState(false)
-  const isAnonymous = !user || user.isAnonymous === true
   const openSearch = () => pushRoutedModal(navigate, location, 'desktop-search')
   const closeSearch = () => closeRoutedModal(navigate, location)
   const openProfileMenu = () => pushRoutedModal(navigate, location, 'desktop-profile-menu')
@@ -29,16 +28,11 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0 }) {
   const videos = []
 
   React.useEffect(() => {
-    if (location.pathname.includes('/profile')) switchActive('profile')
+    if (location.pathname.includes('/profile')) switchActive(isOwnProfileRoute ? 'profile' : '')
     else if (location.pathname.includes('/for-you')) switchActive('for-you')
     else if (location.pathname.includes('/messages')) switchActive('messages')
     else if (location.pathname.includes('/videos')) switchActive('videos')
-  }, [location.pathname, switchActive])
-
-  async function handleAccountAction() {
-    await logout()
-    navigate('/', { replace: true })
-  }
+  }, [isOwnProfileRoute, location.pathname, switchActive])
 
   function handleCreate(toggleMenu) {
     if (!user || user.isAnonymous === true) {
@@ -107,18 +101,11 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0 }) {
             aria-haspopup="menu"
             onClick={() => handleCreate(toggle)}
           >
-            Create
+            Create post
           </button>
         )}
       </CreatePostMenu>
 
-      <button
-        className="logout-btn"
-        type="button"
-        onClick={handleAccountAction}
-      >
-        {isAnonymous ? 'Login' : 'Logout'}
-      </button>
       <button
         ref={profileButtonRef}
         className="dash-link profile-nav-link"

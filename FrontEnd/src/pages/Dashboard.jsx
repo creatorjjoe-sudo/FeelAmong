@@ -16,6 +16,10 @@ import { AuthContext } from '../api/context/AuthContext'
 function Dashboard({ isDarkMode, setIsDarkMode }) {
   const { user } = React.useContext(AuthContext)
   const location = useLocation()
+  const profilePath = location.pathname.match(/^\/for-you\/profile(?:\/([^/]+))?\/?$/)
+  const isOwnProfileRoute = Boolean(
+    profilePath && (!profilePath[1] || profilePath[1] === String(user?._id))
+  )
   const [activeView, setActiveView] = React.useState('for-you')
   const [unreadMessageCount, setUnreadMessageCount] = React.useState(0)
   const locationRef = React.useRef(location)
@@ -105,12 +109,14 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
         activeView={activeView}
         switchActive={switchActive}
         unreadMessageCount={unreadMessageCount}
+        isOwnProfileRoute={isOwnProfileRoute}
       />
 
       <MobileFooter
         activeView={activeView}
         switchActive={switchActive}
         unreadMessageCount={unreadMessageCount}
+        isOwnProfileRoute={isOwnProfileRoute}
       />
 
       <Routes>

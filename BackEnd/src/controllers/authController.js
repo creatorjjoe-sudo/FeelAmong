@@ -95,6 +95,27 @@ const loginUser = async (req, res) => {
   }
 };
 
+const getLoginPreview = async (req, res) => {
+  try {
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
+      return res.status(400).json({ message: 'Please provide a valid email address' });
+    }
+
+    const user = await User.findOne({ email, isAnonymous: { $ne: true } })
+      .select('firstName avatar sex')
+      .lean();
+
+    res.json({
+      profile: user
+        ? { firstName: user.firstName, avatar: user.avatar, sex: user.sex }
+        : null
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
@@ -104,4 +125,4 @@ const getProfile = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, getProfile };
+module.exports = { registerUser, loginUser, getLoginPreview, getProfile };

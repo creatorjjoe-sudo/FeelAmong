@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { ICONS } from '../../assets/icons'
 import '../../styles/components/dashboard/mobilefooter.css'
 
-function MobileFooter({activeView, switchActive, unreadMessageCount = 0}) {
+function MobileFooter({activeView, switchActive, unreadMessageCount = 0, isOwnProfileRoute}) {
 
   const location = useLocation()
 
@@ -11,11 +11,11 @@ function MobileFooter({activeView, switchActive, unreadMessageCount = 0}) {
   const videos = []
 
   React.useEffect(() => {
-    if(location.pathname.includes('/profile')) switchActive('profile')
+    if(location.pathname.includes('/profile')) switchActive(isOwnProfileRoute ? 'profile' : '')
     else if(location.pathname.includes('/messages')) switchActive('messages')
     else if(location.pathname.includes('/videos')) switchActive('videos')
     else if(location.pathname.includes('/for-you')) switchActive('for-you')
-  }, [location.pathname, switchActive])
+  }, [isOwnProfileRoute, location.pathname, switchActive])
   return (
     <div className='footer-wrapper'>
 
