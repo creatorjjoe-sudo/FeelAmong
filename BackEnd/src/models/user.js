@@ -30,7 +30,11 @@ const userSchema = new mongoose.Schema(
     bio: { type: String, default: '' },
     avatar: { type: String, default: '' },
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-    isAnonymous: { type: Boolean, default: false }
+    isAnonymous: { type: Boolean, default: false },
+    resetPasswordToken: { type: String, default: null },
+    resetPasswordTokenExpiresAt: { type: Date, default: null },
+    resetPasswordCode: { type: String, default: null },
+    resetPasswordCodeExpiresAt: { type: Date, default: null }
   },
   { timestamps: true }
 );

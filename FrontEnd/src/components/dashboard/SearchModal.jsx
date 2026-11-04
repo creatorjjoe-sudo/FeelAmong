@@ -249,7 +249,7 @@ function SearchModal({ open, onClose, anchorRef, modalKey }) {
                 ) : (
                   <span
                     className="search-result-avatar search-result-text-post"
-                    style={{ backgroundColor: item.backgroundColor || '#f1f7f1' }}
+                    style={{ backgroundColor: item.backgroundColor === 'none' ? 'transparent' : (item.backgroundColor || '#f1f7f1') }}
                     aria-hidden="true"
                   >
                     {item.previewText || item.title}

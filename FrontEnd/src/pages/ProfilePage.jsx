@@ -506,7 +506,7 @@ function ProfilePage() {
             <div className="profile-empty-state">
               <p className="profile-state">{isOwnProfile ? 'You haven’t shared any posts yet.' : 'This user hasn’t shared any posts yet.'}</p>
               {isOwnProfile && (
-                <CreatePostMenu className="profile-create-post-menu" onSelect={(postType) => navigate(`/post-create-one?type=${postType}`)}>
+                <CreatePostMenu className="profile-create-post-menu" onSelect={(postType) => navigate(postType === 'video' ? '/video-create-one' : `/post-create-one?type=${postType}`)}>
                   {({ isOpen, toggle }) => (
                     <button
                       className="profile-create-post-button"
@@ -532,7 +532,7 @@ function ProfilePage() {
                     {post.postType === 'text' ? (
                       <div
                         className="profile-text-post"
-                        style={{ backgroundColor: post.backgroundColor || '#f1f7f1' }}
+                        style={{ backgroundColor: post.backgroundColor === 'none' ? 'transparent' : (post.backgroundColor || '#f1f7f1') }}
                       >
                         <p>{post.description}</p>
                       </div>

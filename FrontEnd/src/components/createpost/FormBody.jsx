@@ -4,7 +4,7 @@ import { useContext } from 'react'
 import { AuthContext } from '../../api/context/AuthContext'
 import { ICONS } from '../../assets/icons'
 import PostImageGrid from './PostImageGrid'
-import { DEFAULT_TEXT_POST_BACKGROUND, getTextPostColor, TEXT_POST_BACKGROUNDS } from '../../utils/textPostColors'
+import { DEFAULT_TEXT_POST_BACKGROUND, getTextPostColor, isNoneTextPostBackground, NONE_TEXT_POST_BACKGROUND, TEXT_POST_BACKGROUNDS } from '../../utils/textPostColors'
 import '../../styles/components/createpost/formbody.css'
 
 const API_URL = 'http://localhost:5000/api/posts'
@@ -24,7 +24,8 @@ function FormBody({ postType, editPostId }) {
 
   const [title, setTitle] = React.useState('')
   const [description, setDescription] = React.useState('')
-  const [textPostBackground, setTextPostBackground] = React.useState(DEFAULT_TEXT_POST_BACKGROUND)
+  const [textPostBackground, setTextPostBackground] = React.useState(NONE_TEXT_POST_BACKGROUND)
+  const hasTextPostBackground = !isNoneTextPostBackground(textPostBackground)
   const [imageFiles, setImageFiles] = React.useState([])
   const [visibility, setVisibility] = React.useState('public')
   const [visibilityOpen, setVisibilityOpen] = React.useState(false)
@@ -299,14 +300,18 @@ function FormBody({ postType, editPostId }) {
 
             <div
               ref={isTextPost ? textPostContainerRef : null}
-              className={isTextPost ? 'description-container text-post-description' : 'description-container'}
-              style={isTextPost ? {
+              className={[
+                'description-container',
+                isTextPost ? 'text-post-description' : '',
+                isTextPost && !hasTextPostBackground ? 'text-post-description-plain' : '',
+              ].filter(Boolean).join(' ')}
+              style={isTextPost && hasTextPostBackground ? {
                 backgroundColor: textPostBackground,
                 color: getTextPostColor(textPostBackground),
               } : undefined}
             >
               <p className="option-text">{isTextPost ? "What's on your mind?" : 'Description'}</p>
-              <textarea ref={isTextPost ? textPostDescriptionRef : null} cols={30} rows={isTextPost ? 1 : 4} value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1000} placeholder={isTextPost ? "Share what's on your mind..." : 'Tell more details about this post...'} required={isTextPost} style={isTextPost ? { resize: 'none', color: getTextPostColor(textPostBackground) } : { resize: 'none' }}/>
+              <textarea ref={isTextPost ? textPostDescriptionRef : null} cols={30} rows={isTextPost ? 1 : 4} value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1000} placeholder={isTextPost ? "Share what's on your mind..." : 'Tell more details about this post...'} required={isTextPost} style={isTextPost && hasTextPostBackground ? { resize: 'none', color: getTextPostColor(textPostBackground) } : { resize: 'none' }}/>
               <p className="value-length">{description.length} / 1000</p>
             </div>
 
@@ -329,6 +334,15 @@ function FormBody({ postType, editPostId }) {
                     </button>
                   ))}
                 </div>
+                {textPostBackground !== NONE_TEXT_POST_BACKGROUND && (
+                  <button
+                    className="text-post-background-remove"
+                    type="button"
+                    onClick={() => setTextPostBackground(NONE_TEXT_POST_BACKGROUND)}
+                  >
+                    Remove
+                  </button>
+                )}
               </fieldset>
             )}
 

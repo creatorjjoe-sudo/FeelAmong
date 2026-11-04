@@ -14,8 +14,14 @@ export const TEXT_POST_BACKGROUNDS = [
 ]
 
 export const DEFAULT_TEXT_POST_BACKGROUND = '#f1f7f1'
+export const NONE_TEXT_POST_BACKGROUND = 'none'
+
+export function isNoneTextPostBackground(backgroundColor) {
+  return backgroundColor === NONE_TEXT_POST_BACKGROUND
+}
 
 export function getTextPostColor(backgroundColor) {
+  if (isNoneTextPostBackground(backgroundColor)) return '#172117'
   const fallbackHex = DEFAULT_TEXT_POST_BACKGROUND.slice(1)
   const hex = /^#[0-9a-f]{6}$/i.test(backgroundColor || '') ? backgroundColor.slice(1) : fallbackHex
   const channels = [0, 2, 4].map((index) => parseInt(hex.slice(index, index + 2), 16) / 255)

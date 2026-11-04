@@ -34,7 +34,7 @@ function MobileHeader() {
  }
 
  function handlePostTypeSelect(postType) {
-  navigate(`/post-create-one?type=${postType}`)
+  navigate(postType === 'video' ? '/video-create-one' : `/post-create-one?type=${postType}`)
  }
 
  async function handleLogin() {

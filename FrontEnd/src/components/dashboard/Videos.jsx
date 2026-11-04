@@ -5,6 +5,11 @@ import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 import LoginRequiredModal from './LoginRequiredModal'
 import SaveToFolderModal from './SaveToFolderModal'
+import '@vidstack/react/player/styles/default/theme.css'
+import '@vidstack/react/player/styles/default/layouts/video.css'
+import { MediaPlayer, MediaProvider, Poster } from '@vidstack/react/player'
+import { defaultLayoutIcons } from '@vidstack/react/player/layouts/default'
+import { DefaultLayout } from '@vidstack/react/player/layouts/default'
 import '../../styles/components/dashboard/videos.css'
 
 const API_ORIGIN = 'http://localhost:5000'
@@ -21,6 +26,62 @@ function Videos() {
   const [error, setError] = React.useState('')
   const [showLoginModal, setShowLoginModal] = React.useState(false)
   const saveModalOpen = location.state?.routedModal === 'save-folder'
+  const cardRefs = React.useRef(new Map())
+  const playerRefs = React.useRef(new Map())
+  const activePlayerRef = React.useRef(null)
+  const manuallyPausedRef = React.useRef(new WeakSet())
+  const observerPausingRef = React.useRef(new WeakSet())
+
+  // Play the video currently in view, pause everything else.
+  React.useEffect(() => {
+    if (isLoading || !videos.length) return undefined
+
+    const attemptPlay = (player) => {
+      player.muted = true // browsers block unmuted autoplay
+      if (player.state.canPlay) {
+        player.play().catch(() => {})
+      } else {
+        // Player not loaded yet — wait for it to become ready, then play.
+        const onReady = () => player.play().catch(() => {})
+        player.addEventListener('can-play', onReady, { once: true })
+      }
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const id = [...cardRefs.current.entries()].find(([, card]) => card === entry.target)?.[0]
+        const player = id && playerRefs.current.get(id)
+        if (!player) return
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+          if (activePlayerRef.current && activePlayerRef.current !== player) {
+            activePlayerRef.current.pause()
+          }
+          activePlayerRef.current = player
+          if (!manuallyPausedRef.current.has(player)) attemptPlay(player)
+        } else if (activePlayerRef.current === player) {
+          observerPausingRef.current.add(player)
+          player.pause()
+          player.currentTime = 0
+          observerPausingRef.current.delete(player)
+          activePlayerRef.current = null
+          manuallyPausedRef.current.delete(player)
+        }
+      })
+    }, { threshold: [0, 0.6] })
+
+    cardRefs.current.forEach((card) => observer.observe(card))
+    return () => observer.disconnect()
+  }, [isLoading, videos, error])
+
+  const registerCard = React.useCallback((id, card) => {
+    if (card) cardRefs.current.set(id, card)
+    else cardRefs.current.delete(id)
+  }, [])
+
+  const registerPlayer = React.useCallback((id, player) => {
+    if (player) playerRefs.current.set(id, player)
+    else playerRefs.current.delete(id)
+  }, [])
 
   const closeSaveModal = React.useCallback(() => {
     setSaveModalItem(null)
@@ -125,7 +186,11 @@ function Videos() {
             : video.videoUrl
 
           return (
-            <article className="video-card" key={video._id}>
+            <article
+              className="video-card"
+              key={video._id}
+              ref={(card) => registerCard(video._id, card)}
+            >
               <header className="video-card-header">
                 <img src={getProfileAvatar(video.user)} alt="" />
                 <div>
@@ -133,9 +198,38 @@ function Videos() {
                   {video.caption && <p>{video.caption}</p>}
                 </div>
               </header>
-              <video className="video-card-player" src={videoUrl} controls preload="metadata">
-                Your browser does not support video playback.
-              </video>
+              <MediaPlayer
+                ref={(player) => registerPlayer(video._id, player)}
+                className="video-card-player"
+                src={{ src: videoUrl, type: 'video/mp4' }}
+                playsInline
+                muted
+                onPlay={() => {
+                  const player = playerRefs.current.get(video._id)
+                  if (player) manuallyPausedRef.current.delete(player)
+                }}
+                onPause={(event) => {
+                  const player = playerRefs.current.get(video._id)
+                  if (!player || observerPausingRef.current.has(player)) return
+                  manuallyPausedRef.current.add(player)
+                }}
+                load="visible"
+                posterLoad="eager"
+                crossOrigin
+                title={video.caption || video.user?.username || 'Video'}
+              >
+                <MediaProvider>
+                  <Poster
+                    className="vds-poster"
+                    src={video.thumbnailUrl || undefined}
+                    alt=""
+                  />
+                  {/* Default layout gives TikTok/YouTube-style controls with
+                      full keyboard support and quality/rate menus when the
+                      source supports them. */}
+                  <DefaultLayout icons={defaultLayoutIcons} />
+                </MediaProvider>
+              </MediaPlayer>
               <footer className="video-card-footer">
                 <span>{video.saves?.length || 0} saves</span>
                 <button type="button" onClick={() => openSaveModal(video)}>

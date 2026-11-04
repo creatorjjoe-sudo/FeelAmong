@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useContext } from 'react';
 import '../../styles/pages/login.css';
 import { ICONS } from '../../assets/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../../src/api/context/AuthContext'; // Hooked global context
 import { getProfileAvatar } from '../../utils/profileAvatar'
 
-function LoginForm({ view, switchView, selectedAccount }) {
+function LoginForm({ view, switchView, selectedAccount, onCancelAccount }) {
+  const location = useLocation();
   const [step, setStep] = useState(selectedAccount ? 2 : 1);
   const [accountPreview, setAccountPreview] = useState(selectedAccount || null);
   const [email, setEmail] = useState(selectedAccount?.email || selectedAccount?.username || '');
@@ -22,8 +23,70 @@ function LoginForm({ view, switchView, selectedAccount }) {
   const EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
   const navigate = useNavigate();
 
+  const [showAccountPasswordModal, setShowAccountPasswordModal] = useState(!!selectedAccount);
+  const modalPasswordInputRef = React.useRef(null);
+  // Marks the history entry pushed for this modal, so the browser back button
+  // can close the modal the same way the other routed modals in the app do.
+  const MODAL_HISTORY_KEY = 'accountPasswordModal';
+  const pushedHistoryRef = React.useRef(false);
+
+  const openAccountPasswordModal = () => {
+    setShowAccountPasswordModal(true);
+    if (!location.state?.[MODAL_HISTORY_KEY]) {
+      pushedHistoryRef.current = true;
+      navigate(location.pathname + location.search + location.hash, {
+        replace: false,
+        state: { ...(location.state || {}), [MODAL_HISTORY_KEY]: true },
+      });
+    } else {
+      setShowAccountPasswordModal(true);
+    }
+  };
+
+  // Runs the same flow as the Cancel button whenever the modal is dismissed.
+  const dismissAccountPasswordModal = () => {
+    setPassword('');
+    setServerError('');
+    if (onCancelAccount) onCancelAccount();
+    setStep(1);
+  };
+
+  const cancelAccountLogin = () => {
+    setShowAccountPasswordModal(false);
+    dismissAccountPasswordModal();
+    // Drop the history entry we pushed when the modal opened so the back
+    // button doesn't have to unwind it twice.
+    if (location.state?.[MODAL_HISTORY_KEY]) navigate(-1);
+    pushedHistoryRef.current = false;
+  };
+
+  // Closes the modal when the browser back button pops our history entry.
+  const hadModalFlagRef = React.useRef(false);
   useEffect(() => {
-    if (selectedAccount) passwordInputRef.current?.focus();
+    if (location.state?.[MODAL_HISTORY_KEY]) {
+      // The modal's own history entry is active — remember that.
+      hadModalFlagRef.current = true;
+    } else if (hadModalFlagRef.current && showAccountPasswordModal) {
+      // The flag was active before and is now gone: the user pressed the
+      // browser back button. Close the modal and return to the plain form.
+      hadModalFlagRef.current = false;
+      pushedHistoryRef.current = false;
+      setShowAccountPasswordModal(false);
+      dismissAccountPasswordModal();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, showAccountPasswordModal]);
+
+  useEffect(() => {
+    if (selectedAccount) {
+      // A saved account was (re)selected: open the password modal for it.
+      setAccountPreview(selectedAccount);
+      setEmail(selectedAccount.email || selectedAccount.username || '');
+      setStep(2);
+      openAccountPasswordModal();
+      window.requestAnimationFrame(() => modalPasswordInputRef.current?.focus());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAccount]);
 
   const handleNext = async (e) => {
@@ -129,7 +192,17 @@ function LoginForm({ view, switchView, selectedAccount }) {
   const retryPassword = () => {
     setShowIncorrectPasswordModal(false);
     setPassword('');
-    window.requestAnimationFrame(() => passwordInputRef.current?.focus());
+    window.requestAnimationFrame(() => {
+      const target = showAccountPasswordModal ? modalPasswordInputRef : passwordInputRef;
+      target.current?.focus();
+    });
+  };
+
+  // Login submitted from the account password modal (same logic as the form).
+  const handleAccountModalLogin = async (e) => {
+    await handleLogin(e);
+    // On a 401 the incorrect-password modal shows; drop back into the inline
+    // form so the "Try again" flow has somewhere to land.
   };
 
   function signup() {
@@ -140,6 +213,71 @@ function LoginForm({ view, switchView, selectedAccount }) {
     <div className='form-wrapper'>
       {/* Backend API server responses placeholder display */}
       {serverError && <div className="server-error-container" role="alert">{serverError}</div>}
+      {showAccountPasswordModal && selectedAccount && (
+        <div className="login-modal-backdrop">
+          <section
+            className="account-password-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="account-password-title"
+          >
+            <div className="account-password-header">
+              <img
+                className="account-password-avatar"
+                src={getProfileAvatar(selectedAccount)}
+                alt=""
+              />
+              <div className="account-password-details">
+                <h2 id="account-password-title">
+                  {selectedAccount.username
+                    || [selectedAccount.firstName, selectedAccount.lastName].filter(Boolean).join(' ')
+                    || selectedAccount.email}
+                </h2>
+                <p>Enter your password to continue</p>
+              </div>
+            </div>
+            <form onSubmit={handleAccountModalLogin}>
+              <div className="account-password-input">
+                <input
+                  id="account-modal-password"
+                  ref={modalPasswordInputRef}
+                  type={passwordToggle ? 'text' : 'password'}
+                  placeholder=" "
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  required
+                />
+                <label htmlFor="account-modal-password">Password</label>
+                <label htmlFor="account-modal-password" className="input-icon">
+                  <img src={ICONS.lock} alt="" />
+                </label>
+                {password.trim() !== '' && (
+                  <img
+                    className="pw-toggle"
+                    onClick={showPassword}
+                    src={passwordToggle ? ICONS.eyeOpen : ICONS.eyeClose}
+                    alt=""
+                  />
+                )}
+              </div>
+              <div className="account-password-actions">
+                <button
+                  type="button"
+                  className="account-password-cancel"
+                  onClick={cancelAccountLogin}
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="account-password-login" disabled={loading}>
+                  {loading ? 'Logging in...' : 'Login'}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
       {showIncorrectPasswordModal && (
         <div className="login-modal-backdrop">
           <section
@@ -205,7 +343,7 @@ function LoginForm({ view, switchView, selectedAccount }) {
             </div>
           </div>
           <div className="bottom-group password">
-            <p className='lost-email'>
+            <p className='lost-email' onClick={() => navigate('/reset-password', { state: { resetEmail: step === 1 ? email : '' } })}>
               {step === 1 ? 'Lost email?' : 'Lost password?'}
             </p>
 

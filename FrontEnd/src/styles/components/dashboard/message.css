@@ -3,29 +3,38 @@
  width: 100%;
 }
 
+/* Offset from the fixed navbar (200px, 160px below 880px) the same way
+   .videos-page does: margin-left + a matching width, so the chat list
+   always tracks the navbar. The old empty .padder spacer is retired —
+   flex-shrink collapsed it under pressure and let content overlap. */
 .padder {
- width: 100%;
- max-width: 190px;
+ display: none;
 }
 
 .main-screen {
  display: flex;
  justify-content: space-between;
- width: 100%;
+ width: calc(100% - 200px);
+ margin-left: 200px;
  padding: 20px;
+ box-sizing: border-box;
 }
 
 .left-section {
  display: flex;
  flex-direction: column;
- width: 100%;
+ flex: 1 1 0;
+ min-width: 0;
+ width: auto;
  gap: 4px;
  margin: 10px;
 }
 .left-section-active {
  display: flex;
  flex-direction: column;
- width: 100%;
+ flex: 1 1 0;
+ min-width: 0;
+ width: auto;
  gap: 4px;
  margin: 10px;
 }
@@ -99,6 +108,31 @@
  color: #6b7280;
 }
 
+.chat-no-user-selected {
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ justify-content: center;
+ flex: 1;
+ width: 100%;
+ padding: 40px 20px;
+ color: #9ca3af;
+ text-align: center;
+}
+
+.chat-no-user-icon {
+ width: 120px;
+ height: 120px;
+ margin-bottom: 16px;
+}
+
+.chat-no-user-selected h2 {
+ margin: 0;
+ font-size: 18px;
+ font-weight: 500;
+ color: #9ca3af;
+}
+
 .user-container {
  display: flex;
  justify-content: space-between;
@@ -141,13 +175,16 @@
 }
 
 .middle-section {
+ position: relative;
  display: flex;
  flex-direction: column;
  justify-content: end;
  align-items: center;
- min-width: 350px;
+ flex: 0 1 350px;
+ min-width: 0;
  width: 350px;
  margin: 20px;
+ box-sizing: border-box;
  border-radius: 30px;
  box-shadow: 0 0 20px #aaafb1;
  transition: all .3s ease;
@@ -157,9 +194,11 @@
  flex-direction: column;
  justify-content: end;
  align-items: center;
- min-width: 350px;
+ flex: 0 1 350px;
+ min-width: 0;
  width: 350px;
  margin: 20px;
+ box-sizing: border-box;
  border-radius: 30px;
  box-shadow: 0 0 20px #aaafb1;
  transition: all .3s ease;
@@ -170,15 +209,49 @@
 }
 
 .middle-section-mobile {
+ /* position: relative keeps .mobile-active-chat-header (absolute) anchored
+    to this panel instead of escaping to the viewport and floating over the
+    conversation list. */
+ position: relative;
  display: flex;
  flex-direction: column;
  justify-content: end;
  align-items: center;
  width: 100%;
- margin: 75px 20px;
- border-radius: 30px;
+ background: white;
  box-shadow: 0 0 20px #aaafb1;
  transition: all .3s ease;
+ z-index: 100;
+}
+
+.mobile-active-chat-header {
+ display: none;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.active-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.back-icon {
+  width: 35px;
+}
+
+.header-right {
+  display: flex;
+  gap: 10px;
+}
+
+.chat-top {
+  height: 70px;
+  width: 100%;
 }
 
 .message-feed {
@@ -191,16 +264,102 @@
 }
 
 .message-row {
- display: flex;
- width: 100%;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.message-row.mine {
+  align-items: flex-end;
 }
 
 .message-row p {
- max-width: 70%;
- padding: 10px 14px;
- border-radius: 12px;
- margin: 0;
- line-height: 1.4;
+  max-width: 70%;
+  padding: 10px 14px;
+  border-radius: 22px;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Within a group of messages sent back-to-back (same sender, under a minute
+   apart) the corners where bubbles touch are squared off: for my messages
+   (right-aligned) those are the right-hand corners, for theirs (left-aligned)
+   the left-hand ones. `data-tail` marks which end is the last of the group.
+   Grouped bubbles sit close together; the feed's normal gap applies only
+   between separate groups. */
+.message-feed {
+  gap: 8px;
+}
+
+.message-row.grouped-top {
+  margin-top: -7px;
+}
+
+/* Day headers ("Today", "Yesterday", weekday + date) sit above the first
+   group of that day; the little timestamp sits under the last bubble of a
+   group. Both need to break out of the feed's gap so they read as captions. */
+.message-day-header {
+  align-self: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b7280;
+  padding-top: 10px;
+}
+
+.message-feed > :not(.message-day-header):first-child,
+.message-row + .message-day-header {
+  margin-top: 0;
+}
+
+.message-group-time {
+  align-self: center;
+  font-size: 12px;
+  color: #8a929c;
+  margin-top: -4px;
+  padding-bottom: 6px;
+}
+
+/* "Sending" caption on a message still in flight — a gentle pulse until
+   the server confirms and the caption swaps to the real clock time. */
+.message-group-time.is-sending {
+  color: #9ab2a0;
+  font-style: italic;
+  animation: message-sending-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes message-sending-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* After a time caption the next bubble (start of a new group or day) needs
+   its full gap back, since the negative margin only tightens group interiors. */
+.message-row.grouped-top + .message-row.grouped-top {
+  margin-top: -7px;
+}
+
+.message-day-header + .message-row {
+  margin-top: 0;
+}
+
+.message-group-time + .message-row {
+  margin-top: 0;
+}
+.message-row.mine.grouped-bottom p {
+  border-bottom-right-radius: 5px;
+}
+
+.message-row.mine.grouped-top p {
+  border-top-right-radius: 5px;
+}
+
+.message-row.their.grouped-bottom p {
+  border-bottom-left-radius: 5px;
+}
+
+.message-row.their.grouped-top p {
+  border-top-left-radius: 5px;
 }
 
 .message-row.mine {
@@ -223,12 +382,161 @@
  margin: 0 16px 8px;
 }
 
+/* While the conversation is loading, paint the shimmer directly onto the
+   real feed elements: every message bubble, its text, the day header, and
+   the group timestamps. The text inside each element is hidden, leaving a
+   shimmering shape exactly where the content will land. */
+.message-feed.is-loading {
+ pointer-events: none;
+}
+
+.message-feed.is-loading .message-day-header,
+.message-feed.is-loading .message-group-time {
+ color: transparent;
+}
+
+.message-feed.is-loading .message-day-header {
+ position: relative;
+}
+
+.message-feed.is-loading .message-day-header::after {
+ content: '';
+ position: absolute;
+ left: 50%;
+ top: 0;
+ height: 100%;
+ width: 90px;
+ transform: translateX(-50%);
+ border-radius: 6px;
+ background: #e5e7eb;
+ overflow: hidden;
+}
+
+.message-feed.is-loading .message-row p {
+ background: #e5e7eb;
+ color: transparent;
+ position: relative;
+ overflow: hidden;
+ min-height: 38px;
+}
+
+.message-feed.is-loading .message-day-header::after,
+.message-feed.is-loading .message-row p::after,
+.message-feed.is-loading .message-group-time::after {
+ content: '';
+ position: absolute;
+ inset: 0;
+ transform: translateX(-100%);
+ background: linear-gradient(
+  90deg,
+  rgba(255, 255, 255, 0) 0%,
+  rgba(255, 255, 255, 0.55) 50%,
+  rgba(255, 255, 255, 0) 100%
+ );
+ animation: msg-composer-shimmer 1.6s infinite;
+}
+
+.message-feed.is-loading .message-row:nth-child(2n) p::after {
+ animation-delay: 0.25s;
+}
+
+.message-feed.is-loading .message-row:nth-child(2n + 1) p::after {
+ animation-delay: 0.45s;
+}
+
+/* The timestamp element has no background of its own; give it a pill
+   behind the (now transparent) time text. */
+.message-feed.is-loading .message-group-time {
+ position: relative;
+}
+
+.message-feed.is-loading .message-group-time::after {
+ background: #e5e7eb;
+ border-radius: 6px;
+}
+
+.message-feed.is-loading .message-group-time {
+ min-height: 14px;
+ min-width: 48px;
+ align-self: flex-start;
+}
+
+.message-feed.is-loading .message-row.mine + .message-group-time {
+ align-self: flex-end;
+}
+
 .msg-composer {
  display: flex;
  align-items: center;
  width: 100%;
  padding: 0 20px;
  margin-bottom: 20px;
+}
+
+.msg-composer-skeleton {
+ display: flex;
+ align-items: center;
+ width: 100%;
+ padding: 0 20px;
+ margin-bottom: 20px;
+}
+
+.msg-composer-skeleton-icon {
+ width: 30px;
+ height: 30px;
+ margin-right: 10px;
+ border-radius: 50%;
+ flex: 0 0 auto;
+ background: #e5e7eb;
+ position: relative;
+ overflow: hidden;
+}
+
+.msg-composer-skeleton-icon-mic {
+ width: 35px;
+ height: 35px;
+ margin-right: 12px;
+}
+
+.msg-composer-skeleton-input {
+ display: flex;
+ align-items: center;
+ width: 100%;
+ height: 45px;
+ border-radius: 25px;
+ background: #e5e7eb;
+ position: relative;
+ overflow: hidden;
+}
+
+.msg-composer-skeleton-line {
+ display: block;
+ width: 35%;
+ height: 12px;
+ margin-left: 20px;
+ border-radius: 6px;
+ background: #d1d5db;
+}
+
+.msg-composer-skeleton-icon::after,
+.msg-composer-skeleton-input::after {
+ content: '';
+ position: absolute;
+ inset: 0;
+ transform: translateX(-100%);
+ background: linear-gradient(
+  90deg,
+  rgba(255, 255, 255, 0) 0%,
+  rgba(255, 255, 255, 0.55) 50%,
+  rgba(255, 255, 255, 0) 100%
+ );
+ animation: msg-composer-shimmer 1.6s infinite;
+}
+
+@keyframes msg-composer-shimmer {
+ 100% {
+  transform: translateX(100%);
+ }
 }
 
 .msg-composer .attach-icon {
@@ -244,42 +552,133 @@
 }
 
 .input-container {
- display: flex;
- width: 100%;
- overflow: hidden;
- border: 1px solid #00ba00;
- border-radius: 25px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid #00ba00;
+  border-radius: 25px;
+}
+
+/* Reply preview lives inside the composer's input box, above the textarea. */
+.reply-preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #f3f8f3;
+  border-bottom: 1px solid #d8e8d8;
+  text-align: left;
+}
+
+.reply-preview-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.reply-preview-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #00ba00;
+}
+
+.reply-preview-text {
+  font-size: 13px;
+  color: #444;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reply-preview-cancel {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #666;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.reply-preview-cancel:hover {
+  background: #e4efe4;
+}
+
+/* The textarea + send button sit in one row inside the composer box; the
+   optional reply preview stacks above this row. */
+.input-row {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
 }
 
 .input-container textarea {
- margin-top: 15px;
- margin-bottom: 13px;
- scrollbar-width: none;
- width: 100%;
- max-height: 100px;
- box-sizing: border-box;
- overflow: auto;
- field-sizing: content;
- resize: none;
- border: none;
- outline: none;
- padding-left: 20px;
+  margin-top: 15px;
+  margin-bottom: 13px;
+  scrollbar-width: none;
+  width: 100%;
+  max-height: 100px;
+  box-sizing: border-box;
+  overflow: auto;
+  field-sizing: content;
+  resize: none;
+  border: none;
+  outline: none;
+  padding-left: 20px;
 }
 
-.input-container button {
- height: 45px;
- align-self: end;
- border: none;
- background: #00ba00;
- color: white;
- font-weight: bold;
- padding: 10px 20px 10px 15px;
- cursor: pointer;
+.input-container .input-row button {
+  height: 45px;
+  align-self: flex-end;
+  border: none;
+  background: #00ba00;
+  color: white;
+  font-weight: bold;
+  padding: 10px 20px 10px 15px;
+  cursor: pointer;
+  border-radius: 0;
 }
 
 .right-section {
  display: flex;
- width: 100%;
+ flex-direction: column;
+ align-items: center;
+ gap: 10px;
+ flex: 0 0 260px;
+ width: 260px;
+ min-width: 0;
+ margin: 10px;
+ padding-top: 20px;
+ box-sizing: border-box;
+}
+
+.right-section .username-egts {
+ text-align: center;
+}
+
+.right-section .username-egts h1 {
+ font-size: 20px;
+ word-break: break-word;
+}
+
+.right-section button {
+ cursor: pointer;
+ border: 1px solid #00ba00;
+ background: white;
+ color: #00ba00;
+ border-radius: 20px;
+ padding: 6px 14px;
+ font-weight: 600;
+}
+
+.right-section button:hover {
+ background: #00ba00;
+ color: white;
 }
 
 @media screen and (max-width: 1200px) {
@@ -289,8 +688,9 @@
 }
 
 @media screen and (max-width: 880px) {
- .padder {
-  max-width: 150px;
+ .main-screen {
+  width: calc(100% - 160px);
+  margin-left: 160px;
  }
 }
 
@@ -299,6 +699,19 @@
   display: none;
  }
 
+ .mobile-active-chat-header {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  width: inherit;
+  height: 70px;
+  background: white;
+  border-bottom: 1px solid #c3c9e1;
+ }
  .left-section {
   margin-top: 65px;
  }
@@ -315,11 +728,372 @@
   display: flex;
  }
 
- .padder {
-  display: none;
- }
-
  .main-screen {
+  width: 100%;
+  margin-left: 0;
   padding: 0;
  }
+}
+/* Message options dropdown — opens beside the clicked bubble, animated from
+   the bubble exactly like the post/video more menu. */
+.message-row {
+  position: relative;
+  cursor: pointer;
+}
+
+.message-more-options {
+  position: fixed;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 150px;
+  padding: 6px;
+  border: 1px solid #d7d9dd;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  list-style: none;
+  animation: message-menu-zoom-in 0.2s ease-out both;
+}
+
+.message-more-options li {
+  display: block;
+  padding: 0;
+}
+
+.message-more-option {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #5c6065;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.message-more-option span {
+  color: inherit;
+}
+
+.message-more-option:hover,
+.message-more-option:focus-visible {
+  background: #e4efe4;
+}
+
+.message-more-option.is-danger,
+.message-more-option.is-danger span {
+  color: #d33;
+}
+
+.message-more-option.is-danger:hover,
+.message-more-option.is-danger:focus-visible {
+  background: #fdeaea;
+}
+
+@keyframes message-menu-zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.65);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message-more-options {
+    animation: none;
+  }
+}
+
+/* Reply context: "You replied to..." label on its own line above, then the
+   quoted message OVERLAPPING the reply bubble below it (negative bottom
+   margin pulls the bubble up under the quote). */
+.message-reply-context {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.message-row.mine + .message-reply-context,
+.message-reply-context:has(+ .message-row.mine) {
+  align-items: flex-end;
+}
+
+.message-reply-label {
+  font-size: 11.5px;
+  opacity: 0.7;
+  margin-right: 8px;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+/* Reply quote: sits ABOVE the reply bubble and overlaps it slightly. */
+.message-reply-quote {
+  display: -webkit-box;
+  max-width: 70%;
+  margin-bottom: -34px;
+  padding: 10px 14px 40px;
+  border-radius: 22px;
+  background: rgba(0, 186, 0, 0.08);
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: #444;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  position: relative;
+  z-index: 1;
+}
+
+.message-row .message-reply-quote-text {
+  display: block;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Edited badge + deleted state */
+.message-edited-badge {
+  font-style: italic;
+  font-size: 11px;
+  opacity: 0.65;
+}
+
+.message-row p.is-deleted {
+  font-style: italic;
+  opacity: 0.6;
+}
+
+/* Deleted bubble placeholder: keeps the row visible with a tombstone
+   instead of collapsing to a blank gap. */
+.message-row .is-deleted::before {
+  content: '\1F6AB';
+  margin-right: 6px;
+  font-style: normal;
+}
+
+/* Inline edit form inside the bubble */
+.message-edit-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 70%;
+}
+
+.message-edit-form input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1.5px solid #00ba00;
+  border-radius: 22px;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.message-edit-form button {
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 50px;
+  background: #00ba00;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Delete confirmation dialog */
+.profile-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 16px;
+}
+
+.profile-dialog {
+  width: min(400px, 100%);
+  padding: 20px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.profile-dialog h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.profile-dialog p {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: #555;
+}
+
+.profile-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.profile-dialog-actions button {
+  padding: 9px 18px;
+  border: 0;
+  border-radius: 50px;
+  background: #eee;
+  color: #333;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.profile-dialog-actions button.is-danger {
+  background: #d33;
+  color: #fff;
+}
+
+/* Dark mode */
+:root[data-theme='dark'] .message-more-options {
+  background: #1a2233;
+  border-color: #2a3348;
+}
+
+:root[data-theme='dark'] .message-more-option,
+:root[data-theme='dark'] .message-more-option span {
+  color: #e7ebf5;
+}
+
+:root[data-theme='dark'] .message-more-option:hover,
+:root[data-theme='dark'] .message-more-option:focus-visible {
+  background: #232d44;
+}
+
+:root[data-theme='dark'] .message-reply-quote {
+  background: rgba(0, 186, 0, 0.15);
+  color: #cdd6e4;
+}
+
+:root[data-theme='dark'] .reply-preview-bar {
+  background: #1a2233;
+  border-bottom-color: #2a3348;
+}
+
+:root[data-theme='dark'] .reply-preview-text {
+  color: #cdd6e4;
+}
+
+:root[data-theme='dark'] .profile-dialog {
+  background: #1a2233;
+}
+
+:root[data-theme='dark'] .profile-dialog p {
+  color: #aab4c8;
+}
+
+:root[data-theme='dark'] .profile-dialog-actions button {
+  background: #232d44;
+  color: #e7ebf5;
+}
+
+/* --- Select mode ------------------------------------------------------- */
+/* Opens when the user taps "Select" in the message menu: the bubble text is
+   re-rendered as a pre-selected read-only textarea so mobile browsers can
+   copy it. */
+.message-select-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 140px;
+}
+
+.message-select-textarea {
+  width: 100%;
+  min-width: 160px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  resize: none;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.message-select-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.message-select-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.08);
+  color: inherit;
+}
+
+.message-select-btn:active {
+  opacity: 0.7;
+}
+
+/* --- Delete scope options ---------------------------------------------- */
+.delete-scope-options {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+/* Bumped specificity so it beats the global `.profile-dialog label`
+   column rule from profile.css, which otherwise stacks the radio on
+   top of its caption. */
+.profile-dialog .delete-scope-options label.delete-scope-option,
+label.delete-scope-option {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: inherit;
+}
+
+.delete-scope-option input[type='radio'] {
+  accent-color: currentColor;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.delete-scope-option.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.delete-scope-option.is-disabled input[type='radio'] {
+  cursor: not-allowed;
 }

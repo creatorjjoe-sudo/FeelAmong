@@ -48,6 +48,7 @@ function WelcomePage() {
             view={view}
             switchView={switchView}
             selectedAccount={selectedAccount}
+            onCancelAccount={() => setSelectedAccount(null)}
           />
         )}
         {view === 'signup' && <SignupForm view={view} switchView={switchView} />}
@@ -71,7 +72,9 @@ function WelcomePage() {
                       aria-label={`Continue as ${account.username || displayName}`}
                       onClick={() => {
                         setView('login')
-                        setSelectedAccount(account)
+                        // Always pass a fresh object so a re-click of the same
+                        // account still triggers LoginForm's focus effect.
+                        setSelectedAccount({ ...account })
                       }}
                     >
                       <img src={getProfileAvatar(account)} alt="" />

@@ -6,12 +6,11 @@ import { AuthContext } from '../../api/context/AuthContext'
 import LoginRequiredModal from './LoginRequiredModal'
 import PostImageGrid from '../createpost/PostImageGrid'
 import ImagePreviewModal from './ImagePreviewModal'
-import { DEFAULT_TEXT_POST_BACKGROUND, getTextPostColor } from '../../utils/textPostColors'
-import { animatePreviewElement } from '../../utils/animatePreviewElement'
+import { DEFAULT_TEXT_POST_BACKGROUND, getTextPostColor, isNoneTextPostBackground } from '../../utils/textPostColors'
+import { animate, motion } from 'framer-motion'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 import SaveToFolderModal from './SaveToFolderModal'
-import FeedLoadingModal from './FeedLoadingModal'
 
 const API_ORIGIN = 'http://localhost:5000'
 function formatTimeAgo(createdAt) {
@@ -44,10 +43,12 @@ const VISIBILITY_ICONS = {
 }
 
 function TextPostContent({ text, backgroundColor, onClick, contentRef, maxFontSize = 24 }) {
+  const isPlain = isNoneTextPostBackground(backgroundColor)
   const containerRef = React.useRef(null)
   const textRef = React.useRef(null)
 
   React.useLayoutEffect(() => {
+    if (isPlain) return undefined
     const container = containerRef.current
     const textElement = textRef.current
     if (!container || !textElement) return undefined
@@ -78,11 +79,11 @@ function TextPostContent({ text, backgroundColor, onClick, contentRef, maxFontSi
     const resizeObserver = new ResizeObserver(fitText)
     resizeObserver.observe(container)
     return () => resizeObserver.disconnect()
-  }, [text, maxFontSize])
+  }, [text, maxFontSize, isPlain])
 
   return (
     <div
-      className={`text-post-content${onClick ? ' text-post-content-interactive' : ''}`}
+      className={`text-post-content${onClick ? ' text-post-content-interactive' : ''}${isPlain ? ' text-post-content-plain' : ''}`}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       aria-label={onClick ? 'Open text post' : undefined}
@@ -97,7 +98,7 @@ function TextPostContent({ text, backgroundColor, onClick, contentRef, maxFontSi
         containerRef.current = element
         if (contentRef) contentRef.current = element
       }}
-      style={{
+      style={isPlain ? undefined : {
         backgroundColor,
         color: getTextPostColor(backgroundColor),
       }}
@@ -107,16 +108,76 @@ function TextPostContent({ text, backgroundColor, onClick, contentRef, maxFontSi
   )
 }
 
+const TEXT_FLY_IN_EASE = [0.2, 0.75, 0.25, 1]
+// Matches the backdrop fade duration: the dark backdrop must be fully up
+// before the clone flight begins, so it covers everything behind it.
+const BACKDROP_FADE_DURATION = 0.22
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+// Shared-element fly-in: clones the clicked text card and animates it from its
+// post position into the modal's card slot with framer-motion.
+async function flyInFromRect(sourceElement, targetElement, originRect) {
+  if (!sourceElement || !targetElement || !originRect) return
+  if (prefersReducedMotion()) return
+
+  await wait(BACKDROP_FADE_DURATION * 1000)
+
+  const targetRect = targetElement.getBoundingClientRect()
+  if (!targetRect.width || !targetRect.height) return
+
+  const clone = sourceElement.cloneNode(true)
+  clone.setAttribute('aria-hidden', 'true')
+  clone.removeAttribute('role')
+  clone.removeAttribute('tabindex')
+  Object.assign(clone.style, {
+    position: 'fixed',
+    top: `${targetRect.top}px`,
+    left: `${targetRect.left}px`,
+    width: `${targetRect.width}px`,
+    height: `${targetRect.height}px`,
+    boxSizing: 'border-box',
+    margin: '0',
+    zIndex: '1300',
+    pointerEvents: 'none',
+    transformOrigin: 'top left',
+  })
+  document.body.appendChild(clone)
+
+  try {
+    await animate(
+      clone,
+      {
+        transform: [
+          `translate3d(${originRect.left - targetRect.left}px, ${originRect.top - targetRect.top}px, 0) scale(${originRect.width / targetRect.width}, ${originRect.height / targetRect.height})`,
+          'translate3d(0, 0, 0) scale(1, 1)',
+        ],
+      },
+      { duration: 0.42, ease: TEXT_FLY_IN_EASE },
+    )
+  } finally {
+    clone.remove()
+  }
+}
+
 function TextPostPreviewModal({ text, backgroundColor, originRect, onClose }) {
   const contentRef = React.useRef(null)
-  const [isTransitioning, setIsTransitioning] = React.useState(Boolean(originRect))
+  const [isCloneFlying, setIsCloneFlying] = React.useState(Boolean(originRect) && !prefersReducedMotion())
+  const [isClosing, setIsClosing] = React.useState(false)
 
   React.useEffect(() => {
+    if (isClosing) return undefined
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
 
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') handleClose()
     }
     document.addEventListener('keydown', handleKeyDown)
 
@@ -124,33 +185,57 @@ function TextPostPreviewModal({ text, backgroundColor, originRect, onClose }) {
       document.body.style.overflow = previousOverflow
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [onClose])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClosing])
 
   React.useLayoutEffect(() => {
     let cancelled = false
-    animatePreviewElement(originRect?.sourceElement, contentRef.current, originRect).then(() => {
-      if (!cancelled) setIsTransitioning(false)
+    // The flying clone carries the text card into place first; only once it
+    // lands does the real modal content reveal, so the two never overlap.
+    flyInFromRect(originRect?.sourceElement, contentRef.current, originRect).then(() => {
+      if (!cancelled) setIsCloneFlying(false)
     })
     return () => {
       cancelled = true
     }
-  }, [originRect])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function handleClose() {
+    if (isClosing) return
+    setIsClosing(true)
+  }
 
   return (
-    <div
-      className={`text-post-preview-backdrop${isTransitioning ? ' is-transitioning' : ''}`}
+    <motion.div
+      className="text-post-preview-backdrop"
       role="presentation"
+      initial={{ opacity: 0 }}
+      animate={isClosing ? { opacity: 0 } : { opacity: 1 }}
+      transition={{ duration: 0.22, ease: 'easeOut' }}
+      onAnimationComplete={() => {
+        if (isClosing) onClose()
+      }}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose()
+        if (event.target === event.currentTarget) handleClose()
       }}
     >
-      <section
-        className={`text-post-preview-dialog${isTransitioning ? ' is-transitioning' : ''}`}
+      <motion.section
+        className="text-post-preview-dialog"
         role="dialog"
         aria-modal="true"
         aria-label="Text post preview"
+        initial={{ opacity: 0 }}
+        animate={isClosing
+          ? { opacity: 0, scale: 0.96 }
+          : isCloneFlying
+            ? { opacity: 0 }
+            : { opacity: 1 }}
+        transition={isClosing
+          ? { type: 'spring', stiffness: 380, damping: 32, mass: 0.9 }
+          : { duration: 0.18, ease: 'easeOut' }}
       >
-        <button className="text-post-preview-close" type="button" aria-label="Close text post preview" onClick={onClose}>
+        <button className="text-post-preview-close" type="button" aria-label="Close text post preview" onClick={handleClose}>
           ×
         </button>
         <TextPostContent
@@ -159,8 +244,76 @@ function TextPostPreviewModal({ text, backgroundColor, originRect, onClose }) {
           contentRef={contentRef}
           maxFontSize={48}
         />
-      </section>
-    </div>
+      </motion.section>
+    </motion.div>
+  )
+}
+
+// While posts are loading, render placeholder rows using the exact same class
+// names as real posts. The shimmer CSS in posts.css paints the animation
+// directly onto these elements, so the shimmer occupies precisely the space
+// the loaded posts will fill — no separate skeleton shapes needed.
+function PostSkeleton() {
+  return (
+    <>
+      {[0, 1, 2].map((index) => (
+        <div className="post-wrapper" key={index} aria-hidden="true">
+          <div className="left-items">
+            <div className="post-header">
+              <div className="header-left-items">
+                <div className="creator-avata">
+                  <img className="creator-icon" alt="" />
+                </div>
+                <div className="creator-details">
+                  <h2>Placeholder</h2>
+                  <div className="post-time-visibility">
+                    <p className="time-ago">Placeholder</p>
+                  </div>
+                </div>
+              </div>
+              <div className="header-right-items">
+                <p className="add-friend">Add friend</p>
+              </div>
+            </div>
+            <div className="top"></div>
+            <div className="middle">
+              <div className="signgle-image"></div>
+              <div className="liked-users">
+                <img className="liked-img" alt="" />
+                <div className="liked-users-list"></div>
+              </div>
+            </div>
+            <div className="bottom"></div>
+          </div>
+          <div className="right-items e">
+            <div className="engage-folder likes">
+              <div className="engage-background">
+                <img alt="" />
+              </div>
+              <p className="engage-count">0</p>
+            </div>
+            <div className="engage-folder comments">
+              <div className="engage-background">
+                <img alt="" />
+              </div>
+              <p className="engage-count">0</p>
+            </div>
+            <div className="engage-folder shares">
+              <div className="engage-background">
+                <img alt="" />
+              </div>
+              <p className="engage-count">0</p>
+            </div>
+            <div className="engage-folder saves">
+              <div className="engage-background">
+                <img alt="" />
+              </div>
+              <p className="engage-count">0</p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </>
   )
 }
 
@@ -574,11 +727,10 @@ function Posts() {
         </button>
       )}
       {showLoginModal && (
-        <LoginRequiredModal message="Please login to interact with posts" onClose={() => setShowLoginModal(false)} onLogin={async () => { setShowLoginModal(false); await logout(); navigate('/', { replace: true })}}
+        <LoginRequiredModal message="Please login to interact with posts" onClose={() => setShowLoginModal(false)} onLogin={async () => { setShowLoginModal(false); await logout(); navigate('/', { replace: true }) }}
         />
       )}
 
-      {isLoading && <FeedLoadingModal />}
       {error && <div>{error}</div>}
       {notice && (
         <div className={`post-action-notice${isNoticeExiting ? ' is-exiting' : ''}`} role="status">
@@ -586,7 +738,10 @@ function Posts() {
         </div>
       )}
 
-      <div className={`post-container${isPostPreviewOpen ? ' post-preview-container' : ''}`}>
+      <div className={`post-container${isPostPreviewOpen ? ' post-preview-container' : ''}${isLoading ? ' is-loading' : ''}`}>
+        {isLoading && !isPostPreviewOpen && (
+          <PostSkeleton />
+        )}
         {isPostPreviewOpen && !isLoading && !visiblePosts.length && (
           <p className="post-preview-state">This post is unavailable.</p>
         )}
@@ -609,7 +764,9 @@ function Posts() {
           const postDescription = typeof post.description === 'string' ? post.description.trim() : ''
           const textPostBackground = /^#[0-9a-f]{6}$/i.test(post.backgroundColor || '')
             ? post.backgroundColor
-            : DEFAULT_TEXT_POST_BACKGROUND
+            : isNoneTextPostBackground(post.backgroundColor)
+              ? 'none'
+              : DEFAULT_TEXT_POST_BACKGROUND
           const postImages = Array.isArray(post.images)
             ? post.images.filter((image) => typeof image === 'string').map((image) => ({
               src: image.startsWith('/') ? `${API_ORIGIN}${image}` : image,
@@ -640,7 +797,7 @@ function Posts() {
                       )}
                       <div className="post-time-visibility">
                         <p className='time-ago'>{formatTimeAgo(post.createdAt)}</p>
-                        <img className="post-visibility-icon" src={VISIBILITY_ICONS[visibility]} alt="" title={`${visibility[0].toUpperCase()}${visibility.slice(1)} post`} aria-label={`${visibility[0].toUpperCase()} post`}/>
+                        <img className="post-visibility-icon" src={VISIBILITY_ICONS[visibility]} alt="" title={`${visibility[0].toUpperCase()}${visibility.slice(1)} post`} aria-label={`${visibility[0].toUpperCase()} post`} />
                       </div>
                     </div>
                   </div>
@@ -654,20 +811,24 @@ function Posts() {
                 <div className="middle">
                   {isTextPost
                     ? postDescription && (
-                      <TextPostContent text={postDescription} backgroundColor={textPostBackground} onClick={(element) => { const { left, top, width, height } = element.getBoundingClientRect(); setTextPostPreview({ text: postDescription, backgroundColor: textPostBackground, originRect: { left, top, width, height, sourceElement: element },
-                          })
-                          openPostModal('text-preview')
-                        }}
+                      <TextPostContent text={postDescription} backgroundColor={textPostBackground} onClick={(element) => {
+                        const { left, top, width, height } = element.getBoundingClientRect(); setTextPostPreview({
+                          text: postDescription, backgroundColor: textPostBackground, originRect: { left, top, width, height, sourceElement: element },
+                        })
+                        openPostModal('text-preview')
+                      }}
                       />
                     )
                     : (
                       <>
                         {postTitle && <p>Title: {postTitle}</p>}
                         {postImages.length > 0
-                          ? <PostImageGrid images={postImages} className="post-image-grid-feed" onImageClick={(index, tile) => { const { left, top, width, height } = tile.getBoundingClientRect(); setImagePreview({ images: postImages, initialIndex: index, originRect: { left, top, width, height, sourceElement: tile },
-                              })
-                              openPostModal('image-preview')
-                            }}
+                          ? <PostImageGrid images={postImages} className="post-image-grid-feed" onImageClick={(index, tile) => {
+                            const { left, top, width, height } = tile.getBoundingClientRect(); setImagePreview({
+                              images: postImages, initialIndex: index, originRect: { left, top, width, height, sourceElement: tile },
+                            })
+                            openPostModal('image-preview')
+                          }}
                           />
                           : <div className="signgle-image" style={{ background: post.color }}></div>}
                         {postDescription && <p>Description: {postDescription}</p>}
@@ -680,8 +841,9 @@ function Posts() {
                         const liker = typeof like === 'object' && like !== null ? like : null
                         const likerName = liker?.username || 'User'
                         return (
-                          <img className="liked-user-avatar" key={getLikeUserId(like) || index} src={getAvatarSrc(liker)} alt="" title={likerName} role="listitem" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = getProfileAvatar(liker)
-                            }}
+                          <img className="liked-user-avatar" key={getLikeUserId(like) || index} src={getAvatarSrc(liker)} alt="" title={likerName} role="listitem" onError={(event) => {
+                            event.currentTarget.onerror = null; event.currentTarget.src = getProfileAvatar(liker)
+                          }}
                           />
                         )
                       })}
@@ -699,7 +861,8 @@ function Posts() {
                   </div>
                   <p className='engage-count'>{likeCount}</p>
                 </div>
-                <button className="engage-folder comments" type="button" onClick={() => { if (!requireLogin()) return; setCommentDraft(''); setActiveDialog({ type: 'comment', postId: post._id }); openPostModal('comments'); setOpenPostMenuId(null);
+                <button className="engage-folder comments" type="button" onClick={() => {
+                  if (!requireLogin()) return; setCommentDraft(''); setActiveDialog({ type: 'comment', postId: post._id }); openPostModal('comments'); setOpenPostMenuId(null);
                 }}>
                   <div className="engage-background">
                     <img src={ICONS.comment} alt="" />
@@ -746,7 +909,8 @@ function Posts() {
                         </button>
                       </li>
                       <li role="none">
-                        <button className="post-more-option" type="button" role="menuitem" onClick={() => {if (!requireLogin()) return; setCommentDraft(''); setActiveDialog({ type: 'comment', postId: post._id }); openPostModal('comments'); setOpenPostMenuId(null);
+                        <button className="post-more-option" type="button" role="menuitem" onClick={() => {
+                          if (!requireLogin()) return; setCommentDraft(''); setActiveDialog({ type: 'comment', postId: post._id }); openPostModal('comments'); setOpenPostMenuId(null);
                         }}>
                           <img src={ICONS.comment} alt="" />
                           <span>Comment</span>
@@ -816,7 +980,8 @@ function Posts() {
                         </li>
                       )}
                       <li role="none">
-                        <button className="post-more-option" type="button" role="menuitem" onClick={() => { if (!requireLogin()) return; setReportReason(''); setReportDetails(''); setActiveDialog({ type: 'report', postId: post._id }); openPostModal('report'); setOpenPostMenuId(null);
+                        <button className="post-more-option" type="button" role="menuitem" onClick={() => {
+                          if (!requireLogin()) return; setReportReason(''); setReportDetails(''); setActiveDialog({ type: 'report', postId: post._id }); openPostModal('report'); setOpenPostMenuId(null);
                         }}>
                           <svg viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M12 9v4" />
@@ -904,13 +1069,13 @@ function Posts() {
         />
       )}
       {saveModalItem && routedModal === 'save-folder' && (
-        <SaveToFolderModal itemType={saveModalItem.itemType} itemId={saveModalItem.itemId} currentFolderId={savedItemFolders[`${saveModalItem.itemType}:${saveModalItem.itemId}`]} isSaved={Object.prototype.hasOwnProperty.call(savedItemFolders,`${saveModalItem.itemType}:${saveModalItem.itemId}`
-          ) || posts.some((post) => (
-            String(post._id) === String(saveModalItem.itemId)
-            && post.saves?.some((savedId) => (
-              String(typeof savedId === 'object' ? savedId?._id : savedId) === String(user?._id)
-            ))
-          ))}
+        <SaveToFolderModal itemType={saveModalItem.itemType} itemId={saveModalItem.itemId} currentFolderId={savedItemFolders[`${saveModalItem.itemType}:${saveModalItem.itemId}`]} isSaved={Object.prototype.hasOwnProperty.call(savedItemFolders, `${saveModalItem.itemType}:${saveModalItem.itemId}`
+        ) || posts.some((post) => (
+          String(post._id) === String(saveModalItem.itemId)
+          && post.saves?.some((savedId) => (
+            String(typeof savedId === 'object' ? savedId?._id : savedId) === String(user?._id)
+          ))
+        ))}
           onClose={closeSaveFolderModal}
           onSaved={handleSavedItem}
         />

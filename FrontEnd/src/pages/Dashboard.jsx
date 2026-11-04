@@ -6,8 +6,9 @@ import '../styles/pages/dashboard.css'
 import Posts from '../components/dashboard/Posts'
 import MobileHeader from '../components/dashboard/MobileHeader'
 import MobileFooter from '../components/dashboard/MobileFooter'
-import Videos from '../components/dashboard/Videos'
+import Videos from '../components/dashboard/VideosFeed'
 import Messages from '../components/dashboard/Messages'
+import Notifications from '../components/dashboard/Notifications'
 import ProfilePage from './ProfilePage'
 import SavedItemsPage from './SavedItemsPage'
 import SettingsPage from './SettingsPage'
@@ -20,8 +21,13 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
   const isOwnProfileRoute = Boolean(
     profilePath && (!profilePath[1] || profilePath[1] === String(user?._id))
   )
+  const isVideosView = location.pathname.endsWith('/videos')
   const [activeView, setActiveView] = React.useState('for-you')
   const [unreadMessageCount, setUnreadMessageCount] = React.useState(0)
+  const [unreadNotificationCount, setUnreadNotificationCount] = React.useState(0)
+  // While the chrome's own data (unread counts) is still loading, the
+  // navbar / mobile header / mobile footer shimmer on their real elements.
+  const [isChromeLoading, setIsChromeLoading] = React.useState(true)
   const locationRef = React.useRef(location)
   const switchActive = useCallback((value) => {
     setActiveView(value)
@@ -43,6 +49,23 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
     setUnreadMessageCount(Number(result.count) || 0)
   }, [token, user])
 
+  const refreshUnreadNotificationCount = useCallback(async () => {
+    if (!user?._id || !token || user.isAnonymous) {
+      setUnreadNotificationCount(0)
+      return
+    }
+    try {
+      const response = await fetch(`${API_ORIGIN}/api/notifications/unread-count`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.message || 'Could not load notification count.')
+      setUnreadNotificationCount(Number(result.unreadCount) || 0)
+    } catch (error) {
+      console.error(error.message)
+    }
+  }, [token, user])
+
   React.useEffect(() => {
     locationRef.current = location
   }, [location])
@@ -52,26 +75,36 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
 
     async function loadUnreadCount() {
       try {
-        await refreshUnreadMessageCount()
+        await Promise.all([refreshUnreadMessageCount(), refreshUnreadNotificationCount()])
       } catch (error) {
         if (isActive) console.error(error.message)
+      } finally {
+        // The first completed count fetch ends the chrome's shimmer state.
+        if (isActive) setIsChromeLoading(false)
       }
     }
 
     const handleUnreadChange = () => loadUnreadCount()
     window.addEventListener('unread-messages-changed', handleUnreadChange)
+    window.addEventListener('unread-notifications-changed', handleUnreadChange)
     loadUnreadCount()
     return () => {
       isActive = false
       window.removeEventListener('unread-messages-changed', handleUnreadChange)
+      window.removeEventListener('unread-notifications-changed', handleUnreadChange)
     }
-  }, [refreshUnreadMessageCount, location.pathname, location.search])
+  }, [refreshUnreadMessageCount, refreshUnreadNotificationCount, location.pathname, location.search])
 
   React.useEffect(() => {
     if (!user?._id || !token || user.isAnonymous) return undefined
 
     const socket = io(API_ORIGIN)
     socket.on('connect', () => socket.emit('join_room', user._id))
+    // A message was edited or deleted-for-everywhere on another device:
+    // surface the updated message to the open chat view.
+    socket.on('message_updated', (message) => {
+      if (message) window.dispatchEvent(new CustomEvent('chat-message-updated', { detail: message }))
+    })
     socket.on('receive_message', async (message) => {
       const senderId = String(message.sender?._id || message.sender)
       const currentLocation = locationRef.current
@@ -96,13 +129,20 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
       }
     })
 
+    // Live activity notifications (likes, comments, friend requests…)
+    socket.on('notification', (notification) => {
+      if (!notification) return
+      window.dispatchEvent(new CustomEvent('notification-received', { detail: notification }))
+      window.dispatchEvent(new CustomEvent('unread-notifications-changed', { detail: notification }))
+    })
+
     return () => {
       socket.disconnect()
     }
   }, [refreshUnreadMessageCount, token, user?._id, user?.isAnonymous])
 
   return (
-    <div className='dashboard-container'>
+    <div className={`dashboard-container${isVideosView ? ' videos-active' : ''}${isChromeLoading ? ' is-loading' : ''}`}>
       <title>Feelamong | Dashboard</title>
       <MobileHeader />
       <Navbar
@@ -110,19 +150,29 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
         switchActive={switchActive}
         unreadMessageCount={unreadMessageCount}
         isOwnProfileRoute={isOwnProfileRoute}
+        unreadNotificationCount={unreadNotificationCount}
       />
 
       <MobileFooter
         activeView={activeView}
         switchActive={switchActive}
         unreadMessageCount={unreadMessageCount}
+        unreadNotificationCount={unreadNotificationCount}
         isOwnProfileRoute={isOwnProfileRoute}
       />
-
       <Routes>
         <Route index element={<Posts />} />
         <Route path="messages" element={<Messages />} />
         <Route path="videos" element={<Videos />} />
+        <Route
+          path="notifications"
+          element={
+            <Notifications
+              unreadCount={unreadNotificationCount}
+              onUnreadCountChanged={refreshUnreadNotificationCount}
+            />
+          }
+        />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="profile/:userId" element={<ProfilePage />} />
         <Route path="saved" element={<SavedItemsPage />} />

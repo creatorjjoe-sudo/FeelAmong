@@ -8,7 +8,7 @@ const POST_VISIBILITIES = ['public', 'private', 'friends'];
 const POST_TYPES = ['text', 'image'];
 const REPORT_REASONS = ['Spam', 'Harassment', 'Inappropriate content', 'False information', 'Other'];
 const TEXT_POST_BACKGROUNDS = new Set([
-  '#f1f7f1', '#e5f3ff', '#fff1e6', '#fff8cc', '#f4eaff', '#ffe8ef',
+  'none', '#f1f7f1', '#e5f3ff', '#fff1e6', '#fff8cc', '#f4eaff', '#ffe8ef',
   '#d8f3dc', '#dbeafe', '#1f2937', '#173b35', '#23395d', '#572b4a'
 ]);
 
@@ -47,6 +47,7 @@ function parseExistingImages(value) {
   return parsed;
 }
 
+
 function isOwner(post, userId) {
   return String(post.user) === String(userId);
 }
@@ -68,7 +69,7 @@ const createPost = async (req, res) => {
 
     const trimmedTitle = typeof title === 'string' ? title.trim() : '';
     const trimmedDescription = typeof description === 'string' ? description.trim() : '';
-    const backgroundColor = postType === 'text' ? req.body.backgroundColor || '#f1f7f1' : '#f1f7f1';
+    const backgroundColor = postType === 'text' ? (req.body.backgroundColor || '#f1f7f1') : '#f1f7f1';
     if (!TEXT_POST_BACKGROUNDS.has(backgroundColor)) {
       await removeUploadedFiles(uploadedFiles);
       return res.status(400).json({ message: 'Select a valid text post background' });
@@ -82,6 +83,7 @@ const createPost = async (req, res) => {
       return res.status(400).json({ message: 'Title is required for image posts' });
     }
     if (postType === 'image' && imagePaths.length === 0) {
+      await removeUploadedFiles(uploadedFiles);
       return res.status(400).json({ message: 'At least one image is required for image posts' });
     }
     if (postType === 'text' && !trimmedDescription) {
@@ -175,7 +177,7 @@ const updatePost = async (req, res) => {
     const title = typeof req.body.title === 'string' ? req.body.title.trim() : '';
     const description = typeof req.body.description === 'string' ? req.body.description.trim() : '';
     const backgroundColor = postType === 'text'
-      ? req.body.backgroundColor || post.backgroundColor || '#f1f7f1'
+      ? (req.body.backgroundColor || post.backgroundColor || '#f1f7f1')
       : '#f1f7f1';
     if (!TEXT_POST_BACKGROUNDS.has(backgroundColor)) {
       await removeUploadedFiles(uploadedFiles);
@@ -272,6 +274,17 @@ const addComment = async (req, res) => {
     const commentIndex = post.comments.length - 1;
     await post.populate(`comments.${commentIndex}.user`, 'username avatar sex');
     const comment = post.comments[commentIndex];
+
+    // Notify the post owner about the new comment
+    await createNotification({
+      recipient: post.user,
+      actor: req.user._id,
+      type: 'comment',
+      target: post._id,
+      targetModel: 'Post',
+      text: text.length > 80 ? `${text.slice(0, 80)}…` : text
+    });
+
     res.status(201).json({ postId: post._id, comment });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -371,6 +384,8 @@ const getPosts = async (req, res) => {
   }
 };
 
+const createNotification = require('../services/notificationService').createNotification;
+
 // Like / Unlike Post
 const toggleLikePost = async (req, res) => {
   try {
@@ -398,6 +413,17 @@ const toggleLikePost = async (req, res) => {
       getIO().emit('post_liked_updated', payload);
     } catch (err) {
       console.log('Socket error:', err.message);
+    }
+
+    // Notify the post owner that someone liked their post
+    if (!isLiked) {
+      await createNotification({
+        recipient: post.user,
+        actor: req.user._id,
+        type: 'like',
+        target: post._id,
+        targetModel: 'Post'
+      });
     }
 
     res.json(payload);

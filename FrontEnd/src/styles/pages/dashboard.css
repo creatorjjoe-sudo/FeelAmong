@@ -2,3 +2,143 @@
  display: flex; 
  height: 100%;
 }
+
+/* Dashboard chrome loading shimmer.
+
+   While the dashboard's own data (unread counts) is being fetched, the
+   navbar, mobile header and mobile footer shimmer on their real elements —
+   the same technique used for the message feed (message.css) and the post
+   feed (posts.css). Placeholder text is hidden and a pill/circle is painted
+   exactly where the content will land; no separate skeleton elements needed.
+
+   The `is-loading` class lives on .dashboard-container (see Dashboard.jsx). */
+
+.dashboard-container.is-loading {
+ pointer-events: none;
+}
+
+/* --- shared shimmer sweep --------------------------------------------- */
+
+.dashboard-container.is-loading .app-logo,
+.dashboard-container.is-loading .search-wrapper,
+.dashboard-container.is-loading .icon-wrapper,
+.dashboard-container.is-loading .nav-title .title,
+.dashboard-container.is-loading .nave-title .title,
+.dashboard-container.is-loading .create-btn,
+.dashboard-container.is-loading .create-post-mobile,
+.dashboard-container.is-loading .profile-shortcut {
+ position: relative;
+ overflow: hidden;
+}
+
+.dashboard-container.is-loading .app-logo::after,
+.dashboard-container.is-loading .search-wrapper::after,
+.dashboard-container.is-loading .icon-wrapper::after,
+.dashboard-container.is-loading .nav-title .title::after,
+.dashboard-container.is-loading .nave-title .title::after,
+.dashboard-container.is-loading .create-btn::after,
+.dashboard-container.is-loading .create-post-mobile::after,
+.dashboard-container.is-loading .profile-shortcut::after {
+ content: '';
+ position: absolute;
+ inset: 0;
+ transform: translateX(-100%);
+ background: linear-gradient(
+  90deg,
+  rgba(255, 255, 255, 0) 0%,
+  rgba(255, 255, 255, 0.55) 50%,
+  rgba(255, 255, 255, 0) 100%
+ );
+ animation: dashboard-chrome-shimmer 1.6s infinite;
+}
+
+/* stagger the sweep slightly per item */
+.dashboard-container.is-loading .nav-title .title::after,
+.dashboard-container.is-loading .nave-title .title::after {
+ animation-delay: 0.15s;
+}
+
+.dashboard-container.is-loading .create-btn::after,
+.dashboard-container.is-loading .create-post-mobile::after {
+ animation-delay: 0.3s;
+}
+
+.dashboard-container.is-loading .profile-shortcut::after {
+ animation-delay: 0.45s;
+}
+
+@keyframes dashboard-chrome-shimmer {
+ to { transform: translateX(100%); }
+}
+
+/* --- per-element shaping ---------------------------------------------- */
+
+/* Brand: "feelamong" wordmark and the mobile logo image */
+.dashboard-container.is-loading .app-logo {
+ color: transparent;
+ background: #e5e7eb;
+ border-radius: 8px;
+}
+
+.dashboard-container.is-loading .app-logo::after {
+ border-radius: 8px;
+}
+
+.header-wrapper .app-logo {
+ border-radius: 0;
+}
+
+/* Search field: hide the icon and "Search" text, paint a pill */
+.dashboard-container.is-loading .search-wrapper {
+ background: #e5e7eb;
+ border-radius: 50px;
+}
+
+.dashboard-container.is-loading .search-wrapper img,
+.dashboard-container.is-loading .search-wrapper span {
+ opacity: 0;
+}
+
+/* Nav item icons: hide the real icon; the icon-wrapper supplies the shape */
+.dashboard-container.is-loading .icon-wrapper img,
+.dashboard-container.is-loading .icon-wrapper svg {
+ opacity: 0;
+}
+
+.dashboard-container.is-loading .icon-wrapper {
+ background: #e5e7eb;
+ border-radius: 100px;
+}
+
+/* Nav labels ("For you", "Messages", "Videos", username) */
+.dashboard-container.is-loading .nav-title .title,
+.dashboard-container.is-loading .nave-title .title {
+ color: transparent;
+ background: #e5e7eb;
+ border-radius: 6px;
+ min-width: 64px;
+}
+
+.dashboard-container.is-loading .nav-title .title::after,
+.dashboard-container.is-loading .nave-title .title::after {
+ border-radius: 6px;
+}
+
+/* "Create post" button */
+.dashboard-container.is-loading .create-btn {
+ color: transparent;
+ background: #e5e7eb;
+ border-radius: 50px;
+}
+
+/* Mobile create (plus) button and profile avatar */
+.dashboard-container.is-loading .create-post-mobile img,
+.dashboard-container.is-loading .profile-shortcut img {
+ opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+ .dashboard-container.is-loading *::after {
+  animation: none;
+ }
+}

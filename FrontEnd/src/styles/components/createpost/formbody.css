@@ -135,6 +135,36 @@
  opacity: 0.65;
 }
 
+.description-container.text-post-description.text-post-description-plain {
+ border-color: rgba(37, 37, 37, 0.2);
+}
+
+.text-post-description-plain textarea {
+ font-weight: 500;
+ text-align: left;
+}
+
+.text-post-background-remove {
+ align-self: flex-start;
+ padding: 6px 14px;
+ border: 1px solid rgba(37, 37, 37, 0.35);
+ border-radius: 999px;
+ background: transparent;
+ color: #252525;
+ font-size: 13px;
+ font-weight: 600;
+ cursor: pointer;
+}
+
+.text-post-background-remove:hover {
+ background: rgba(37, 37, 37, 0.08);
+}
+
+.text-post-background-remove:focus-visible {
+ outline: 2px solid #06309c;
+ outline-offset: 2px;
+}
+
 .text-post-background-picker {
  display: flex;
  flex-direction: column;

@@ -5,6 +5,8 @@ import './styles/app.css'
 import './styles/darkmode.css'
 import Dashboard from './pages/Dashboard'
 import CreatePost from './pages/CreatePost'
+import CreateVideo from './pages/CreateVideo'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 import { AuthContext } from './api/context/AuthContext'
 
 function AppRoutes({ isDarkMode, setIsDarkMode }) {
@@ -47,6 +49,16 @@ function AppRoutes({ isDarkMode, setIsDarkMode }) {
       <Route
         path='/post-create-one'
         element={user && !sessionExpired ? <CreatePost /> : <Navigate to='/' replace />}
+      />
+
+      <Route
+        path='/video-create-one'
+        element={user && !sessionExpired ? <CreateVideo /> : <Navigate to='/' replace />}
+      />
+
+      <Route
+        path='/reset-password'
+        element={isAuthenticatedUser ? <Navigate to='/for-you' replace /> : <ResetPasswordPage />}
       />
 
       <Route

@@ -136,6 +136,7 @@ const reportUser = async (req, res) => {
 
 const updateFriendship = async (req, res) => {
   try {
+    const { createNotification } = require('../services/notificationService');
     const targetUserId = req.params.id;
     const currentUserId = String(req.user._id);
     if (targetUserId === currentUserId) {
@@ -157,6 +158,17 @@ const updateFriendship = async (req, res) => {
     await User.updateOne({ _id: targetUser._id }, inverseUpdate);
 
     const currentUser = await User.findById(req.user._id).select('friends');
+
+    // Notify the other user: request sent / friendship ended
+    await createNotification({
+      recipient: targetUser._id,
+      actor: req.user._id,
+      type: shouldAdd ? 'friend_request' : 'friend_accept',
+      target: req.user._id,
+      targetModel: 'User',
+      status: shouldAdd ? 'pending' : null
+    });
+
     res.json({
       friendId: targetUser._id,
       isFriend: shouldAdd,

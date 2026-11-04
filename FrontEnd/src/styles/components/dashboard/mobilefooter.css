@@ -10,6 +10,29 @@
  transform: translateX(-50%);
 }
 
+/* Sliding indicator under the active tab's icon */
+.footer-wrapper .footer-slide-indicator {
+ position: absolute;
+ top: 0;
+ left: 0;
+ height: 4px;
+ border-radius: 0 0 4px 4px;
+ background: #00ba00;
+ transition: transform .3s ease, width .3s ease;
+ will-change: transform, width;
+ pointer-events: none;
+}
+
+.footer-wrapper .footer-slide-indicator.is-hidden {
+ opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+ .footer-wrapper .footer-slide-indicator {
+  transition: none;
+ }
+}
+
 .footer-wrapper .dash-link {
  flex: 1;
  display: flex;
@@ -46,6 +69,32 @@
 
 .footer-wrapper img {
  width: 25px;
+}
+
+.footer-wrapper .notifications-nav-icon {
+ width: 25px;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+}
+
+.footer-wrapper .notifications-nav-icon svg {
+ flex: 0 0 auto;
+}
+
+.footer-wrapper .notifications-nav-icon svg {
+ display: block;
+ width: 30px;
+ height: 30px;
+ fill: #828582;
+}
+
+.footer-wrapper .notifications-nav-icon svg.is-active {
+ fill: #00ba00;
+}
+
+.footer-wrapper .nave-title.notifications {
+ gap: 5px;
 }
 
 .icon-wrapper {

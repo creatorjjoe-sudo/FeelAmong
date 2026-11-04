@@ -6,14 +6,15 @@ import SearchModal from './SearchModal'
 import ProfileMenuModal from './ProfileMenuModal'
 import LoginRequiredModal from './LoginRequiredModal'
 import CreatePostMenu from './CreatePostMenu'
+import NotificationBell from './NotificationBell'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import '../../styles/components/dashboard/navbar.css'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 
-function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfileRoute }) {
+function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfileRoute, unreadNotificationCount = 0 }) {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user } = useContext(AuthContext)
+  const { user, logout } = useContext(AuthContext)
   const navbarRef = React.useRef(null)
   const profileButtonRef = React.useRef(null)
   const searchOpen = location.state?.routedModal === 'desktop-search'
@@ -29,6 +30,7 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
 
   React.useEffect(() => {
     if (location.pathname.includes('/profile')) switchActive(isOwnProfileRoute ? 'profile' : '')
+    else if (location.pathname.includes('/notifications')) switchActive('notifications')
     else if (location.pathname.includes('/for-you')) switchActive('for-you')
     else if (location.pathname.includes('/messages')) switchActive('messages')
     else if (location.pathname.includes('/videos')) switchActive('videos')
@@ -44,7 +46,7 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
   }
 
   function handlePostTypeSelect(postType) {
-    navigate(`/post-create-one?type=${postType}`)
+    navigate(postType === 'video' ? '/video-create-one' : `/post-create-one?type=${postType}`)
   }
 
   async function handleLogin() {
@@ -65,7 +67,7 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
       <Link className="dash-link" to="/for-you">
         <div className="nav-title for-you">
           <div className="icon-wrapper home">
-            <img src={activeView !== 'for-you' ? ICONS.homeInactive : ICONS.homeActive} alt="" />
+            <img className={activeView !== 'for-you' ? 'inactive-nav-icon' : undefined} src={activeView !== 'for-you' ? ICONS.homeInactive : ICONS.homeActive} alt="" />
             {posts.length > 0 && <p className="notif-length home">{posts.length}</p>}
           </div>
           <h2 className={`title ${activeView === 'for-you' ? 'active' : ''}`}>For you</h2>
@@ -75,7 +77,7 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
       <Link className="dash-link" to="/for-you/messages">
         <div className="nav-title msgs">
           <div className="icon-wrapper msg">
-            <img src={activeView !== 'messages' ? ICONS.messageInactive : ICONS.messageActive} alt="" />
+            <img className={activeView !== 'messages' ? 'inactive-nav-icon' : undefined} src={activeView !== 'messages' ? ICONS.messageInactive : ICONS.messageActive} alt="" />
             {unreadMessageCount > 0 && <p className="notif-length msg">{unreadMessageCount}</p>}
           </div>
           <h2 className={`title ${activeView === 'messages' ? 'active' : ''}`}>Messages</h2>
@@ -85,10 +87,29 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
       <Link className="dash-link" to="/for-you/videos">
         <div className="nav-title videos">
           <div className="icon-wrapper video">
-            <img src={activeView !== 'videos' ? ICONS.videoInactive : ICONS.videoActive} alt="" />
+            <img className={activeView !== 'videos' ? 'inactive-nav-icon' : undefined} src={activeView !== 'videos' ? ICONS.videoInactive : ICONS.videoActive} alt="" />
             {videos.length > 0 && <p className="notif-length video">{videos.length}</p>}
           </div>
           <h2 className={`title ${activeView === 'videos' ? 'active' : ''}`}>Videos</h2>
+        </div>
+      </Link>
+
+      <Link className="dash-link" to="/for-you/notifications">
+        <div className="nav-title notifications">
+          <div className="icon-wrapper notifications-nav-icon">
+            <svg
+              viewBox="2.5 1.5 19 21.5"
+              className={activeView === 'notifications' ? 'is-active' : undefined}
+              aria-hidden="true"
+            >
+              <path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Z" />
+              <path d="M12 2a7 7 0 0 0-7 7v3.28l-1.6 3.2A1 1 0 0 0 4.31 17h15.38a1 1 0 0 0 .9-1.52L19 12.28V9a7 7 0 0 0-7-7Z" />
+            </svg>
+            {unreadNotificationCount > 0 && (
+              <p className="notif-length notification">{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}</p>
+            )}
+          </div>
+          <h2 className={`title ${activeView === 'notifications' ? 'active' : ''}`}>Notifications</h2>
         </div>
       </Link>
 
@@ -105,6 +126,8 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
           </button>
         )}
       </CreatePostMenu>
+
+
 
       <button
         ref={profileButtonRef}

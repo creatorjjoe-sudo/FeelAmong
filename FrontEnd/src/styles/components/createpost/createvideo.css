@@ -1,0 +1,41 @@
+/* Video creation page — reuses formbody.css classes so it matches post creation.
+   Only video-preview-specific rules live here. */
+
+.left-els-video {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-preview-player {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.video-preview-mobile {
+  display: none;
+}
+
+@media screen and (max-width: 800px) {
+  .video-preview-mobile {
+    display: block;
+    position: relative;
+    width: min(100%, 420px);
+    max-width: 100%;
+    aspect-ratio: 9 / 16;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #000;
+    margin: 0 auto 20px;
+    z-index: 1;
+  }
+
+  .video-preview-mobile .video-preview-player {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+}

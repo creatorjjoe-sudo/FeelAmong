@@ -73,6 +73,37 @@
  stroke-width: 1.8;
 }
 
+/* Notifications nav icon — matches the other nav icons */
+.notifications-nav-icon svg {
+ display: block;
+ width: 30px;
+ height: 30px;
+ fill: #828582;
+}
+
+@media screen and (max-width: 880px) {
+ .notifications-nav-icon svg {
+  width: 25px;
+  height: 25px;
+ }
+}
+
+.notifications-nav-icon svg.is-active {
+ fill: #00ba00;
+}
+
+.notifications-nav-icon {
+ position: relative;
+ width: 25px;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+}
+
+.notifications-nav-icon svg {
+ flex: 0 0 auto;
+}
+
 .navbar-wrapper .nav-title.profile {
  min-width: 0;
  gap: 10px;

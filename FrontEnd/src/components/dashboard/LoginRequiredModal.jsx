@@ -1,7 +1,8 @@
+import { createPortal } from 'react-dom'
 import '../../styles/components/dashboard/loginrequiredmodal.css'
 
 function LoginRequiredModal({ message, onClose, onLogin }) {
-  return (
+  return createPortal(
     <div className="login-required-modal-backdrop" onClick={onClose}>
       <div
         className="login-required-modal"
@@ -19,7 +20,8 @@ function LoginRequiredModal({ message, onClose, onLogin }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

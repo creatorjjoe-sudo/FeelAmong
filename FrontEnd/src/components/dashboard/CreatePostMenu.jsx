@@ -4,6 +4,7 @@ import '../../styles/components/dashboard/createpostmenu.css'
 const POST_TYPES = [
   { value: 'text', label: 'Text post' },
   { value: 'image', label: 'Image post' },
+  { value: 'video', label: 'Video post' },
 ]
 
 function CreatePostMenu({ children, className = '', onSelect }) {

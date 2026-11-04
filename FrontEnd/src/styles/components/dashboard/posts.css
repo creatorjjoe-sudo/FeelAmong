@@ -88,6 +88,155 @@
  padding-top: 70px;
 }
 
+/* While the feed is loading, paint the shimmer directly onto the real post
+   elements instead of overlaying separate skeleton shapes — the same technique
+   used for the message feed in message.css. The placeholder rows rendered by
+   PostSkeleton use the identical class names, so the shimmering avatar, name,
+   media block and action buttons sit exactly where the loaded content lands. */
+.post-container.is-loading {
+ pointer-events: none;
+}
+
+.post-container.is-loading .creator-avata {
+ border: 0;
+ background: #e5e7eb;
+ position: relative;
+ overflow: hidden;
+}
+
+.post-container.is-loading .creator-avata,
+.post-container.is-loading .post-wrapper h2,
+.post-container.is-loading .post-wrapper .time-ago,
+.post-container.is-loading .add-friend,
+.post-container.is-loading .engage-background,
+.post-container.is-loading .engage-count,
+.post-container.is-loading .liked-img {
+ position: relative;
+ overflow: hidden;
+}
+
+/* Shared shimmer sweep, applied to each loading element's ::after */
+.post-container.is-loading .creator-avata::after,
+.post-container.is-loading .post-wrapper h2::after,
+.post-container.is-loading .post-wrapper .time-ago::after,
+.post-container.is-loading .add-friend::after,
+.post-container.is-loading .engage-background::after,
+.post-container.is-loading .engage-count::after,
+.post-container.is-loading .liked-img::after {
+ content: '';
+ position: absolute;
+ inset: 0;
+ transform: translateX(-100%);
+ background: linear-gradient(
+  90deg,
+  rgba(255, 255, 255, 0) 0%,
+  rgba(255, 255, 255, 0.55) 50%,
+  rgba(255, 255, 255, 0) 100%
+ );
+ animation: post-feed-shimmer 1.6s infinite;
+}
+
+.post-container.is-loading .post-wrapper:nth-child(2n) *::after {
+ animation-delay: 0.25s;
+}
+
+.post-container.is-loading .post-wrapper:nth-child(2n + 1) *::after {
+ animation-delay: 0.45s;
+}
+
+/* Author name: hide the placeholder text, paint a pill behind it */
+.post-container.is-loading .post-wrapper h2 {
+ color: transparent;
+ background: #e5e7eb;
+ border-radius: 6px;
+ min-width: 120px;
+}
+
+.post-container.is-loading .post-wrapper h2::after {
+ border-radius: 6px;
+}
+
+/* Timestamp text */
+.post-container.is-loading .post-wrapper .time-ago {
+ color: transparent;
+ background: #e5e7eb;
+ border-radius: 6px;
+ min-width: 64px;
+}
+
+.post-container.is-loading .post-wrapper .time-ago::after {
+ border-radius: 6px;
+}
+
+/* "Add friend" caption */
+.post-container.is-loading .add-friend {
+ color: transparent;
+ background: #e5e7eb;
+ border-radius: 6px;
+}
+
+.post-container.is-loading .add-friend::after {
+ border-radius: 6px;
+}
+
+/* The avatar image itself is invisible while loading; the .creator-avata
+   container above provides the shimmering circle. */
+.post-container.is-loading .creator-avata .creator-icon {
+ opacity: 0;
+}
+
+/* Media block: tint the colored single-image placeholder */
+.post-container.is-loading .signgle-image {
+ background: #e5e7eb;
+ position: relative;
+ overflow: hidden;
+}
+
+.post-container.is-loading .signgle-image::after {
+ content: '';
+ position: absolute;
+ inset: 0;
+ transform: translateX(-100%);
+ background: linear-gradient(
+  90deg,
+  rgba(255, 255, 255, 0) 0%,
+  rgba(255, 255, 255, 0.55) 50%,
+  rgba(255, 255, 255, 0) 100%
+ );
+ animation: post-feed-shimmer 1.6s infinite;
+}
+
+/* Like-users strip: hide the icon, shimmer an empty avatar row */
+.post-container.is-loading .liked-img {
+ opacity: 0;
+}
+
+.post-container.is-loading .liked-img::after {
+ background: #e5e7eb;
+ border-radius: 100px;
+}
+
+/* Action icons are invisible; the .engage-background supplies the shimmer */
+.post-container.is-loading .engage-background img {
+ opacity: 0;
+}
+
+/* Engagement counts */
+.post-container.is-loading .engage-count {
+ color: transparent;
+}
+
+.post-container.is-loading .engage-count::after {
+ background: #e5e7eb;
+ border-radius: 4px;
+}
+
+@keyframes post-feed-shimmer {
+ to {
+  transform: translateX(100%);
+ }
+}
+
 .left-items {
  display: flex;
  flex-direction: column; 
@@ -218,6 +367,20 @@
  outline-offset: 3px;
 }
 
+.text-post-content-plain {
+ aspect-ratio: auto;
+ background: transparent;
+ color: inherit;
+ text-align: left;
+ padding: 4px 10px;
+ min-height: 0;
+}
+
+.text-post-content-plain p {
+ text-align: left;
+ font-weight: 500;
+}
+
 .text-post-preview-backdrop {
  position: fixed;
  inset: 0;
@@ -226,12 +389,7 @@
  align-items: center;
  justify-content: center;
  padding: 20px;
- background: rgba(0, 0, 0, 0.88);
- transition: background-color 220ms ease-out;
-}
-
-.text-post-preview-backdrop.is-transitioning {
- background: transparent;
+ background: #000;
 }
 
 .text-post-preview-dialog {
@@ -241,10 +399,12 @@
  justify-content: center;
  width: min(82vw, 78vh, 760px);
  aspect-ratio: 1;
+ transition: opacity 140ms ease-out;
 }
 
-.text-post-preview-dialog.is-transitioning {
- visibility: hidden;
+/* Hidden until the flying clone lands, so the card never appears doubled */
+.text-post-preview-dialog.is-clone-flying {
+ opacity: 0;
 }
 
 .text-post-preview-dialog .text-post-content {
@@ -277,7 +437,12 @@
 
 @media (prefers-reduced-motion: reduce) {
  .text-post-preview-backdrop {
-  transition: none;
+  animation: none;
+ }
+
+ /* No flying clone in reduced motion, so the content must show instantly */
+ .text-post-preview-dialog.is-clone-flying {
+  opacity: 1;
  }
 }
 

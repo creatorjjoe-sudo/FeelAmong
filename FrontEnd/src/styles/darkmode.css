@@ -219,7 +219,9 @@ html[data-theme="dark"] .post-wrapper,
 html[data-theme="dark"] .chat-cover,
 html[data-theme="dark"] .main-screen,
 html[data-theme="dark"] .left-section,
+html[data-theme="dark"] .left-section-active,
 html[data-theme="dark"] .middle-section,
+html[data-theme="dark"] .middle-section-mobile,
 html[data-theme="dark"] .right-section,
 html[data-theme="dark"] .search-modal-panel,
 html[data-theme="dark"] .search-modal-panel h2,
@@ -238,6 +240,100 @@ html[data-theme="dark"] .create-container {
  color: #e5ebe6;
 }
 
+/* Mobile chat area + header have a hardcoded white background; override
+   it in dark mode. */
+html[data-theme="dark"] .middle-section-mobile,
+html[data-theme="dark"] .mobile-active-chat-header {
+ background-color: #121614;
+ border-color: #303a33;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .mobile-active-chat-header .active-user-username {
+ color: #e5ebe6;
+}
+
+/* Dark icon on a dark header: flip it to white in dark mode */
+html[data-theme="dark"] .mobile-active-chat-header .back-icon {
+ filter: brightness(0) invert(1);
+}
+
+html[data-theme="dark"] .mobile-active-chat-header p {
+ color: #a5b2a8;
+}
+
+/* Search icons (navbar / mobile header / search modal input): dark icons
+   become invisible on dark backgrounds — flip them to white. */
+html[data-theme="dark"] .navbar-wrapper .search-wrapper img.search-icon,
+html[data-theme="dark"] .header-wrapper .search-wrapper img.search-icon,
+html[data-theme="dark"] .search-modal-input-wrap img {
+ filter: brightness(0) invert(1);
+}
+
+/* Profile menu icons (saved / settings images + profile / logout SVGs):
+   flip them to white so they stay visible on the dark panel. */
+html[data-theme="dark"] .profile-menu-option-icon img {
+ filter: brightness(0) invert(1);
+}
+
+html[data-theme="dark"] .profile-menu-user-icon svg,
+html[data-theme="dark"] .profile-menu-logout-icon svg {
+ stroke: #e5ebe6;
+}
+
+html[data-theme="dark"] .message-row.their p {
+ background: #29352d;
+ color: #e5ebe6;
+}
+
+/* Unread conversations: the base style forces a near-black text color for
+   emphasis — restore readable light text on the dark background. */
+html[data-theme="dark"] .chat-conversation-row.is-unread .chat-conversation-name,
+html[data-theme="dark"] .chat-conversation-row.is-unread .chat-conversation-preview {
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .message-feed,
+html[data-theme="dark"] .msg-composer {
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .msg-composer-skeleton-icon,
+html[data-theme="dark"] .msg-composer-skeleton-input {
+ background: #232a26;
+}
+
+html[data-theme="dark"] .message-feed.is-loading .message-row p,
+html[data-theme="dark"] .message-feed.is-loading .message-day-header::after,
+html[data-theme="dark"] .message-feed.is-loading .message-group-time::after {
+ background: #232a26;
+}
+
+html[data-theme="dark"] .message-feed.is-loading .message-row p::after,
+html[data-theme="dark"] .message-feed.is-loading .message-day-header::after,
+html[data-theme="dark"] .message-feed.is-loading .message-group-time::after {
+ background: linear-gradient(
+  90deg,
+  rgba(255, 255, 255, 0) 0%,
+  rgba(255, 255, 255, 0.08) 50%,
+  rgba(255, 255, 255, 0) 100%
+ );
+}
+
+html[data-theme="dark"] .msg-composer-skeleton-line {
+ background: #313a35;
+}
+
+html[data-theme="dark"] .msg-composer-skeleton-icon::after,
+html[data-theme="dark"] .msg-composer-skeleton-input::after {
+ background: linear-gradient(
+  90deg,
+  rgba(255, 255, 255, 0) 0%,
+  rgba(255, 255, 255, 0.08) 50%,
+  rgba(255, 255, 255, 0) 100%
+ );
+}
+
 html[data-theme="dark"] .profile-menu-option-copy small,
 html[data-theme="dark"] .theme-setting-copy small,
 html[data-theme="dark"] .settings-placeholder p,
@@ -247,6 +343,8 @@ html[data-theme="dark"] .saved-items-heading p,
 html[data-theme="dark"] .saved-item-copy small,
 html[data-theme="dark"] .saved-folder-copy small,
 html[data-theme="dark"] .chat-empty-state,
+html[data-theme="dark"] .chat-no-user-selected,
+html[data-theme="dark"] .chat-no-user-selected h2,
 html[data-theme="dark"] .search-modal-state,
 html[data-theme="dark"] .search-modal-list-heading h3,
 html[data-theme="dark"] .save-folder-close,
@@ -293,6 +391,67 @@ html[data-theme="dark"] .post-action-dialog select {
  border-color: #455148;
  background: #202722;
  color: #e5ebe6;
+}
+
+/* Post feed loading shimmer — dark variant of the shimmer painted onto the
+   real post elements (see posts.css). */
+html[data-theme="dark"] .post-container.is-loading .creator-avata,
+html[data-theme="dark"] .post-container.is-loading .post-wrapper h2,
+html[data-theme="dark"] .post-container.is-loading .post-wrapper .time-ago,
+html[data-theme="dark"] .post-container.is-loading .add-friend,
+html[data-theme="dark"] .post-container.is-loading .signgle-image,
+html[data-theme="dark"] .post-container.is-loading .engage-count::after,
+html[data-theme="dark"] .post-container.is-loading .liked-img::after {
+ background: #232a26;
+}
+
+html[data-theme="dark"] .post-container.is-loading .creator-avata::after,
+html[data-theme="dark"] .post-container.is-loading .post-wrapper h2::after,
+html[data-theme="dark"] .post-container.is-loading .post-wrapper .time-ago::after,
+html[data-theme="dark"] .post-container.is-loading .add-friend::after,
+html[data-theme="dark"] .post-container.is-loading .signgle-image::after,
+html[data-theme="dark"] .post-container.is-loading .engage-background::after,
+html[data-theme="dark"] .post-container.is-loading .engage-count::after,
+html[data-theme="dark"] .post-container.is-loading .liked-img::after {
+ background: linear-gradient(
+  90deg,
+  rgba(255, 255, 255, 0) 0%,
+  rgba(255, 255, 255, 0.14) 50%,
+  rgba(255, 255, 255, 0) 100%
+ );
+}
+
+/* Inactive nav / footer icons: white icons in dark mode (no border) */
+html[data-theme="dark"] .navbar-wrapper img.inactive-nav-icon,
+html[data-theme="dark"] .footer-wrapper img.inactive-nav-icon {
+	filter: brightness(0) invert(1);
+}
+
+/* Dashboard chrome loading shimmer — dark variant of the rules in
+   pages/dashboard.css. */
+html[data-theme="dark"] .dashboard-container.is-loading .app-logo,
+html[data-theme="dark"] .dashboard-container.is-loading .search-wrapper,
+html[data-theme="dark"] .dashboard-container.is-loading .icon-wrapper,
+html[data-theme="dark"] .dashboard-container.is-loading .nav-title .title,
+html[data-theme="dark"] .dashboard-container.is-loading .nave-title .title,
+html[data-theme="dark"] .dashboard-container.is-loading .create-btn {
+ background: #232a26;
+}
+
+html[data-theme="dark"] .dashboard-container.is-loading .app-logo::after,
+html[data-theme="dark"] .dashboard-container.is-loading .search-wrapper::after,
+html[data-theme="dark"] .dashboard-container.is-loading .icon-wrapper::after,
+html[data-theme="dark"] .dashboard-container.is-loading .nav-title .title::after,
+html[data-theme="dark"] .dashboard-container.is-loading .nave-title .title::after,
+html[data-theme="dark"] .dashboard-container.is-loading .create-btn::after,
+html[data-theme="dark"] .dashboard-container.is-loading .create-post-mobile::after,
+html[data-theme="dark"] .dashboard-container.is-loading .profile-shortcut::after {
+ background: linear-gradient(
+  90deg,
+  rgba(255, 255, 255, 0) 0%,
+  rgba(255, 255, 255, 0.14) 50%,
+  rgba(255, 255, 255, 0) 100%
+ );
 }
 
 html[data-theme="dark"] .message-row.their p {

@@ -54,11 +54,24 @@
  font-size: 14px;
 }
 
+/* Vidstack MediaPlayer: it renders its own aspect-ratio wrapper, so give it
+   the card's width and cap the height. The aspect ratio is set per-player so
+   portrait videos don't become a letterboxed landscape strip. */
 .video-card-player {
- display: block;
- width: 100%;
- max-height: 70vh;
- background: #111;
+  --media-brand: #00ba00;
+  width: 100%;
+  max-height: 70vh;
+  background: #111;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.video-card-player:where([data-view-type='video']) {
+  aspect-ratio: 16 / 9;
+}
+
+.video-card-player img {
+  border-radius: inherit;
 }
 
 .video-card-footer {
