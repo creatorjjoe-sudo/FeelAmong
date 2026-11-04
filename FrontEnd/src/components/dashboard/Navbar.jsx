@@ -19,7 +19,7 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
   const profileButtonRef = React.useRef(null)
   const searchOpen = location.state?.routedModal === 'desktop-search'
   const profileMenuOpen = location.state?.routedModal === 'desktop-profile-menu'
-  const [showLoginModal, setShowLoginModal] = React.useState(false)
+  const isLoginRequiredOpen = location.state?.routedModal === 'navbar-login-required'
   const openSearch = () => pushRoutedModal(navigate, location, 'desktop-search')
   const closeSearch = () => closeRoutedModal(navigate, location)
   const openProfileMenu = () => pushRoutedModal(navigate, location, 'desktop-profile-menu')
@@ -38,7 +38,7 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
 
   function handleCreate(toggleMenu) {
     if (!user || user.isAnonymous === true) {
-      setShowLoginModal(true)
+      pushRoutedModal(navigate, location, 'navbar-login-required')
       return
     }
 
@@ -50,7 +50,6 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
   }
 
   async function handleLogin() {
-    setShowLoginModal(false)
     await logout()
     navigate('/', { replace: true })
   }
@@ -162,10 +161,10 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
         onClose={closeProfileMenu}
         anchorRef={profileButtonRef}
       />
-      {showLoginModal && (
+      {isLoginRequiredOpen && (
         <LoginRequiredModal
           message="Please login to create a post"
-          onClose={() => setShowLoginModal(false)}
+          onClose={() => closeRoutedModal(navigate, location)}
           onLogin={handleLogin}
         />
       )}

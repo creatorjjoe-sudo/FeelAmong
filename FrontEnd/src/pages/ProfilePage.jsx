@@ -22,6 +22,9 @@ function ProfilePage() {
   const navigate = useNavigate()
   const location = useLocation()
   const isAvatarPreviewOpen = location.state?.routedModal === 'profile-avatar-preview'
+  const isEditProfileOpen = location.state?.routedModal === 'profile-edit'
+  const isReportProfileOpen = location.state?.routedModal === 'profile-report'
+  const isLoginRequiredOpen = location.state?.routedModal === 'profile-login-required'
   const isOwnProfile = !userId || String(userId) === String(user?._id)
   const [profile, setProfile] = React.useState(isOwnProfile ? user : null)
   const [posts, setPosts] = React.useState([])
@@ -31,7 +34,6 @@ function ProfilePage() {
   const [isFriend, setIsFriend] = React.useState(
     Boolean(user?.friends?.some((friend) => String(typeof friend === 'object' ? friend._id : friend) === String(userId)))
   )
-  const [isEditing, setIsEditing] = React.useState(false)
   const [isSaving, setIsSaving] = React.useState(false)
   const [editDraft, setEditDraft] = React.useState({})
   const [avatarSelection, setAvatarSelection] = React.useState(null)
@@ -40,10 +42,8 @@ function ProfilePage() {
   const avatarImageRef = React.useRef(null)
   const avatarPreviewImageRef = React.useRef(null)
   const [isMoreOpen, setIsMoreOpen] = React.useState(false)
-  const [showReport, setShowReport] = React.useState(false)
   const [reportReason, setReportReason] = React.useState('')
   const [reportDetails, setReportDetails] = React.useState('')
-  const [showLoginModal, setShowLoginModal] = React.useState(false)
 
   React.useEffect(() => () => {
     if (avatarSelection) URL.revokeObjectURL(avatarSelection.previewUrl)
@@ -132,7 +132,7 @@ function ProfilePage() {
 
   function requireLogin() {
     if (!user || user.isAnonymous || !token) {
-      setShowLoginModal(true)
+      pushRoutedModal(navigate, location, 'profile-login-required')
       return false
     }
     return true
@@ -178,7 +178,6 @@ function ProfilePage() {
   }
 
   async function handleAccountLogin() {
-    setShowLoginModal(false)
     await logout()
     navigate('/', { replace: true })
   }
@@ -208,7 +207,7 @@ function ProfilePage() {
 
       setProfile((current) => ({ ...current, ...result }))
       login({ ...user, ...result, token }, { recordDeviceLogin: false })
-      setIsEditing(false)
+      closeRoutedModal(navigate, location)
       setAvatarSelection(null)
       setNotice('Profile updated.')
     } catch (actionError) {
@@ -221,12 +220,12 @@ function ProfilePage() {
   function openEditProfile() {
     setAvatarSelection(null)
     setEditError('')
-    setIsEditing(true)
+    pushRoutedModal(navigate, location, 'profile-edit')
   }
 
   function closeEditProfile() {
     if (isSaving) return
-    setIsEditing(false)
+    closeRoutedModal(navigate, location)
     setAvatarSelection(null)
     setEditError('')
   }
@@ -296,7 +295,7 @@ function ProfilePage() {
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.message || 'Could not submit this report.')
-      setShowReport(false)
+      closeRoutedModal(navigate, location)
       setNotice(result.message || 'Report submitted.')
     } catch (actionError) {
       setError(actionError.message)
@@ -305,10 +304,10 @@ function ProfilePage() {
 
   return (
     <main className="profile-page">
-      {showLoginModal && (
+      {isLoginRequiredOpen && (
         <LoginRequiredModal
           message="Please log in to interact with profiles"
-          onClose={() => setShowLoginModal(false)}
+          onClose={() => closeRoutedModal(navigate, location)}
           onLogin={handleAccountLogin}
         />
       )}
@@ -356,7 +355,7 @@ function ProfilePage() {
                         if (requireLogin()) {
                           setReportReason('')
                           setReportDetails('')
-                          setShowReport(true)
+                          pushRoutedModal(navigate, location, 'profile-report')
                         }
                         setIsMoreOpen(false)
                       }}>Report profile</button>
@@ -403,7 +402,7 @@ function ProfilePage() {
         {notice && <p className="profile-notice" role="status">{notice}</p>}
         {error && <p className="profile-page-error" role="alert">{error}</p>}
 
-        {isEditing && (
+        {isEditProfileOpen && (
           <div className="profile-dialog-backdrop" role="presentation" onMouseDown={(event) => {
             if (event.target === event.currentTarget) closeEditProfile()
           }}>
@@ -463,9 +462,9 @@ function ProfilePage() {
           </div>
         )}
 
-        {showReport && (
+        {isReportProfileOpen && (
           <div className="profile-dialog-backdrop" role="presentation" onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setShowReport(false)
+            if (event.target === event.currentTarget) closeRoutedModal(navigate, location)
           }}>
             <section className="profile-dialog" role="dialog" aria-modal="true" aria-labelledby="report-profile-title">
               <h2 id="report-profile-title">Report profile</h2>
@@ -486,7 +485,7 @@ function ProfilePage() {
                   <textarea value={reportDetails} onChange={(event) => setReportDetails(event.target.value)} maxLength={1000} rows={3} />
                 </label>
                 <div className="profile-dialog-actions">
-                  <button type="button" onClick={() => setShowReport(false)}>Cancel</button>
+                  <button type="button" onClick={() => closeRoutedModal(navigate, location)}>Cancel</button>
                   <button type="submit">Submit report</button>
                 </div>
               </form>

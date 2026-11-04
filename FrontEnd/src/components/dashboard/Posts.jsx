@@ -324,12 +324,12 @@ function Posts() {
   const { user, logout } = useContext(AuthContext)
   const previewPostId = new URLSearchParams(location.search).get('post')
   const routedModal = location.state?.routedModal
+  const isLoginRequiredOpen = routedModal === 'posts-login-required'
   const isPostPreviewOpen = Boolean(previewPostId)
 
   const [posts, setPosts] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
-  const [showLoginModal, setShowLoginModal] = React.useState(false)
   const [openPostMenuId, setOpenPostMenuId] = React.useState(null)
   const postMenuRefs = React.useRef(new Map())
   const [friendIds, setFriendIds] = React.useState(() => new Set(
@@ -482,13 +482,13 @@ function Posts() {
 
   function requireLogin() {
     if (!isGuestUser) return true
-    setShowLoginModal(true)
+    pushRoutedModal(navigate, location, 'posts-login-required')
     return false
   }
 
   const toggleLike = async (postId) => {
     if (isGuestUser) {
-      setShowLoginModal(true)
+      pushRoutedModal(navigate, location, 'posts-login-required')
       return
     }
 
@@ -726,8 +726,8 @@ function Posts() {
           ×
         </button>
       )}
-      {showLoginModal && (
-        <LoginRequiredModal message="Please login to interact with posts" onClose={() => setShowLoginModal(false)} onLogin={async () => { setShowLoginModal(false); await logout(); navigate('/', { replace: true }) }}
+      {isLoginRequiredOpen && (
+        <LoginRequiredModal message="Please login to interact with posts" onClose={() => closeCurrentModal()} onLogin={async () => { await logout(); navigate('/', { replace: true }) }}
         />
       )}
 

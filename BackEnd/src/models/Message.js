@@ -6,6 +6,7 @@ const messageSchema = new mongoose.Schema(
     recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     text: { type: String, default: '' },
     read: { type: Boolean, default: false },
+    readAt: { type: Date, default: null },
     // Optional reply reference for chat replies.
     replyTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Message', default: null },
     editedAt: { type: Date, default: null },

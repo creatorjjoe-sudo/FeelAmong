@@ -29,6 +29,7 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
   // navbar / mobile header / mobile footer shimmer on their real elements.
   const [isChromeLoading, setIsChromeLoading] = React.useState(true)
   const locationRef = React.useRef(location)
+  const socketRef = React.useRef(null)
   const switchActive = useCallback((value) => {
     setActiveView(value)
   }, [])
@@ -99,11 +100,51 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
     if (!user?._id || !token || user.isAnonymous) return undefined
 
     const socket = io(API_ORIGIN)
-    socket.on('connect', () => socket.emit('join_room', user._id))
+    socketRef.current = socket
+    const syncChatPresence = (currentLocation) => {
+      const contactId = currentLocation.pathname.endsWith('/messages')
+        ? new URLSearchParams(currentLocation.search).get('user')
+        : null
+      socket.emit('set_chat_presence', contactId)
+      if (contactId) {
+        socket.emit('get_presence', contactId, (presence) => {
+          if (presence && !presence.error) {
+            window.dispatchEvent(new CustomEvent('user-presence-updated', { detail: presence }))
+          }
+        })
+      }
+    }
+    socket.on('connect', () => {
+      socket.emit('join_room', user._id)
+      syncChatPresence(locationRef.current)
+    })
+    socket.on('presence_updated', (presence) => {
+      window.dispatchEvent(new CustomEvent('user-presence-updated', { detail: presence }))
+    })
+    const requestPresence = (event) => {
+      const contactId = event.detail?.userId
+      if (!contactId) return
+      socket.emit('get_presence', contactId, (presence) => {
+        if (presence && !presence.error) {
+          window.dispatchEvent(new CustomEvent('user-presence-updated', { detail: presence }))
+        }
+      })
+    }
+    window.addEventListener('request-user-presence', requestPresence)
+    const forwardTyping = (event) => {
+      if (event.detail) socket.emit('typing', event.detail)
+    }
+    socket.on('user_typing', (typing) => {
+      window.dispatchEvent(new CustomEvent('user-typing-updated', { detail: typing }))
+    })
+    window.addEventListener('chat-typing', forwardTyping)
     // A message was edited or deleted-for-everywhere on another device:
     // surface the updated message to the open chat view.
     socket.on('message_updated', (message) => {
       if (message) window.dispatchEvent(new CustomEvent('chat-message-updated', { detail: message }))
+    })
+    socket.on('messages_read', (receipt) => {
+      if (receipt) window.dispatchEvent(new CustomEvent('chat-messages-read', { detail: receipt }))
     })
     socket.on('receive_message', async (message) => {
       const senderId = String(message.sender?._id || message.sender)
@@ -137,9 +178,30 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
     })
 
     return () => {
+      window.removeEventListener('request-user-presence', requestPresence)
+      window.removeEventListener('chat-typing', forwardTyping)
+      socketRef.current = null
       socket.disconnect()
     }
   }, [refreshUnreadMessageCount, token, user?._id, user?.isAnonymous])
+
+  React.useEffect(() => {
+    locationRef.current = location
+    const socket = socketRef.current
+    if (!socket?.connected) return
+
+    const contactId = location.pathname.endsWith('/messages')
+      ? new URLSearchParams(location.search).get('user')
+      : null
+    socket.emit('set_chat_presence', contactId)
+    if (contactId) {
+      socket.emit('get_presence', contactId, (presence) => {
+        if (presence && !presence.error) {
+          window.dispatchEvent(new CustomEvent('user-presence-updated', { detail: presence }))
+        }
+      })
+    }
+  }, [location.pathname, location.search])
 
   return (
     <div className={`dashboard-container${isVideosView ? ' videos-active' : ''}${isChromeLoading ? ' is-loading' : ''}`}>

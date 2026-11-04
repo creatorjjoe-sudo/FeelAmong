@@ -258,19 +258,22 @@ function Videos() {
   const { user, logout } = React.useContext(AuthContext)
   const location = useLocation()
   const navigate = useNavigate()
+  const routedModal = location.state?.routedModal
   const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
   const [videos, setVideos] = React.useState([])
   const [savedItemFolders, setSavedItemFolders] = React.useState({})
   const [saveModalItem, setSaveModalItem] = React.useState(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState('')
-  const [showLoginModal, setShowLoginModal] = React.useState(false)
+  const isLoginRequiredOpen = routedModal === 'video-feed-login-required'
   const [activeIndex, setActiveIndex] = React.useState(0)
-  const [activeVideoDialog, setActiveVideoDialog] = React.useState(null) // { type, video }
+  const [activeVideoDialogData, setActiveVideoDialogData] = React.useState(null)
   const [commentDraft, setCommentDraft] = React.useState('')
   const [moreMenuVideoId, setMoreMenuVideoId] = React.useState(null)
   const moreAnchorsRef = React.useRef(new Map())
-  const [reportVideoItem, setReportVideoItem] = React.useState(null)
+  const [reportVideoItemData, setReportVideoItemData] = React.useState(null)
+  const activeVideoDialog = routedModal === 'video-feed-comments' ? activeVideoDialogData : null
+  const reportVideoItem = routedModal === 'video-feed-report' ? reportVideoItemData : null
   const [reportReason, setReportReason] = React.useState('')
   const [reportDetails, setReportDetails] = React.useState('')
   const [notice, setNotice] = React.useState('')
@@ -282,6 +285,9 @@ function Videos() {
 
   const closeSaveModal = React.useCallback(() => {
     setSaveModalItem(null)
+    closeRoutedModal(navigate, location)
+  }, [location, navigate])
+  const closeRoutedDialog = React.useCallback(() => {
     closeRoutedModal(navigate, location)
   }, [location, navigate])
 
@@ -390,7 +396,7 @@ function Videos() {
 
   function openSaveModal(video) {
     if (!user || user.isAnonymous || !token) {
-      setShowLoginModal(true)
+      pushRoutedModal(navigate, location, 'video-feed-login-required')
       return
     }
     setSaveModalItem(video)
@@ -399,7 +405,7 @@ function Videos() {
 
   async function toggleLike(video) {
     if (!user || user.isAnonymous || !token) {
-      setShowLoginModal(true)
+      pushRoutedModal(navigate, location, 'video-feed-login-required')
       return
     }
     try {
@@ -427,11 +433,12 @@ function Videos() {
 
   function openComments(video) {
     if (!user || user.isAnonymous || !token) {
-      setShowLoginModal(true)
+      pushRoutedModal(navigate, location, 'video-feed-login-required')
       return
     }
     setCommentDraft('')
-    setActiveVideoDialog({ type: 'comment', video })
+    setActiveVideoDialogData({ type: 'comment', video })
+    pushRoutedModal(navigate, location, 'video-feed-comments')
   }
 
   async function addComment(event) {
@@ -453,7 +460,7 @@ function Videos() {
           : item
       ))
       setCommentDraft('')
-      setActiveVideoDialog(null)
+      closeRoutedDialog()
     } catch (commentError) {
       setNotice(commentError.message)
     }
@@ -461,7 +468,7 @@ function Videos() {
 
   async function shareVideoLink(video) {
     if (!user || user.isAnonymous || !token) {
-      setShowLoginModal(true)
+      pushRoutedModal(navigate, location, 'video-feed-login-required')
       return
     }
     const url = `${API_ORIGIN}${video.videoUrl}`
@@ -488,7 +495,7 @@ function Videos() {
 
   function openMoreMenu(video) {
     if (!user || user.isAnonymous || !token) {
-      setShowLoginModal(true)
+      pushRoutedModal(navigate, location, 'video-feed-login-required')
       return
     }
     setMoreMenuVideoId((current) => (current === video._id ? null : video._id))
@@ -527,7 +534,7 @@ function Videos() {
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.message || 'Could not submit this report.')
-      setReportVideoItem(null)
+      closeRoutedDialog()
       showNotice(result.message || 'Report submitted.')
     } catch (reportError) {
       showNotice(reportError.message)
@@ -591,7 +598,6 @@ function Videos() {
   }
 
   async function handleLogin() {
-    setShowLoginModal(false)
     await logout()
     navigate('/', { replace: true })
   }
@@ -639,7 +645,8 @@ function Videos() {
                   setMoreMenuVideoId(null)
                   setReportReason('')
                   setReportDetails('')
-                  setReportVideoItem(item)
+                  setReportVideoItemData(item)
+                  pushRoutedModal(navigate, location, 'video-feed-report')
                 },
                 onNotInterested: (item) => { setMoreMenuVideoId(null); markNotInterested(item) },
               }}
@@ -658,20 +665,20 @@ function Videos() {
           onSaved={handleSavedItem}
         />
       )}
-      {showLoginModal && (
+      {isLoginRequiredOpen && (
         <LoginRequiredModal
           message="Please log in to save videos"
-          onClose={() => setShowLoginModal(false)}
+          onClose={closeRoutedDialog}
           onLogin={handleLogin}
         />
       )}
 
       {activeVideoDialog?.type === 'comment' && (
         <div className="post-action-dialog-backdrop" onMouseDown={(event) => {
-          if (event.target === event.currentTarget) setActiveVideoDialog(null)
+          if (event.target === event.currentTarget) closeRoutedDialog()
         }}>
           <section className="post-action-dialog" role="dialog" aria-modal="true" aria-labelledby="video-comment-dialog-title">
-            <button className="post-action-dialog-close" type="button" aria-label="Close dialog" onClick={() => setActiveVideoDialog(null)}>×</button>
+            <button className="post-action-dialog-close" type="button" aria-label="Close dialog" onClick={closeRoutedDialog}>×</button>
             <h2 id="video-comment-dialog-title">Comments</h2>
             <div className="post-comments-list">
               {(activeVideoDialog.video.comments || []).map((comment) => (
@@ -693,7 +700,7 @@ function Videos() {
 
       {reportVideoItem && (
         <div className="profile-dialog-backdrop" role="presentation" onMouseDown={(event) => {
-          if (event.target === event.currentTarget) setReportVideoItem(null)
+          if (event.target === event.currentTarget) closeRoutedDialog()
         }}>
           <section className="profile-dialog" role="dialog" aria-modal="true" aria-labelledby="report-video-title">
             <h2 id="report-video-title">Report video</h2>
@@ -714,7 +721,7 @@ function Videos() {
                 <textarea value={reportDetails} onChange={(event) => setReportDetails(event.target.value)} maxLength={1000} rows={3} />
               </label>
               <div className="profile-dialog-actions">
-                <button type="button" onClick={() => setReportVideoItem(null)}>Cancel</button>
+                <button type="button" onClick={closeRoutedDialog}>Cancel</button>
                 <button type="submit">Submit report</button>
               </div>
             </form>

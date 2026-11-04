@@ -1,6 +1,34 @@
 const Message = require('../models/Message');
 const { getIO } = require('../config/socket');
 
+async function markMessagesRead(senderId, recipientId) {
+  const unreadMessages = await Message.find({
+    sender: senderId,
+    recipient: recipientId,
+    read: false
+  }).select('_id');
+  if (!unreadMessages.length) return [];
+
+  const readAt = new Date();
+  const messageIds = unreadMessages.map((message) => String(message._id));
+  await Message.updateMany(
+    { _id: { $in: unreadMessages.map((message) => message._id) } },
+    { $set: { read: true, readAt } }
+  );
+
+  try {
+    getIO().to(String(senderId)).emit('messages_read', {
+      messageIds,
+      readBy: String(recipientId),
+      readAt
+    });
+  } catch (error) {
+    console.error('Could not send message read receipts:', error.message);
+  }
+
+  return messageIds;
+}
+
 const sendMessage = async (req, res) => {
   try {
     const { recipientId, text, replyTo } = req.body;
@@ -124,10 +152,7 @@ const deleteMessage = async (req, res) => {
 const getMessages = async (req, res) => {
   try {
     const { userId } = req.params;
-    await Message.updateMany(
-      { sender: userId, recipient: req.user._id, read: false },
-      { $set: { read: true } }
-    );
+    await markMessagesRead(userId, req.user._id);
     const messages = await Message.find({
       $or: [
         { sender: req.user._id, recipient: userId },
@@ -219,11 +244,8 @@ const getConversations = async (req, res) => {
 
 const markConversationRead = async (req, res) => {
   try {
-    const result = await Message.updateMany(
-      { sender: req.params.userId, recipient: req.user._id, read: false },
-      { $set: { read: true } }
-    );
-    res.json({ markedRead: result.modifiedCount });
+    const messageIds = await markMessagesRead(req.params.userId, req.user._id);
+    res.json({ markedRead: messageIds.length });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

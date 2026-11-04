@@ -258,8 +258,20 @@ html[data-theme="dark"] .mobile-active-chat-header .back-icon {
  filter: brightness(0) invert(1);
 }
 
-html[data-theme="dark"] .mobile-active-chat-header p {
+html[data-theme="dark"] .mobile-active-chat-header .active-user .name-timeago p.is-online {
+ color: #00ba00;
+}
+
+html[data-theme="dark"] .mobile-active-chat-header .active-user .name-timeago p.is-offline {
  color: #a5b2a8;
+}
+
+html[data-theme="dark"] .typing-bubble {
+ background: #232d44;
+}
+
+html[data-theme="dark"] .typing-bubble i {
+ color: #cdd6e4;
 }
 
 /* Search icons (navbar / mobile header / search modal input): dark icons

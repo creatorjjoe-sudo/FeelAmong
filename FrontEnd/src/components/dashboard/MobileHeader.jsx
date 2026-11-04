@@ -13,12 +13,12 @@ import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 function MobileHeader() {
  const headerRef = React.useRef(null)
  const profileButtonRef = React.useRef(null)
- const [showLoginModal, setShowLoginModal] = React.useState(false)
  const { user, logout } = useContext(AuthContext)
  const navigate = useNavigate()
  const location = useLocation()
  const searchOpen = location.state?.routedModal === 'mobile-search'
  const profileMenuOpen = location.state?.routedModal === 'mobile-profile-menu'
+ const isLoginRequiredOpen = location.state?.routedModal === 'mobile-header-login-required'
  const openSearch = () => pushRoutedModal(navigate, location, 'mobile-search')
  const closeSearch = () => closeRoutedModal(navigate, location)
  const openProfileMenu = () => pushRoutedModal(navigate, location, 'mobile-profile-menu')
@@ -26,7 +26,7 @@ function MobileHeader() {
 
  function handleCreate(toggleMenu) {
   if (!user || user.isAnonymous === true) {
-   setShowLoginModal(true)
+   pushRoutedModal(navigate, location, 'mobile-header-login-required')
    return
   }
 
@@ -38,7 +38,6 @@ function MobileHeader() {
  }
 
  async function handleLogin() {
-  setShowLoginModal(false)
   await logout()
   navigate('/', { replace: true })
  }
@@ -72,10 +71,10 @@ function MobileHeader() {
      onClose={closeProfileMenu}
      anchorRef={profileButtonRef}
     />
-    {showLoginModal && (
+    {isLoginRequiredOpen && (
      <LoginRequiredModal
       message="Please login to create a post"
-      onClose={() => setShowLoginModal(false)}
+      onClose={() => closeRoutedModal(navigate, location)}
       onLogin={handleLogin}
      />
     )}

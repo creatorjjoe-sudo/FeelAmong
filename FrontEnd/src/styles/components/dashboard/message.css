@@ -91,6 +91,11 @@
  font-weight: 400;
 }
 
+.chat-typing-preview {
+ color: #00ba00;
+ font-weight: 600;
+}
+
 .chat-conversation-row.is-unread .chat-conversation-name,
 .chat-conversation-row.is-unread .chat-conversation-preview {
  color: #1f2937;
@@ -240,6 +245,75 @@
   gap: 10px;
 }
 
+.typing-dots,
+.typing-bubble {
+ display: inline-flex;
+ align-items: center;
+ gap: 4px;
+}
+
+.typing-dots {
+ margin-left: 4px;
+ vertical-align: middle;
+}
+
+.typing-bubble {
+ min-width: 46px;
+ padding: 12px 14px;
+ border-radius: 20px;
+ background: #f0f2f5;
+}
+
+.typing-dots i,
+.typing-bubble i {
+ display: block;
+ width: 6px;
+ height: 6px;
+ border-radius: 50%;
+ background: currentColor;
+ animation: chat-typing-bounce 1s ease-in-out infinite;
+}
+
+.typing-bubble i {
+ color: #737b85;
+}
+
+.typing-dots i:nth-child(2),
+.typing-bubble i:nth-child(2) {
+ animation-delay: 0.15s;
+}
+
+.typing-dots i:nth-child(3),
+.typing-bubble i:nth-child(3) {
+ animation-delay: 0.3s;
+}
+
+.is-typing .typing-dots i {
+ color: #00ba00;
+}
+
+.chat-typing-preview {
+ animation: chat-typing-opacity 1.2s ease-in-out infinite;
+}
+
+@keyframes chat-typing-bounce {
+ 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+ 30% { transform: translateY(-4px); opacity: 1; }
+}
+
+@keyframes chat-typing-opacity {
+ 0%, 100% { opacity: 1; }
+ 50% { opacity: 0.55; }
+}
+
+.mobile-active-chat-header .active-user .name-timeago p.is-online {
+ color: #00ba00;
+}
+
+.mobile-active-chat-header .active-user .name-timeago p.is-offline {
+ color: #828582;
+}
+
 .back-icon {
   width: 35px;
 }
@@ -313,11 +387,46 @@
 }
 
 .message-group-time {
+  position: relative;
   align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
   font-size: 12px;
   color: #8a929c;
   margin-top: -4px;
   padding-bottom: 6px;
+}
+
+.message-read-status {
+ position: absolute;
+ right: 0;
+ display: inline-flex;
+ align-items: center;
+ gap: 4px;
+ color: #8a929c;
+ white-space: nowrap;
+}
+
+.message-read-receipt {
+ width: 16px;
+ height: 13px;
+ overflow: visible;
+ fill: none;
+ stroke: #8a929c;
+ stroke-width: 1.8;
+ stroke-linecap: round;
+ stroke-linejoin: round;
+}
+
+.message-read-time {
+ color: #8a929c;
+ font-size: 12px;
+}
+
+.message-read-receipt.is-read {
+ stroke: #00ba00;
 }
 
 /* "Sending" caption on a message still in flight — a gentle pulse until
@@ -913,10 +1022,10 @@
 }
 
 /* Delete confirmation dialog */
-.profile-dialog-backdrop {
+.message-delete-dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 70;
+  z-index: 1301;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1096,4 +1205,12 @@ label.delete-scope-option {
 
 .delete-scope-option.is-disabled input[type='radio'] {
   cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+ .typing-dots i,
+ .typing-bubble i,
+ .chat-typing-preview {
+  animation: none;
+ }
 }

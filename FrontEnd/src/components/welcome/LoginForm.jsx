@@ -4,6 +4,7 @@ import { ICONS } from '../../assets/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../../src/api/context/AuthContext'; // Hooked global context
 import { getProfileAvatar } from '../../utils/profileAvatar'
+import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 
 function LoginForm({ view, switchView, selectedAccount, onCancelAccount }) {
   const location = useLocation();
@@ -14,7 +15,6 @@ function LoginForm({ view, switchView, selectedAccount, onCancelAccount }) {
   const [passwordToggle, setPasswordToggle] = useState(false);
   const [error, setError] = useState(false);
   const [serverError, setServerError] = useState(''); // Holds API request errors
-  const [showIncorrectPasswordModal, setShowIncorrectPasswordModal] = useState(false);
   const [loading, setLoading] = useState(false); // Manages button submission states
   const passwordInputRef = React.useRef(null);
 
@@ -22,6 +22,7 @@ function LoginForm({ view, switchView, selectedAccount, onCancelAccount }) {
   const passwordNotEmpty = password.trim() !== '';
   const EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
   const navigate = useNavigate();
+  const showIncorrectPasswordModal = location.state?.routedModal === 'login-incorrect-password'
 
   const [showAccountPasswordModal, setShowAccountPasswordModal] = useState(!!selectedAccount);
   const modalPasswordInputRef = React.useRef(null);
@@ -165,7 +166,7 @@ function LoginForm({ view, switchView, selectedAccount, onCancelAccount }) {
 
       if (!response.ok) {
         if (response.status === 401) {
-          setShowIncorrectPasswordModal(true);
+          pushRoutedModal(navigate, location, 'login-incorrect-password');
           return;
         }
         throw new Error(data.message || 'Unable to log in');
@@ -190,7 +191,7 @@ function LoginForm({ view, switchView, selectedAccount, onCancelAccount }) {
   };
 
   const retryPassword = () => {
-    setShowIncorrectPasswordModal(false);
+    closeRoutedModal(navigate, location);
     setPassword('');
     window.requestAnimationFrame(() => {
       const target = showAccountPasswordModal ? modalPasswordInputRef : passwordInputRef;

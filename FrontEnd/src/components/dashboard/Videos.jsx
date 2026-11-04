@@ -18,13 +18,13 @@ function Videos() {
   const { user, logout } = React.useContext(AuthContext)
   const location = useLocation()
   const navigate = useNavigate()
+  const isLoginRequiredOpen = location.state?.routedModal === 'videos-login-required'
   const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
   const [videos, setVideos] = React.useState([])
   const [savedItemFolders, setSavedItemFolders] = React.useState({})
   const [saveModalItem, setSaveModalItem] = React.useState(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState('')
-  const [showLoginModal, setShowLoginModal] = React.useState(false)
   const saveModalOpen = location.state?.routedModal === 'save-folder'
   const cardRefs = React.useRef(new Map())
   const playerRefs = React.useRef(new Map())
@@ -87,6 +87,9 @@ function Videos() {
     setSaveModalItem(null)
     closeRoutedModal(navigate, location)
   }, [location, navigate])
+  const closeLoginModal = React.useCallback(() => {
+    closeRoutedModal(navigate, location)
+  }, [location, navigate])
 
   React.useEffect(() => {
     let isActive = true
@@ -125,7 +128,7 @@ function Videos() {
 
   function openSaveModal(video) {
     if (!user || user.isAnonymous || !token) {
-      setShowLoginModal(true)
+      pushRoutedModal(navigate, location, 'videos-login-required')
       return
     }
     setSaveModalItem(video)
@@ -162,7 +165,6 @@ function Videos() {
   }
 
   async function handleLogin() {
-    setShowLoginModal(false)
     await logout()
     navigate('/', { replace: true })
   }
@@ -254,10 +256,10 @@ function Videos() {
           onSaved={handleSavedItem}
         />
       )}
-      {showLoginModal && (
+      {isLoginRequiredOpen && (
         <LoginRequiredModal
           message="Please log in to save videos"
-          onClose={() => setShowLoginModal(false)}
+          onClose={closeLoginModal}
           onLogin={handleLogin}
         />
       )}

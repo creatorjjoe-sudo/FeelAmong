@@ -67,6 +67,41 @@ function isGroupedWith(previousMessage, currentMessage) {
   return currentTime - previousTime >= 0 && currentTime - previousTime < GROUP_WINDOW_MS
 }
 
+function formatPresence(lastSeen, now) {
+  if (!lastSeen) return 'Last seen - unavailable'
+  const timestamp = new Date(lastSeen)
+  if (Number.isNaN(timestamp.getTime())) return 'Last seen - unavailable'
+
+  const time = new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(timestamp).toLowerCase().replace(/\s(?=am|pm)/, '')
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const isYesterday = timestamp.getFullYear() === yesterday.getFullYear()
+    && timestamp.getMonth() === yesterday.getMonth()
+    && timestamp.getDate() === yesterday.getDate()
+  if (isYesterday) return `Last seen - yesterday at ${time}`
+
+  const elapsed = Math.max(0, now - timestamp.getTime())
+  if (elapsed < 60 * 1000) return 'Last seen - just now'
+  if (elapsed < 60 * 60 * 1000) {
+    const minutes = Math.floor(elapsed / (60 * 1000))
+    return `Last seen - ${minutes} minute${minutes === 1 ? '' : 's'} ago`
+  }
+  if (elapsed < 24 * 60 * 60 * 1000) {
+    const hours = Math.floor(elapsed / (60 * 60 * 1000))
+    return `Last seen - ${hours} hour${hours === 1 ? '' : 's'} ago`
+  }
+
+  const date = new Intl.DateTimeFormat(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  }).format(timestamp)
+  return `Last seen - ${date} at ${time}`
+}
+
 function Messages() {
   const { user } = useContext(AuthContext)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -81,6 +116,14 @@ function Messages() {
   const chatActive = Boolean(requestedUserId && selectedContact?._id === requestedUserId)
   const [messages, setMessages] = React.useState([])
   const [messagesLoading, setMessagesLoading] = React.useState(false)
+  const [typingUserIds, setTypingUserIds] = React.useState(() => new Set())
+  const [presence, setPresence] = React.useState({
+    userId: requestedUserId,
+    online: false,
+    viewingChat: false,
+    lastSeen: null,
+  })
+  const [presenceNow, setPresenceNow] = React.useState(Date.now())
   const [draft, setDraft] = React.useState('')
   const [sending, setSending] = React.useState(false)
   const [error, setError] = React.useState('')
@@ -90,11 +133,60 @@ function Messages() {
   const [replyToMessage, setReplyToMessage] = React.useState(null)
   const [editingMessageId, setEditingMessageId] = React.useState(null)
   const [editDraft, setEditDraft] = React.useState('')
-  const [confirmDeleteMessage, setConfirmDeleteMessage] = React.useState(null)
+  const deleteMessageId = searchParams.get('deleteMessage')
+  const confirmDeleteMessage = messages.find((message) => String(message._id) === deleteMessageId) || null
   // Scope for the pending delete: 'everyone' (own messages, default) or 'me'.
   const [deleteScope, setDeleteScope] = React.useState('everyone')
   const [selectableMessageId, setSelectableMessageId] = React.useState(null)
   const selectableTextareaRef = React.useRef(null)
+  const typingTimeoutRef = React.useRef(null)
+  const typingRecipientRef = React.useRef(null)
+
+  const sendTyping = React.useCallback((isTyping, recipientId = typingRecipientRef.current) => {
+    if (!recipientId) return
+    window.dispatchEvent(new CustomEvent('chat-typing', {
+      detail: { recipientId, isTyping },
+    }))
+    if (!isTyping && typingRecipientRef.current === recipientId) {
+      typingRecipientRef.current = null
+    }
+  }, [])
+
+  const stopTyping = React.useCallback(() => {
+    window.clearTimeout(typingTimeoutRef.current)
+    typingTimeoutRef.current = null
+    sendTyping(false)
+  }, [sendTyping])
+
+  const handleDraftChange = React.useCallback((event) => {
+    const nextDraft = event.target.value
+    setDraft(nextDraft)
+    if (!activeContact?._id) return
+
+    if (!nextDraft.trim()) {
+      stopTyping()
+      return
+    }
+
+    if (typingRecipientRef.current !== String(activeContact._id)) stopTyping()
+    typingRecipientRef.current = String(activeContact._id)
+    sendTyping(true)
+    window.clearTimeout(typingTimeoutRef.current)
+    typingTimeoutRef.current = window.setTimeout(stopTyping, 2000)
+  }, [activeContact?._id, sendTyping, stopTyping])
+
+  function openDeleteDialog(message) {
+    setDeleteScope('everyone')
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.set('deleteMessage', message._id)
+    setSearchParams(nextParams)
+  }
+
+  function closeDeleteDialog() {
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.delete('deleteMessage')
+    setSearchParams(nextParams, { replace: true })
+  }
 
   // Close the message dropdown on outside click / Escape (same pattern as posts).
   React.useEffect(() => {
@@ -141,7 +233,14 @@ function Messages() {
         if (String(contact._id) === String(user?._id)) {
           throw new Error('You cannot start a chat with yourself.')
         }
-        if (isActive) setSelectedContact(contact)
+        if (isActive) {
+          setSelectedContact(contact)
+          setPresence((current) => ({
+            ...current,
+            userId: String(contact._id),
+            lastSeen: contact.lastSeen,
+          }))
+        }
       } catch (loadError) {
         if (isActive) setError(loadError.message)
       }
@@ -152,6 +251,52 @@ function Messages() {
       isActive = false
     }
   }, [requestedUserId, user?._id])
+
+  React.useEffect(() => {
+    if (!requestedUserId) return undefined
+
+    const handlePresenceUpdate = (event) => {
+      const update = event.detail
+      if (!update || String(update.userId) !== String(requestedUserId)) return
+      setPresence((current) => ({
+        ...current,
+        ...update,
+        ...(update.viewingChat ? { online: true } : {}),
+        userId: String(update.userId),
+      }))
+    }
+    window.addEventListener('user-presence-updated', handlePresenceUpdate)
+    window.dispatchEvent(new CustomEvent('request-user-presence', {
+      detail: { userId: requestedUserId },
+    }))
+    return () => window.removeEventListener('user-presence-updated', handlePresenceUpdate)
+  }, [requestedUserId])
+
+  React.useEffect(() => {
+    const handleTypingUpdate = (event) => {
+      const update = event.detail
+      if (!update?.userId) return
+      const userId = String(update.userId)
+      setTypingUserIds((current) => {
+        const next = new Set(current)
+        if (update.isTyping) next.add(userId)
+        else next.delete(userId)
+        return next
+      })
+    }
+    window.addEventListener('user-typing-updated', handleTypingUpdate)
+    return () => window.removeEventListener('user-typing-updated', handleTypingUpdate)
+  }, [requestedUserId])
+
+  React.useEffect(() => () => {
+    window.clearTimeout(typingTimeoutRef.current)
+    sendTyping(false)
+  }, [sendTyping])
+
+  React.useEffect(() => {
+    const timer = window.setInterval(() => setPresenceNow(Date.now()), 60 * 1000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   React.useEffect(() => {
     if (!token || !user?._id) return undefined
@@ -248,9 +393,20 @@ function Messages() {
       )))
     }
     window.addEventListener('chat-message-updated', handleMessageUpdated)
+    const handleMessagesRead = (event) => {
+      const readMessageIds = new Set((event.detail?.messageIds || []).map(String))
+      if (!readMessageIds.size) return
+      setMessages((current) => current.map((item) => (
+        readMessageIds.has(String(item._id))
+          ? { ...item, read: true, readAt: event.detail.readAt }
+          : item
+      )))
+    }
+    window.addEventListener('chat-messages-read', handleMessagesRead)
     return () => {
       window.removeEventListener('chat-message-received', handleIncomingMessage)
       window.removeEventListener('chat-message-updated', handleMessageUpdated)
+      window.removeEventListener('chat-messages-read', handleMessagesRead)
     }
   }, [requestedUserId, token])
 
@@ -262,6 +418,7 @@ function Messages() {
 
     const trimmedMessage = draft.trim()
     if (!trimmedMessage || !token || !activeContact?._id) return
+    stopTyping()
 
     const pendingMessage = {
       _id: `pending-${Date.now()}`, sender: user._id, recipient: activeContact._id, text: trimmedMessage, createdAt: new Date().toISOString(), replyTo: replyToMessage
@@ -302,6 +459,7 @@ function Messages() {
   }
 
   const handleSelect = (contactId) => {
+    stopTyping()
     setError('')
     setReplyToMessage(null)
     setEditingMessageId(null)
@@ -394,7 +552,7 @@ function Messages() {
     const message = confirmDeleteMessage
     if (!message) return
     const scope = deleteScope
-    setConfirmDeleteMessage(null)
+    closeDeleteDialog()
     try {
       const response = await fetch(`${API_ORIGIN}/api/chats/messages/${message._id}`, {
         method: 'DELETE',
@@ -438,8 +596,9 @@ function Messages() {
                 <span className="chat-conversation-text">
                   <p className="chat-conversation-name">{conversation.username}</p>
                   <p className="chat-conversation-preview">
-                    {String(conversation.lastMessageSender) === String(user?._id) ? 'You: ' : ''}
-                    {conversation.lastMessage || 'Say hello!'}
+                    {typingUserIds.has(String(conversation._id))
+                      ? <span className="chat-typing-preview">Typing...</span>
+                      : `${String(conversation.lastMessageSender) === String(user?._id) ? 'You: ' : ''}${conversation.lastMessage || 'Say hello!'}`}
                   </p>
                 </span>
                 {conversation.unreadCount > 0 && <span className="msg-unread">{conversation.unreadCount}</span>}
@@ -456,7 +615,11 @@ function Messages() {
               <span className="user-container">
                 <span className="chat-conversation-text">
                   <p className="chat-conversation-name">{selectedContact.username}</p>
-                  <p className="chat-conversation-preview">Say hello!</p>
+                  <p className="chat-conversation-preview">
+                    {typingUserIds.has(String(selectedContact._id))
+                      ? <span className="chat-typing-preview">Typing...</span>
+                      : 'Say hello!'}
+                  </p>
                 </span>
               </span>
             </button>
@@ -476,7 +639,13 @@ function Messages() {
                   <img className='user-avata-msg' src={getProfileAvatar(selectedContact)} alt="" />
                   <div className="name-timeago">
                     <h2 className='active-user-username'>{selectedContact?.username}</h2>
-                    <p>Active</p>
+                    <p className={typingUserIds.has(String(selectedContact?._id)) ? 'is-online is-typing' : presence.online ? 'is-online' : 'is-offline'}>
+                      {typingUserIds.has(String(selectedContact?._id))
+                        ? <>typing<span className="typing-dots" aria-hidden="true"><i /><i /><i /></span></>
+                        : presence.online
+                        ? (presence.viewingChat ? 'With you for now' : 'Active')
+                        : formatPresence(presence.lastSeen, presenceNow)}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -547,6 +716,24 @@ function Messages() {
                       className={`message-group-time${isPending ? ' is-sending' : ''}`}
                     >
                       {timeLabel}
+                      {isMine && endsGroup && !isPending && (
+                        <span className="message-read-status">
+                          <svg
+                            className={`message-read-receipt${msg.read ? ' is-read' : ''}`}
+                            viewBox="0 0 20 16"
+                            aria-label={msg.read ? 'Read' : 'Unread'}
+                            role="img"
+                          >
+                            <path d="m1 8 4 4L14 3" />
+                            <path d="m7 8 4 4 8-9" />
+                          </svg>
+                          {msg.readAt && (
+                            <span className="message-read-time">
+                              Read {formatGroupTime(msg.readAt)}
+                            </span>
+                          )}
+                        </span>
+                      )}
                     </time>
                   )
 
@@ -729,8 +916,7 @@ function Messages() {
                               <button className="message-more-option is-danger" type="button" role="menuitem" onClick={(event) => {
                                 event.stopPropagation()
                                 setOpenMessageMenuId(null)
-                                setDeleteScope('everyone')
-                                setConfirmDeleteMessage(msg)
+                                openDeleteDialog(msg)
                               }}>
                                 <span>Delete</span>
                               </button>
@@ -745,6 +931,11 @@ function Messages() {
 
                   return elements.filter(Boolean)
                 })}
+                {!messagesLoading && typingUserIds.has(String(selectedContact?._id)) && (
+                  <div className="message-row their typing-indicator" role="status" aria-label={`${selectedContact?.username} is typing`}>
+                    <span className="typing-bubble"><i /><i /><i /></span>
+                  </div>
+                )}
               </div>
 
               {error && <p className='chat-error'>{error}</p>}
@@ -774,7 +965,7 @@ function Messages() {
                   </div>
                 )}
                 <div className="input-row">
-                  <textarea value={draft} onChange={(e) => setDraft(e.target.value)} placeholder='Write message...' rows={1}></textarea>
+                  <textarea value={draft} onChange={handleDraftChange} placeholder='Write message...' rows={1}></textarea>
                   <button className='send-btn' disabled={sending || !chatActive} type='submit'>
                     {sending ? 'Sending...' : 'Send'}
                   </button>
@@ -807,8 +998,8 @@ function Messages() {
           const dialogScope = isMineMessage ? deleteScope : 'me'
           return (
             createPortal(
-              <div className="profile-dialog-backdrop" role="presentation" onMouseDown={(event) => {
-                if (event.target === event.currentTarget) setConfirmDeleteMessage(null)
+              <div className="message-delete-dialog-backdrop" role="presentation" onMouseDown={(event) => {
+                if (event.target === event.currentTarget) closeDeleteDialog()
               }}>
                 <section className="profile-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-message-title">
                   <h2 id="delete-message-title">Delete message</h2>
@@ -837,7 +1028,7 @@ function Messages() {
                   </div>
                   <p>{dialogScope === 'everyone' ? 'Delete this message for everyone? This cannot be undone.' : 'Remove this message from your chat? The other person will still see it.'}</p>
                   <div className="profile-dialog-actions">
-                    <button type="button" onClick={() => setConfirmDeleteMessage(null)}>Cancel</button>
+                    <button type="button" onClick={closeDeleteDialog}>Cancel</button>
                     <button type="button" className="is-danger" onClick={confirmDelete}>Delete</button>
                   </div>
                 </section>
