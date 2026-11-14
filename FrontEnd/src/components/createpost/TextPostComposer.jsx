@@ -7,6 +7,7 @@ import { getProfileAvatar } from '../../utils/profileAvatar'
 import {
   getTextPostColor,
   isNoneTextPostBackground,
+  MORE_TEXT_POST_BACKGROUNDS,
   NONE_TEXT_POST_BACKGROUND,
   TEXT_POST_BACKGROUNDS,
 } from '../../utils/textPostColors'
@@ -18,7 +19,7 @@ const MAX_IMAGE_COUNT = 25
 const VISIBILITY_OPTIONS = [
   { value: 'public', label: 'Public', icon: ICONS.publicIcon },
   { value: 'private', label: 'Private', icon: ICONS.lock },
-  { value: 'friends', label: 'Friends', icon: ICONS.userIcon },
+  { value: 'friends', label: 'Friends-only', icon: ICONS.userIcon },
 ]
 
 function TextPostComposer({ editPostId }) {
@@ -30,16 +31,56 @@ function TextPostComposer({ editPostId }) {
   const [step, setStep] = React.useState('compose')
   const [visibilityOpen, setVisibilityOpen] = React.useState(false)
   const [moreOpen, setMoreOpen] = React.useState(false)
+  const [paletteOpen, setPaletteOpen] = React.useState(false)
   const [images, setImages] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(Boolean(editPostId))
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [error, setError] = React.useState('')
   const imageInputRef = React.useRef(null)
+  const descriptionInputRef = React.useRef(null)
   const menuRef = React.useRef(null)
   const previewUrls = React.useRef(new Set())
   const isImagePost = images.length > 0
   const hasBackground = !isImagePost && !isNoneTextPostBackground(backgroundColor)
   const selectedVisibility = VISIBILITY_OPTIONS.find((option) => option.value === visibility) || VISIBILITY_OPTIONS[0]
+
+  React.useLayoutEffect(() => {
+    const textarea = descriptionInputRef.current
+    if (!textarea) return undefined
+
+    function fitDescription() {
+      const baseFontSize = hasBackground ? 26 : 20
+      textarea.style.height = ''
+      textarea.style.overflowY = 'hidden'
+      textarea.style.fontSize = `${baseFontSize}px`
+
+      if (!description) return
+
+      if (textarea.scrollHeight <= textarea.clientHeight) return
+
+      let smallestFontSize = 6
+      let largestFontSize = baseFontSize
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        const fontSize = (smallestFontSize + largestFontSize) / 2
+        textarea.style.fontSize = `${fontSize}px`
+        if (textarea.scrollHeight <= textarea.clientHeight) {
+          smallestFontSize = fontSize
+        } else {
+          largestFontSize = fontSize
+        }
+      }
+
+      textarea.style.fontSize = `${smallestFontSize}px`
+      if (textarea.scrollHeight > textarea.clientHeight && description.length >= 1000) {
+        textarea.style.overflowY = 'auto'
+      }
+    }
+
+    fitDescription()
+    const resizeObserver = new ResizeObserver(fitDescription)
+    resizeObserver.observe(textarea)
+    return () => resizeObserver.disconnect()
+  }, [description, hasBackground])
 
   React.useEffect(() => () => {
     previewUrls.current.forEach((url) => URL.revokeObjectURL(url))
@@ -79,12 +120,13 @@ function TextPostComposer({ editPostId }) {
   }, [editPostId, user])
 
   React.useEffect(() => {
-    if (!visibilityOpen && !moreOpen) return undefined
+    if (!visibilityOpen && !moreOpen && !paletteOpen) return undefined
 
     function handlePointerDown(event) {
       if (!menuRef.current?.contains(event.target)) {
         setVisibilityOpen(false)
         setMoreOpen(false)
+        setPaletteOpen(false)
       }
     }
 
@@ -92,6 +134,7 @@ function TextPostComposer({ editPostId }) {
       if (event.key === 'Escape') {
         setVisibilityOpen(false)
         setMoreOpen(false)
+        setPaletteOpen(false)
       }
     }
 
@@ -101,7 +144,7 @@ function TextPostComposer({ editPostId }) {
       document.removeEventListener('pointerdown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [moreOpen, visibilityOpen])
+  }, [moreOpen, paletteOpen, visibilityOpen])
 
   function handleImageSelection(event) {
     const selectedFiles = Array.from(event.target.files || [])
@@ -248,6 +291,7 @@ function TextPostComposer({ editPostId }) {
           </div>
 
           <textarea
+            ref={descriptionInputRef}
             className={`text-post-compose-input${hasBackground ? ' has-background' : ''}`}
             value={description}
             onChange={(event) => setDescription(event.target.value)}
@@ -286,27 +330,61 @@ function TextPostComposer({ editPostId }) {
           )}
 
           {!isImagePost && description.trim() && (
-            <div className="text-post-background-options" role="group" aria-label="Text post background">
-              <button
-                className={`text-post-background-option text-post-background-none${!hasBackground ? ' is-selected' : ''}`}
-                type="button"
-                aria-label="No background"
-                aria-pressed={!hasBackground}
-                onClick={() => setBackgroundColor(NONE_TEXT_POST_BACKGROUND)}
-              >
-                ×
-              </button>
-              {TEXT_POST_BACKGROUNDS.map(({ color, label }) => (
+            <div className="text-post-palette-row">
+              <div className="text-post-background-options" role="group" aria-label="Text post background">
                 <button
-                  key={color}
-                  className={`text-post-background-option${backgroundColor === color ? ' is-selected' : ''}`}
+                  className={`text-post-background-option text-post-background-none${!hasBackground ? ' is-selected' : ''}`}
                   type="button"
-                  style={{ background: color }}
-                  aria-label={label}
-                  aria-pressed={backgroundColor === color}
-                  onClick={() => setBackgroundColor(color)}
-                />
-              ))}
+                  aria-label="No background"
+                  aria-pressed={!hasBackground}
+                  onClick={() => setBackgroundColor(NONE_TEXT_POST_BACKGROUND)}
+                >
+                  ×
+                </button>
+                {TEXT_POST_BACKGROUNDS.map(({ color, label }) => (
+                  <button
+                    key={color}
+                    className={`text-post-background-option${backgroundColor === color ? ' is-selected' : ''}`}
+                    type="button"
+                    style={{ background: color }}
+                    aria-label={label}
+                    aria-pressed={backgroundColor === color}
+                    onClick={() => setBackgroundColor(color)}
+                  />
+                ))}
+              </div>
+              <div className="text-post-palette-more">
+                <button
+                  className="text-post-palette-more-button"
+                  type="button"
+                  aria-label="More background colors"
+                  aria-expanded={paletteOpen}
+                  onClick={() => {
+                    setPaletteOpen((open) => !open)
+                    setMoreOpen(false)
+                  }}
+                >
+                  …
+                </button>
+                {paletteOpen && (
+                  <div className="text-post-more-colors" role="group" aria-label="More text post backgrounds">
+                    {MORE_TEXT_POST_BACKGROUNDS.map(({ color, label }) => (
+                      <button
+                        key={color}
+                        className={`text-post-background-option${backgroundColor === color ? ' is-selected' : ''}`}
+                        type="button"
+                        style={{ background: color }}
+                        aria-label={label}
+                        aria-pressed={backgroundColor === color}
+                        onClick={() => {
+                          setBackgroundColor(color)
+                          setPaletteOpen(false)
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

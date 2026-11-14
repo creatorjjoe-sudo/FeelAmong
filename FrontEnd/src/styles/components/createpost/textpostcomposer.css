@@ -319,6 +319,21 @@
  display: none;
 }
 
+.text-post-palette-row {
+ position: relative;
+ display: flex;
+ align-items: center;
+ gap: 5px;
+ margin: 13px 8px 0;
+}
+
+.text-post-palette-row .text-post-background-options {
+ width: auto;
+ min-width: 0;
+ flex: 1 1 auto;
+ margin: 0;
+}
+
 .text-post-background-option {
  position: relative;
  flex: 0 0 31px;
@@ -328,6 +343,44 @@
  border: 0;
  border-radius: 5px;
  cursor: pointer;
+}
+
+.text-post-palette-more {
+ position: relative;
+ flex: 0 0 35px;
+}
+
+.text-post-palette-more-button {
+ width: 35px;
+ height: 30px;
+ padding: 0;
+ border: 0;
+ border-radius: 5px;
+ background: #d7dfe8;
+ color: #172117;
+ font-size: 23px;
+ font-weight: 700;
+ line-height: 20px;
+ cursor: pointer;
+}
+
+.text-post-more-colors {
+ position: absolute;
+ right: 0;
+ bottom: calc(100% + 9px);
+ z-index: 20;
+ display: grid;
+ grid-template-columns: repeat(4, 31px);
+ gap: 10px 8px;
+ padding: 12px;
+ border: 1px solid #dfe3e8;
+ border-radius: 12px;
+ background: #fff;
+ box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+.text-post-more-colors .text-post-background-option {
+ margin: 0;
 }
 
 .text-post-background-option.is-selected::after {
@@ -587,9 +640,15 @@ html[data-theme="dark"] .text-post-composer {
 }
 
 html[data-theme="dark"] .text-post-audio-button,
-html[data-theme="dark"] .text-post-menu {
+html[data-theme="dark"] .text-post-menu,
+html[data-theme="dark"] .text-post-more-colors {
  border-color: #303a33;
  background: #1b211e;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .text-post-palette-more-button {
+ background: #29352d;
  color: #e5ebe6;
 }
 

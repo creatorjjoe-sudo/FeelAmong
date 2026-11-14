@@ -13,7 +13,13 @@ const TEXT_POST_BACKGROUNDS = new Set([
   '#d8f3dc', '#dbeafe', '#1f2937', '#173b35', '#23395d', '#572b4a',
   '#ff0000', '#0000ff', '#009933', '#ff00ff', '#ffff00', '#808080',
   'linear-gradient(135deg, #ff0000, #0000ff)', '#006837',
-  'linear-gradient(135deg, #0000ff, #000000)'
+  'linear-gradient(135deg, #0000ff, #000000)',
+  'linear-gradient(135deg, #009933, #000000)',
+  'linear-gradient(135deg, #ff00ff, #009933 50%, #808080)',
+  'linear-gradient(135deg, #8a00ff, #ff00ff)',
+  'linear-gradient(135deg, #ff00ff, #000000)',
+  '#003399', '#dff4ef', '#d5efff', '#ffd2d8',
+  '#ff8a00', '#00a6a6', '#7b2cbf', '#f4c430', '#e63946', '#2a9d8f', '#457b9d', '#f1c0e8'
 ]);
 
 async function removeUploadedFiles(files) {
