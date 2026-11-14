@@ -3,9 +3,9 @@ import { useContext } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AuthContext } from '../api/context/AuthContext'
 import LoginRequiredModal from '../components/dashboard/LoginRequiredModal'
-import CreatePostMenu from '../components/dashboard/CreatePostMenu'
 import '../styles/pages/profile.css'
 import { getProfileAvatar } from '../utils/profileAvatar'
+import { getTextPostColor } from '../utils/textPostColors'
 import { closeRoutedModal, pushRoutedModal } from '../utils/routedModal'
 import { animatePreviewElement } from '../utils/animatePreviewElement'
 
@@ -173,8 +173,8 @@ function ProfilePage() {
     }
   }, [avatarOriginRect, isAvatarPreviewOpen])
 
-  function handleCreatePost(toggleMenu) {
-    if (requireLogin()) toggleMenu()
+  function handleCreatePost() {
+    if (requireLogin()) navigate('/post-create-one')
   }
 
   async function handleAccountLogin() {
@@ -505,19 +505,9 @@ function ProfilePage() {
             <div className="profile-empty-state">
               <p className="profile-state">{isOwnProfile ? 'You haven’t shared any posts yet.' : 'This user hasn’t shared any posts yet.'}</p>
               {isOwnProfile && (
-                <CreatePostMenu className="profile-create-post-menu" onSelect={(postType) => navigate(postType === 'video' ? '/video-create-one' : `/post-create-one?type=${postType}`)}>
-                  {({ isOpen, toggle }) => (
-                    <button
-                      className="profile-create-post-button"
-                      type="button"
-                      aria-expanded={isOpen}
-                      aria-haspopup="menu"
-                      onClick={() => handleCreatePost(toggle)}
-                    >
-                      Create post
-                    </button>
-                  )}
-                </CreatePostMenu>
+                <button className="profile-create-post-button" type="button" onClick={handleCreatePost}>
+                  Create post
+                </button>
               )}
             </div>
           )}
@@ -532,9 +522,13 @@ function ProfilePage() {
                     {displayedPost.postType === 'text' ? (
                       <div
                         className="profile-text-post"
-                        style={{ backgroundColor: displayedPost.backgroundColor === 'none' ? 'transparent' : (displayedPost.backgroundColor || '#f1f7f1') }}
+                        style={{
+                          background: displayedPost.backgroundColor === 'none' ? 'transparent' : (displayedPost.backgroundColor || '#f1f7f1'),
+                          color: getTextPostColor(displayedPost.backgroundColor || '#f1f7f1'),
+                        }}
                       >
                         <p>{displayedPost.description}</p>
+                        {firstImage && <img className="profile-text-post-photo" src={firstImage} alt="" />}
                       </div>
                     ) : firstImage ? (
                       <img className="profile-post-image" src={firstImage} alt={displayedPost.title || 'Post'} />

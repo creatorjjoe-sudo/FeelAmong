@@ -10,7 +10,10 @@ const POST_TYPES = ['text', 'image'];
 const REPORT_REASONS = ['Spam', 'Harassment', 'Inappropriate content', 'False information', 'Other'];
 const TEXT_POST_BACKGROUNDS = new Set([
   'none', '#f1f7f1', '#e5f3ff', '#fff1e6', '#fff8cc', '#f4eaff', '#ffe8ef',
-  '#d8f3dc', '#dbeafe', '#1f2937', '#173b35', '#23395d', '#572b4a'
+  '#d8f3dc', '#dbeafe', '#1f2937', '#173b35', '#23395d', '#572b4a',
+  '#ff0000', '#0000ff', '#009933', '#ff00ff', '#ffff00', '#808080',
+  'linear-gradient(135deg, #ff0000, #0000ff)', '#006837',
+  'linear-gradient(135deg, #0000ff, #000000)'
 ]);
 
 async function removeUploadedFiles(files) {
@@ -79,10 +82,6 @@ const createPost = async (req, res) => {
       ? uploadedFiles.map((file) => `/uploads/posts/${file.filename}`)
       : (Array.isArray(images) ? images : []);
 
-    if (postType === 'image' && !trimmedTitle) {
-      await removeUploadedFiles(uploadedFiles);
-      return res.status(400).json({ message: 'Title is required for image posts' });
-    }
     if (postType === 'image' && imagePaths.length === 0) {
       await removeUploadedFiles(uploadedFiles);
       return res.status(400).json({ message: 'At least one image is required for image posts' });
@@ -91,11 +90,6 @@ const createPost = async (req, res) => {
       await removeUploadedFiles(uploadedFiles);
       return res.status(400).json({ message: 'Text posts require content' });
     }
-    if (postType === 'text' && imagePaths.length > 0) {
-      await removeUploadedFiles(uploadedFiles);
-      return res.status(400).json({ message: 'Text posts cannot include images' });
-    }
-
     let post;
     try {
       post = await Post.create({
@@ -184,18 +178,7 @@ const updatePost = async (req, res) => {
       await removeUploadedFiles(uploadedFiles);
       return res.status(400).json({ message: 'Select a valid text post background' });
     }
-    const nextImages = postType === 'image'
-      ? [...retainedImages, ...uploadedFiles.map((file) => `/uploads/posts/${file.filename}`)]
-      : [];
-
-    if (postType === 'text' && uploadedFiles.length > 0) {
-      await removeUploadedFiles(uploadedFiles);
-      return res.status(400).json({ message: 'Text posts cannot include images' });
-    }
-    if (postType === 'image' && !title) {
-      await removeUploadedFiles(uploadedFiles);
-      return res.status(400).json({ message: 'Title is required for image posts' });
-    }
+    const nextImages = [...retainedImages, ...uploadedFiles.map((file) => `/uploads/posts/${file.filename}`)];
     if (postType === 'image' && nextImages.length === 0) {
       await removeUploadedFiles(uploadedFiles);
       return res.status(400).json({ message: 'At least one image is required for image posts' });

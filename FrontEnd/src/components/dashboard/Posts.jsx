@@ -6,7 +6,7 @@ import { AuthContext } from '../../api/context/AuthContext'
 import LoginRequiredModal from './LoginRequiredModal'
 import PostImageGrid from '../createpost/PostImageGrid'
 import ImagePreviewModal from './ImagePreviewModal'
-import { DEFAULT_TEXT_POST_BACKGROUND, getTextPostColor, isNoneTextPostBackground } from '../../utils/textPostColors'
+import { DEFAULT_TEXT_POST_BACKGROUND, getTextPostColor, isNoneTextPostBackground, isValidTextPostBackground } from '../../utils/textPostColors'
 import { animate, motion } from 'framer-motion'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
@@ -123,7 +123,7 @@ function TextPostContent({ text, backgroundColor, onClick, contentRef, maxFontSi
         if (contentRef) contentRef.current = element
       }}
       style={isPlain ? undefined : {
-        backgroundColor,
+        background: backgroundColor,
         color: getTextPostColor(backgroundColor),
       }}
     >
@@ -992,11 +992,9 @@ function Posts() {
           const postDescription = typeof post.description === 'string' ? post.description.trim() : ''
           const shareCaption = typeof post.shareCaption === 'string' ? post.shareCaption.trim() : ''
           const sharedPost = post.sharedPost
-          const textPostBackground = /^#[0-9a-f]{6}$/i.test(post.backgroundColor || '')
+          const textPostBackground = isValidTextPostBackground(post.backgroundColor)
             ? post.backgroundColor
-            : isNoneTextPostBackground(post.backgroundColor)
-              ? 'none'
-              : DEFAULT_TEXT_POST_BACKGROUND
+            : DEFAULT_TEXT_POST_BACKGROUND
           const postImages = Array.isArray(post.images)
             ? post.images.filter((image) => typeof image === 'string').map((image) => ({
               src: image.startsWith('/') ? `${API_ORIGIN}${image}` : image,
@@ -1066,14 +1064,27 @@ function Posts() {
                       </article>
                     </div>
                   ) : isTextPost
-                    ? postDescription && (
-                      <TextPostContent text={postDescription} backgroundColor={textPostBackground} onClick={(element) => {
-                        const { left, top, width, height } = element.getBoundingClientRect(); setTextPostPreview({
-                          text: postDescription, backgroundColor: textPostBackground, originRect: { left, top, width, height, sourceElement: element },
-                        })
-                        openPostModal('text-preview')
-                      }}
-                      />
+                    ? (
+                      <>
+                        {postDescription && (
+                          <TextPostContent text={postDescription} backgroundColor={textPostBackground} onClick={(element) => {
+                            const { left, top, width, height } = element.getBoundingClientRect(); setTextPostPreview({
+                              text: postDescription, backgroundColor: textPostBackground, originRect: { left, top, width, height, sourceElement: element },
+                            })
+                            openPostModal('text-preview')
+                          }}
+                          />
+                        )}
+                        {postImages.length > 0 && (
+                          <PostImageGrid images={postImages} className="post-image-grid-feed" onImageClick={(index, tile) => {
+                            const { left, top, width, height } = tile.getBoundingClientRect(); setImagePreview({
+                              images: postImages, initialIndex: index, originRect: { left, top, width, height, sourceElement: tile },
+                            })
+                            openPostModal('image-preview')
+                          }}
+                          />
+                        )}
+                      </>
                     )
                     : (
                       <>

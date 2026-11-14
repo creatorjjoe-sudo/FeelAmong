@@ -5,7 +5,6 @@ import { AuthContext } from '../../api/context/AuthContext'
 import SearchModal from './SearchModal'
 import ProfileMenuModal from './ProfileMenuModal'
 import LoginRequiredModal from './LoginRequiredModal'
-import CreatePostMenu from './CreatePostMenu'
 import NotificationBell from './NotificationBell'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import '../../styles/components/dashboard/navbar.css'
@@ -36,17 +35,13 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
     else if (location.pathname.includes('/videos')) switchActive('videos')
   }, [isOwnProfileRoute, location.pathname, switchActive])
 
-  function handleCreate(toggleMenu) {
+  function handleCreate() {
     if (!user || user.isAnonymous === true) {
       pushRoutedModal(navigate, location, 'navbar-login-required')
       return
     }
 
-    toggleMenu()
-  }
-
-  function handlePostTypeSelect(postType) {
-    navigate(postType === 'video' ? '/video-create-one' : `/post-create-one?type=${postType}`)
+    navigate('/post-create-one')
   }
 
   async function handleLogin() {
@@ -112,19 +107,9 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
         </div>
       </Link>
 
-      <CreatePostMenu onSelect={handlePostTypeSelect}>
-        {({ isOpen, toggle }) => (
-          <button
-            className="create-btn"
-            type="button"
-            aria-expanded={isOpen}
-            aria-haspopup="menu"
-            onClick={() => handleCreate(toggle)}
-          >
-            Create post
-          </button>
-        )}
-      </CreatePostMenu>
+      <button className="create-btn" type="button" onClick={handleCreate}>
+        Create post
+      </button>
 
 
 

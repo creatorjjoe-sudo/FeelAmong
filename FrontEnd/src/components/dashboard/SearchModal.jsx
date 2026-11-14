@@ -6,6 +6,7 @@ import { AuthContext } from '../../api/context/AuthContext'
 import '../../styles/components/dashboard/searchmodal.css'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { replaceWithRoutedModal } from '../../utils/routedModal'
+import { getTextPostColor } from '../../utils/textPostColors'
 
 const RECENT_SEARCHES_KEY = 'recentSearchItems'
 const API_ORIGIN = 'http://localhost:5000'
@@ -249,7 +250,10 @@ function SearchModal({ open, onClose, anchorRef, modalKey }) {
                 ) : (
                   <span
                     className="search-result-avatar search-result-text-post"
-                    style={{ backgroundColor: item.backgroundColor === 'none' ? 'transparent' : (item.backgroundColor || '#f1f7f1') }}
+                    style={{
+                      background: item.backgroundColor === 'none' ? 'transparent' : (item.backgroundColor || '#f1f7f1'),
+                      color: getTextPostColor(item.backgroundColor || '#f1f7f1'),
+                    }}
                     aria-hidden="true"
                   >
                     {item.previewText || item.title}

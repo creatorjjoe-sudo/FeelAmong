@@ -1,20 +1,23 @@
 export const TEXT_POST_BACKGROUNDS = [
-  { color: '#f1f7f1', label: 'Soft sage' },
-  { color: '#e5f3ff', label: 'Sky blue' },
-  { color: '#fff1e6', label: 'Peach' },
-  { color: '#fff8cc', label: 'Butter yellow' },
-  { color: '#f4eaff', label: 'Lavender' },
-  { color: '#ffe8ef', label: 'Rose' },
-  { color: '#d8f3dc', label: 'Mint' },
-  { color: '#dbeafe', label: 'Blue' },
-  { color: '#1f2937', label: 'Charcoal' },
-  { color: '#173b35', label: 'Forest' },
-  { color: '#23395d', label: 'Navy' },
-  { color: '#572b4a', label: 'Plum' },
+  { color: '#ff0000', label: 'Red' },
+  { color: '#0000ff', label: 'Blue' },
+  { color: '#009933', label: 'Green' },
+  { color: '#ff00ff', label: 'Magenta' },
+  { color: '#ffff00', label: 'Yellow' },
+  { color: '#808080', label: 'Gray' },
+  { color: 'linear-gradient(135deg, #ff0000, #0000ff)', label: 'Red and blue gradient' },
+  { color: '#006837', label: 'Forest green' },
+  { color: 'linear-gradient(135deg, #0000ff, #000000)', label: 'Blue and black gradient' },
 ]
 
 export const DEFAULT_TEXT_POST_BACKGROUND = '#f1f7f1'
 export const NONE_TEXT_POST_BACKGROUND = 'none'
+
+export function isValidTextPostBackground(backgroundColor) {
+  return backgroundColor === NONE_TEXT_POST_BACKGROUND
+    || TEXT_POST_BACKGROUNDS.some(({ color }) => color === backgroundColor)
+    || /^#[0-9a-f]{6}$/i.test(backgroundColor || '')
+}
 
 export function isNoneTextPostBackground(backgroundColor) {
   return backgroundColor === NONE_TEXT_POST_BACKGROUND
@@ -22,6 +25,7 @@ export function isNoneTextPostBackground(backgroundColor) {
 
 export function getTextPostColor(backgroundColor) {
   if (isNoneTextPostBackground(backgroundColor)) return '#172117'
+  if (backgroundColor?.startsWith('linear-gradient(')) return '#fff'
   const fallbackHex = DEFAULT_TEXT_POST_BACKGROUND.slice(1)
   const hex = /^#[0-9a-f]{6}$/i.test(backgroundColor || '') ? backgroundColor.slice(1) : fallbackHex
   const channels = [0, 2, 4].map((index) => parseInt(hex.slice(index, index + 2), 16) / 255)
