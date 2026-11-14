@@ -6,7 +6,7 @@ import { AuthContext } from '../../../src/api/context/AuthContext'; // Hooked gl
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 
-function LoginForm({ view, switchView, selectedAccount, onCancelAccount }) {
+function LoginForm({ view, switchView, selectedAccount, onCancelAccount, onRemoveDeviceAccount }) {
   const location = useLocation();
   const [step, setStep] = useState(selectedAccount ? 2 : 1);
   const [accountPreview, setAccountPreview] = useState(selectedAccount || null);
@@ -25,6 +25,11 @@ function LoginForm({ view, switchView, selectedAccount, onCancelAccount }) {
   const showIncorrectPasswordModal = location.state?.routedModal === 'login-incorrect-password'
 
   const [showAccountPasswordModal, setShowAccountPasswordModal] = useState(!!selectedAccount);
+  const [isAccountSettingsOpen, setIsAccountSettingsOpen] = useState(false);
+  const [showRemoveAccountModal, setShowRemoveAccountModal] = useState(false);
+  const [removeAccountPassword, setRemoveAccountPassword] = useState('');
+  const [removeAccountError, setRemoveAccountError] = useState('');
+  const [isRemovingAccount, setIsRemovingAccount] = useState(false);
   const modalPasswordInputRef = React.useRef(null);
   // Marks the history entry pushed for this modal, so the browser back button
   // can close the modal the same way the other routed modals in the app do.
@@ -206,6 +211,51 @@ function LoginForm({ view, switchView, selectedAccount, onCancelAccount }) {
     // form so the "Try again" flow has somewhere to land.
   };
 
+  const handleRemoveDeviceAccount = async (event) => {
+    event.preventDefault();
+    if (!selectedAccount || !removeAccountPassword || isRemovingAccount) return;
+
+    setRemoveAccountError('');
+    setIsRemovingAccount(true);
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          loginIdentifier: selectedAccount.email || selectedAccount.username,
+          password: removeAccountPassword,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(response.status === 401
+          ? 'The password is incorrect.'
+          : result.message || 'Could not verify your password.');
+      }
+
+      const accountId = selectedAccount._id;
+      if (!accountId || String(result._id) !== String(accountId)) {
+        throw new Error('The verified account does not match the saved account.');
+      }
+
+      onRemoveDeviceAccount(accountId);
+      setShowRemoveAccountModal(false);
+      setRemoveAccountPassword('');
+      cancelAccountLogin();
+    } catch (verificationError) {
+      setRemoveAccountError(verificationError.message || 'Could not remove this account.');
+    } finally {
+      setIsRemovingAccount(false);
+    }
+  };
+
+  const cancelRemoveAccount = () => {
+    if (isRemovingAccount) return;
+    setShowRemoveAccountModal(false);
+    setRemoveAccountPassword('');
+    setRemoveAccountError('');
+  };
+
   function signup() {
     switchView('signup');
   }
@@ -273,6 +323,84 @@ function LoginForm({ view, switchView, selectedAccount, onCancelAccount }) {
                 </button>
                 <button type="submit" className="account-password-login" disabled={loading}>
                   {loading ? 'Logging in...' : 'Login'}
+                </button>
+              </div>
+            </form>
+            <div className="account-settings">
+              <button
+                className="account-settings-trigger"
+                type="button"
+                aria-label="Account settings"
+                aria-haspopup="menu"
+                aria-expanded={isAccountSettingsOpen}
+                onClick={() => setIsAccountSettingsOpen((open) => !open)}
+              >
+                <img src={ICONS.settings} alt="" />
+              </button>
+              {isAccountSettingsOpen && (
+                <div className="account-settings-menu" role="menu" aria-label="Account settings">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsAccountSettingsOpen(false);
+                      setRemoveAccountError('');
+                      setShowRemoveAccountModal(true);
+                    }}
+                  >
+                    Remove account from this device
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => setIsAccountSettingsOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+      {showRemoveAccountModal && selectedAccount && (
+        <div className="login-modal-backdrop remove-account-backdrop">
+          <section
+            className="account-password-modal remove-account-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="remove-account-title"
+          >
+            <h2 id="remove-account-title">Remove account from this device?</h2>
+            <p>Enter your password to confirm. This only removes the saved account from this device.</p>
+            <form onSubmit={handleRemoveDeviceAccount}>
+              <div className="account-password-input">
+                <input
+                  id="remove-account-password"
+                  type="password"
+                  placeholder=" "
+                  value={removeAccountPassword}
+                  onChange={(event) => setRemoveAccountPassword(event.target.value)}
+                  disabled={isRemovingAccount}
+                  required
+                />
+                <label htmlFor="remove-account-password">Password</label>
+                <label htmlFor="remove-account-password" className="input-icon">
+                  <img src={ICONS.lock} alt="" />
+                </label>
+              </div>
+              {removeAccountError && <p className="remove-account-error" role="alert">{removeAccountError}</p>}
+              <div className="account-password-actions">
+                <button
+                  type="button"
+                  className="account-password-cancel"
+                  onClick={cancelRemoveAccount}
+                  disabled={isRemovingAccount}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="account-password-login" disabled={isRemovingAccount}>
+                  {isRemovingAccount ? 'Verifying...' : 'Confirm removal'}
                 </button>
               </div>
             </form>

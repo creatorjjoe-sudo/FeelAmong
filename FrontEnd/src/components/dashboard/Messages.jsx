@@ -709,6 +709,16 @@ function Messages() {
                   const timeLabel = isPending
                     ? 'Sending'
                     : (endsGroup ? formatGroupTime(msg.createdAt) : null)
+                  const replySenderId = msg.sender?._id || msg.sender
+                  const repliedToSenderId = msg.replyTo?.sender?._id || msg.replyTo?.sender
+                  const replySenderName = isMine
+                    ? 'You'
+                    : (msg.sender?.username || selectedContact?.username || 'them')
+                  const repliedToSenderName = String(repliedToSenderId) === String(user?._id)
+                    ? (isMine && String(replySenderId) === String(user?._id) ? 'yourself' : 'You')
+                    : String(replySenderId) === String(repliedToSenderId)
+                      ? (isMine ? 'yourself' : 'themselves')
+                      : (msg.replyTo?.sender?.username || selectedContact?.username || 'them')
 
                   const timeElement = timeLabel && (
                     <time
@@ -754,11 +764,7 @@ function Messages() {
                     msg.replyTo && !msg.deletedAt && (
                       <div key={`reply-context-${msg._id}`} className="message-reply-context">
                         <span className="message-reply-label">
-                          You replied to
-                          {' '}
-                          {String(msg.replyTo.sender?._id || msg.replyTo.sender) === String(user?._id)
-                            ? 'yourself'
-                            : (msg.replyTo.sender?.username || selectedContact?.username || 'them')}
+                          {replySenderName} replied to {repliedToSenderName}
                         </span>
                         <span className="message-reply-quote" aria-label="Replying to">
                           <span className="message-reply-quote-text">

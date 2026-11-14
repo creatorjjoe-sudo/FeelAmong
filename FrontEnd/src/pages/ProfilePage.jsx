@@ -525,24 +525,30 @@ function ProfilePage() {
           {!isLoading && !error && posts.length > 0 && (
             <div className="profile-post-grid">
               {posts.map((post) => {
-                const firstImage = Array.isArray(post.images) ? resolveImageUrl(post.images[0]) : ''
+                const displayedPost = post.sharedPost || post
+                const firstImage = Array.isArray(displayedPost.images) ? resolveImageUrl(displayedPost.images[0]) : ''
                 return (
                   <article className="profile-post-card" key={post._id}>
-                    {post.postType === 'text' ? (
+                    {displayedPost.postType === 'text' ? (
                       <div
                         className="profile-text-post"
-                        style={{ backgroundColor: post.backgroundColor === 'none' ? 'transparent' : (post.backgroundColor || '#f1f7f1') }}
+                        style={{ backgroundColor: displayedPost.backgroundColor === 'none' ? 'transparent' : (displayedPost.backgroundColor || '#f1f7f1') }}
                       >
-                        <p>{post.description}</p>
+                        <p>{displayedPost.description}</p>
                       </div>
                     ) : firstImage ? (
-                      <img className="profile-post-image" src={firstImage} alt={post.title || 'Post'} />
+                      <img className="profile-post-image" src={firstImage} alt={displayedPost.title || 'Post'} />
                     ) : (
-                      <div className="profile-post-placeholder">{post.title || 'Post'}</div>
+                      <div className="profile-post-placeholder">{displayedPost.title || 'Post'}</div>
                     )}
                     <div className="profile-post-copy">
-                      {post.title && <h3>{post.title}</h3>}
-                      <p>{post.description || (post.images?.length ? `${post.images.length} image${post.images.length === 1 ? '' : 's'}` : 'Post')}</p>
+                      {post.shareCaption && <h3>{post.shareCaption}</h3>}
+                      {!post.sharedPost && post.title && <h3>{post.title}</h3>}
+                      <p>
+                        {post.sharedPost
+                          ? `Shared from ${displayedPost.user?.username || 'another user'}`
+                          : post.description || (post.images?.length ? `${post.images.length} image${post.images.length === 1 ? '' : 's'}` : 'Post')}
+                      </p>
                     </div>
                   </article>
                 )

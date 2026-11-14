@@ -1,4 +1,5 @@
 const Post = require('../models/Post');
+const User = require('../models/User');
 const PostReport = require('../models/PostReport');
 const SavedItem = require('../models/SavedItem');
 const { getIO } = require('../config/socket');
@@ -291,6 +292,99 @@ const addComment = async (req, res) => {
   }
 };
 
+const addCommentReply = async (req, res) => {
+  try {
+    const text = typeof req.body.text === 'string' ? req.body.text.trim() : '';
+    if (!text) return res.status(400).json({ message: 'Reply cannot be empty' });
+    if (text.length > 1000) return res.status(400).json({ message: 'Reply must be 1000 characters or fewer' });
+
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    const comment = post.comments.id(req.params.commentId);
+    if (!comment) return res.status(404).json({ message: 'Comment not found' });
+
+    let reply;
+    if (req.body.parentReplyId) {
+      const parentReply = comment.replies.id(req.body.parentReplyId);
+      if (!parentReply) return res.status(404).json({ message: 'Reply not found' });
+      parentReply.replies.push({ user: req.user._id, text });
+      reply = parentReply.replies[parentReply.replies.length - 1];
+    } else {
+      comment.replies.push({ user: req.user._id, text });
+      reply = comment.replies[comment.replies.length - 1];
+    }
+
+    await post.save();
+    await post.populate([
+      { path: 'comments.user', select: 'username avatar sex' },
+      { path: 'comments.replies.user', select: 'username avatar sex' },
+      { path: 'comments.replies.replies.user', select: 'username avatar sex' }
+    ]);
+    const savedComment = post.comments.id(comment._id);
+    const savedReply = req.body.parentReplyId
+      ? savedComment.replies.id(req.body.parentReplyId).replies.id(reply._id)
+      : savedComment.replies.id(reply._id);
+
+    await createNotification({
+      recipient: post.user,
+      actor: req.user._id,
+      type: 'comment',
+      target: post._id,
+      targetModel: 'Post',
+      text: text.length > 80 ? `${text.slice(0, 80)}…` : text
+    });
+
+    res.status(201).json({
+      postId: post._id,
+      commentId: comment._id,
+      parentReplyId: req.body.parentReplyId || null,
+      reply: savedReply.toObject()
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const toggleCommentLike = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    const comment = post.comments.id(req.params.commentId);
+    if (!comment) return res.status(404).json({ message: 'Comment not found' });
+
+    let target = comment;
+    if (req.body.replyId) {
+      target = comment.replies.id(req.body.replyId);
+      if (!target) return res.status(404).json({ message: 'Reply not found' });
+    }
+    if (req.body.subReplyId) {
+      if (!req.body.replyId) return res.status(400).json({ message: 'A parent reply is required' });
+      target = target.replies.id(req.body.subReplyId);
+      if (!target) return res.status(404).json({ message: 'Sub-reply not found' });
+    }
+
+    const userId = String(req.user._id);
+    const alreadyLiked = target.likes.some((likeId) => String(likeId) === userId);
+    target.likes = alreadyLiked
+      ? target.likes.filter((likeId) => String(likeId) !== userId)
+      : [...target.likes, req.user._id];
+    await post.save();
+
+    res.json({
+      postId: post._id,
+      commentId: comment._id,
+      replyId: req.body.replyId || null,
+      subReplyId: req.body.subReplyId || null,
+      isLiked: !alreadyLiked,
+      likesCount: target.likes.length
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 const reportPost = async (req, res) => {
   try {
     const { reason } = req.body;
@@ -329,6 +423,78 @@ const incrementShareCount = async (req, res) => {
   }
 };
 
+const createSharedPost = async (req, res) => {
+  try {
+    const sourcePost = await Post.findById(req.params.id);
+    if (!sourcePost) return res.status(404).json({ message: 'Post not found' });
+
+    const ownerId = String(sourcePost.user);
+    const currentUserId = String(req.user._id);
+    if (sourcePost.visibility === 'private' && ownerId !== currentUserId) {
+      return res.status(403).json({ message: 'This post cannot be shared' });
+    }
+
+    if (sourcePost.visibility === 'friends' && ownerId !== currentUserId) {
+      const owner = await User.findById(sourcePost.user).select('friends');
+      const isFriend = owner?.friends?.some((friendId) => String(friendId) === currentUserId);
+      if (!isFriend) return res.status(403).json({ message: 'This post cannot be shared' });
+    }
+
+    const visibility = req.body.visibility || 'public';
+    const shareCaption = typeof req.body.description === 'string'
+      ? req.body.description.trim()
+      : '';
+    if (!POST_VISIBILITIES.includes(visibility)) {
+      return res.status(400).json({ message: 'Visibility must be public, private, or friends' });
+    }
+    if (shareCaption.length > 1000) {
+      return res.status(400).json({ message: 'Description must be 1000 characters or fewer' });
+    }
+
+    const updatedSource = await Post.findByIdAndUpdate(
+      sourcePost._id,
+      { $inc: { sharesCount: 1 } },
+      { new: true, select: 'sharesCount' }
+    );
+    if (!updatedSource) return res.status(404).json({ message: 'Post not found' });
+
+    let sharedPost;
+    try {
+      sharedPost = await Post.create({
+        user: req.user._id,
+        postType: 'share',
+        sharedPost: sourcePost._id,
+        shareCaption,
+        visibility
+      });
+    } catch (error) {
+      await Post.updateOne({ _id: sourcePost._id }, { $inc: { sharesCount: -1 } });
+      throw error;
+    }
+
+    const populatedShare = await Post.findById(sharedPost._id)
+      .populate('user', 'username avatar sex')
+      .populate({
+        path: 'sharedPost',
+        populate: { path: 'user', select: 'username avatar sex' }
+      });
+
+    try {
+      getIO().emit('new_post_created', populatedShare);
+    } catch (error) {
+      console.error('Could not broadcast shared post:', error.message);
+    }
+
+    res.status(201).json({
+      post: populatedShare,
+      sourcePostId: sourcePost._id,
+      sharesCount: updatedSource.sharesCount
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Get Feed Posts
 const getPosts = async (req, res) => {
   try {
@@ -337,6 +503,15 @@ const getPosts = async (req, res) => {
         .populate('user', 'username avatar sex')
         .populate('likes', 'username avatar sex')
         .populate('comments.user', 'username avatar sex')
+        .populate('comments.likes', 'username avatar sex')
+        .populate('comments.replies.user', 'username avatar sex')
+        .populate('comments.replies.likes', 'username avatar sex')
+        .populate('comments.replies.replies.user', 'username avatar sex')
+        .populate('comments.replies.replies.likes', 'username avatar sex')
+        .populate({
+          path: 'sharedPost',
+          populate: { path: 'user', select: 'username avatar sex' }
+        })
         .lean(),
       Post.aggregate([
         {
@@ -441,6 +616,9 @@ module.exports = {
   toggleLikePost,
   toggleSavePost,
   addComment,
+  addCommentReply,
+  toggleCommentLike,
   reportPost,
-  incrementShareCount
+  incrementShareCount,
+  createSharedPost
 };

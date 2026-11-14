@@ -28,8 +28,32 @@ function formatTimeAgo(createdAt) {
   return `${value} ${unit}${value === 1 ? '' : 's'} ago`
 }
 
+function formatThreadTime(createdAt) {
+  const label = formatTimeAgo(createdAt)
+  const match = label.match(/^(\d+) (year|month|day|hour|minute)s? ago$/)
+  if (!match) return label
+  const unitShort = {
+    year: 'y',
+    month: 'mo',
+    day: 'd',
+    hour: 'h',
+    minute: 'm',
+  }[match[2]]
+  return `${match[1]}${unitShort}`
+}
+
 function getLikeUserId(like) {
   return String(typeof like === 'object' && like !== null ? like._id : like)
+}
+
+function getCommentThreadCounts(comments = []) {
+  return comments.reduce((counts, comment) => {
+    counts.replies += comment.replies?.length || 0
+    for (const reply of comment.replies || []) {
+      counts.subReplies += reply.replies?.length || 0
+    }
+    return counts
+  }, { comments: comments.length, replies: 0, subReplies: 0 })
 }
 
 function getAvatarSrc(user) {
@@ -337,6 +361,12 @@ function Posts() {
   ))
   const [activeDialog, setActiveDialog] = React.useState(null)
   const [commentDraft, setCommentDraft] = React.useState('')
+  const [replyTarget, setReplyTarget] = React.useState(null)
+  const [isSubmittingComment, setIsSubmittingComment] = React.useState(false)
+  const [shareDescription, setShareDescription] = React.useState('')
+  const [shareVisibility, setShareVisibility] = React.useState('public')
+  const [isSubmittingShare, setIsSubmittingShare] = React.useState(false)
+  const [shareLinkCopied, setShareLinkCopied] = React.useState(false)
   const [reportReason, setReportReason] = React.useState('')
   const [reportDetails, setReportDetails] = React.useState('')
   const [notice, setNotice] = React.useState('')
@@ -430,7 +460,7 @@ function Posts() {
   }, [closeCurrentModal, isPostPreviewOpen, routedModal])
 
   React.useEffect(() => {
-    if (routedModal !== 'comments' && routedModal !== 'report') return undefined
+    if (routedModal !== 'comments' && routedModal !== 'report' && routedModal !== 'share-post') return undefined
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') closeCurrentModal()
     }
@@ -595,28 +625,114 @@ function Posts() {
 
   async function addComment(event) {
     event.preventDefault()
-    if (!requireLogin() || !activeDialog) return
+    if (!requireLogin() || !activeDialog || isSubmittingComment) return
 
     const text = commentDraft.trim()
     if (!text) return
 
+    setIsSubmittingComment(true)
     try {
-      const response = await fetch(`${baseURL}/${activeDialog.postId}/comments`, {
+      const endpoint = replyTarget
+        ? `${baseURL}/${activeDialog.postId}/comments/${replyTarget.commentId}/replies`
+        : `${baseURL}/${activeDialog.postId}/comments`
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({
+          text,
+          ...(replyTarget?.replyId ? { parentReplyId: replyTarget.replyId } : {}),
+        }),
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.message || 'Unable to add comment.')
-      setPosts((currentPosts) => currentPosts.map((post) =>
-        post._id === activeDialog.postId
-          ? { ...post, comments: [...(post.comments || []), result.comment] }
-          : post
-      ))
+      setPosts((currentPosts) => currentPosts.map((post) => {
+        if (String(post._id) !== String(activeDialog.postId)) return post
+
+        if (!replyTarget) {
+          return { ...post, comments: [...(post.comments || []), result.comment] }
+        }
+
+        return {
+          ...post,
+          comments: (post.comments || []).map((comment) => {
+            if (String(comment._id) !== String(result.commentId)) return comment
+            if (!result.parentReplyId) {
+              return { ...comment, replies: [...(comment.replies || []), result.reply] }
+            }
+            return {
+              ...comment,
+              replies: (comment.replies || []).map((reply) => (
+                String(reply._id) === String(result.parentReplyId)
+                  ? { ...reply, replies: [...(reply.replies || []), result.reply] }
+                  : reply
+              )),
+            }
+          }),
+        }
+      }))
       setCommentDraft('')
-      setActiveDialog(null)
-      closeCurrentModal()
-      showNotice('Comment added.')
+      setReplyTarget(null)
+    } catch (actionError) {
+      setError(actionError.message)
+    } finally {
+      setIsSubmittingComment(false)
+    }
+  }
+
+  async function toggleCommentLike(postId, commentId, replyId = null, subReplyId = null) {
+    if (!requireLogin()) return
+
+    try {
+      const response = await fetch(`${baseURL}/${postId}/comments/${commentId}/like`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          ...(replyId ? { replyId } : {}),
+          ...(subReplyId ? { subReplyId } : {}),
+        }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.message || 'Unable to update comment like.')
+
+      const currentUserId = String(user?._id)
+      const currentUser = {
+        _id: currentUserId,
+        username: user?.username || 'User',
+        avatar: user?.avatar || '',
+        sex: user?.sex || '',
+      }
+      const updateLikes = (likes = []) => (
+        result.isLiked
+          ? [...likes.filter((like) => getLikeUserId(like) !== currentUserId), currentUser]
+          : likes.filter((like) => getLikeUserId(like) !== currentUserId)
+      )
+
+      setPosts((currentPosts) => currentPosts.map((post) => {
+        if (String(post._id) !== String(postId)) return post
+        return {
+          ...post,
+          comments: (post.comments || []).map((comment) => {
+            if (String(comment._id) !== String(commentId)) return comment
+            if (!replyId) return { ...comment, likes: updateLikes(comment.likes) }
+
+            return {
+              ...comment,
+              replies: (comment.replies || []).map((reply) => {
+                if (String(reply._id) !== String(replyId)) return reply
+                if (!subReplyId) return { ...reply, likes: updateLikes(reply.likes) }
+                return {
+                  ...reply,
+                  replies: (reply.replies || []).map((subReply) => (
+                    String(subReply._id) === String(subReplyId)
+                      ? { ...subReply, likes: updateLikes(subReply.likes) }
+                      : subReply
+                  )),
+                }
+              }),
+            }
+          }),
+        }
+      }))
     } catch (actionError) {
       setError(actionError.message)
     }
@@ -664,24 +780,50 @@ function Posts() {
   }
 
   async function sharePost(postId) {
-    const url = new URL(`/for-you?post=${encodeURIComponent(postId)}`, window.location.origin).toString()
-    const post = posts.find((item) => item._id === postId)
+    if (!requireLogin()) return
+    setError('')
+    setShareDescription('')
+    setShareLinkCopied(false)
+    setShareVisibility('public')
+    setActiveDialog({ type: 'share', postId })
+    openPostModal('share-post')
+    setOpenPostMenuId(null)
+  }
+
+  async function submitSharedPost(event) {
+    event.preventDefault()
+    if (!requireLogin() || !activeDialog || isSubmittingShare) return
+
+    setIsSubmittingShare(true)
+    setError('')
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: post?.title || 'FeelAmong post',
-          text: post?.description || 'See this post on FeelAmong',
-          url,
-        })
-      } else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url)
-        showNotice('Post link copied because sharing is not supported by this browser.')
-      } else {
-        throw new Error('Sharing is not supported by this browser.')
-      }
-      await recordShare(postId)
+      const response = await fetch(`${baseURL}/${activeDialog.postId}/repost`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          description: shareDescription.trim(),
+          visibility: shareVisibility,
+        }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.message || 'Unable to share this post.')
+
+      setPosts((currentPosts) => [
+        result.post,
+        ...currentPosts.map((post) => (
+          String(post._id) === String(result.sourcePostId)
+            ? { ...post, sharesCount: result.sharesCount }
+            : post
+        )),
+      ])
+      setActiveDialog(null)
+      setShareDescription('')
+      closeCurrentModal()
+      showNotice('Post shared.')
     } catch (shareError) {
-      if (shareError.name !== 'AbortError') throw shareError
+      setError(shareError.message || 'Unable to share this post.')
+    } finally {
+      setIsSubmittingShare(false)
     }
   }
 
@@ -706,6 +848,92 @@ function Posts() {
   const activePost = activeDialog
     ? posts.find((post) => post._id === activeDialog.postId)
     : null
+  const shareSourcePost = activeDialog?.type === 'share' ? activePost : null
+  const activeCommentCounts = getCommentThreadCounts(activePost?.comments || [])
+
+  function renderThreadItem(item, commentId, depth = 0, parentReplyId = null) {
+    const itemLikes = item.likes || []
+    const isLiked = itemLikes.some((like) => getLikeUserId(like) === String(user?._id))
+    const itemReplies = item.replies || []
+    const replyId = depth === 1 ? item._id : (depth === 2 ? parentReplyId : null)
+    const subReplyId = depth > 1 ? item._id : null
+
+    return (
+      <article className={`post-thread-item depth-${depth}`} key={item._id}>
+        <div className="post-thread-message">
+          <div className="post-thread-identity">
+            <img src={getAvatarSrc(item.user)} alt="" />
+            <strong>{item.user?.username || 'User'}</strong>
+            <span className="post-thread-number">{depth === 0 ? '' : itemReplies.length || ''}</span>
+          </div>
+          <div className="post-thread-bubble">
+            <p>{item.text}</p>
+          </div>
+          <div className="post-thread-actions">
+            <button
+              type="button"
+              className={`post-thread-action${isLiked ? ' is-liked' : ''}`}
+              aria-label={isLiked ? 'Unlike comment' : 'Like comment'}
+              onClick={() => toggleCommentLike(activeDialog.postId, commentId, replyId || parentReplyId, subReplyId)}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" />
+              </svg>
+              {itemLikes.length > 0 && <span>{itemLikes.length}</span>}
+            </button>
+            {depth < 2 && (
+              <button
+                type="button"
+                className="post-thread-action"
+                aria-label={`Reply to ${item.user?.username || 'comment'}`}
+                onClick={() => {
+                  if (!requireLogin()) return
+                  setReplyTarget({
+                    commentId,
+                    replyId: depth === 0 ? null : item._id,
+                    username: item.user?.username || 'User',
+                  })
+                  window.requestAnimationFrame(() => document.getElementById('post-comment-input')?.focus())
+                }}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M14 4 21 11l-7 7v-4C8.5 14 5 16 3 20c0-7 3-11 11-11V4Z" />
+                </svg>
+              </button>
+            )}
+            <time>{formatThreadTime(item.createdAt)}</time>
+          </div>
+          {depth === 0 && itemReplies.length > 0 && (
+            <button
+              className="post-thread-replies-count"
+              type="button"
+              onClick={() => {
+                if (!requireLogin()) return
+                setReplyTarget({
+                  commentId,
+                  replyId: null,
+                  username: item.user?.username || 'User',
+                })
+                window.requestAnimationFrame(() => document.getElementById('post-comment-input')?.focus())
+              }}
+            >
+              Replies: {itemReplies.length}
+            </button>
+          )}
+        </div>
+        {itemReplies.length > 0 && depth < 2 && (
+          <div className="post-thread-children">
+            {itemReplies.map((reply) => renderThreadItem(
+              reply,
+              commentId,
+              depth + 1,
+              depth === 0 ? reply._id : parentReplyId
+            ))}
+          </div>
+        )}
+      </article>
+    )
+  }
 
   return (
     <div
@@ -731,7 +959,7 @@ function Posts() {
         />
       )}
 
-      {error && <div>{error}</div>}
+      {error && activeDialog?.type !== 'share' && <div role="alert">{error}</div>}
       {notice && (
         <div className={`post-action-notice${isNoticeExiting ? ' is-exiting' : ''}`} role="status">
           {notice}
@@ -762,6 +990,8 @@ function Posts() {
           )
           const postTitle = typeof post.title === 'string' ? post.title.trim() : ''
           const postDescription = typeof post.description === 'string' ? post.description.trim() : ''
+          const shareCaption = typeof post.shareCaption === 'string' ? post.shareCaption.trim() : ''
+          const sharedPost = post.sharedPost
           const textPostBackground = /^#[0-9a-f]{6}$/i.test(post.backgroundColor || '')
             ? post.backgroundColor
             : isNoneTextPostBackground(post.backgroundColor)
@@ -795,6 +1025,7 @@ function Posts() {
                       ) : (
                         <h2>{post.user?.username || 'Unknown creator'}</h2>
                       )}
+                      {sharedPost && <p className="post-shared-byline">shared a post</p>}
                       <div className="post-time-visibility">
                         <p className='time-ago'>{formatTimeAgo(post.createdAt)}</p>
                         <img className="post-visibility-icon" src={VISIBILITY_ICONS[visibility]} alt="" title={`${visibility[0].toUpperCase()}${visibility.slice(1)} post`} aria-label={`${visibility[0].toUpperCase()} post`} />
@@ -809,7 +1040,32 @@ function Posts() {
 
                 <div className="top"></div>
                 <div className="middle">
-                  {isTextPost
+                  {sharedPost ? (
+                    <div className="post-shared-content">
+                      {shareCaption && <p className="post-share-caption">{shareCaption}</p>}
+                      <article className="post-shared-original">
+                        <div className="post-shared-original-header">
+                          <img src={getProfileAvatar(sharedPost.user)} alt="" />
+                          <strong>{sharedPost.user?.username || 'Original poster'}</strong>
+                        </div>
+                        {sharedPost.postType === 'text'
+                          ? <p className="post-shared-original-text">{sharedPost.description}</p>
+                          : (
+                            <>
+                              {sharedPost.title && <strong className="post-shared-original-title">{sharedPost.title}</strong>}
+                              {sharedPost.images?.[0] && (
+                                <img
+                                  className="post-shared-original-image"
+                                  src={sharedPost.images[0].startsWith('/') ? `${API_ORIGIN}${sharedPost.images[0]}` : sharedPost.images[0]}
+                                  alt=""
+                                />
+                              )}
+                              {sharedPost.description && <p className="post-shared-original-text">{sharedPost.description}</p>}
+                            </>
+                          )}
+                      </article>
+                    </div>
+                  ) : isTextPost
                     ? postDescription && (
                       <TextPostContent text={postDescription} backgroundColor={textPostBackground} onClick={(element) => {
                         const { left, top, width, height } = element.getBoundingClientRect(); setTextPostPreview({
@@ -862,7 +1118,7 @@ function Posts() {
                   <p className='engage-count'>{likeCount}</p>
                 </div>
                 <button className="engage-folder comments" type="button" onClick={() => {
-                  if (!requireLogin()) return; setCommentDraft(''); setActiveDialog({ type: 'comment', postId: post._id }); openPostModal('comments'); setOpenPostMenuId(null);
+                  if (!requireLogin()) return; setCommentDraft(''); setReplyTarget(null); setActiveDialog({ type: 'comment', postId: post._id }); openPostModal('comments'); setOpenPostMenuId(null);
                 }}>
                   <div className="engage-background">
                     <img src={ICONS.comment} alt="" />
@@ -910,7 +1166,7 @@ function Posts() {
                       </li>
                       <li role="none">
                         <button className="post-more-option" type="button" role="menuitem" onClick={() => {
-                          if (!requireLogin()) return; setCommentDraft(''); setActiveDialog({ type: 'comment', postId: post._id }); openPostModal('comments'); setOpenPostMenuId(null);
+                          if (!requireLogin()) return; setCommentDraft(''); setReplyTarget(null); setActiveDialog({ type: 'comment', postId: post._id }); openPostModal('comments'); setOpenPostMenuId(null);
                         }}>
                           <img src={ICONS.comment} alt="" />
                           <span>Comment</span>
@@ -934,7 +1190,7 @@ function Posts() {
                           <span>{savedByCurrentUser ? 'Saved' : 'Save'}</span>
                         </button>
                       </li>
-                      {isPostCreator && (
+                      {isPostCreator && !sharedPost && (
                         <li role="none">
                           <button className="post-more-option" type="button" role="menuitem" onClick={() => {
                             setOpenPostMenuId(null)
@@ -1011,29 +1267,172 @@ function Posts() {
           )
         })}
       </div>
-      {activeDialog && activePost && (routedModal === 'comments' || routedModal === 'report') && (
-        <div className="post-action-dialog-backdrop" onMouseDown={(event) => {
-          if (event.target === event.currentTarget) closeCurrentModal()
-        }}>
-          <section className="post-action-dialog" role="dialog" aria-modal="true" aria-labelledby="post-action-dialog-title">
+      {activeDialog && activePost && (routedModal === 'comments' || routedModal === 'report' || routedModal === 'share-post') && (
+        <div
+          className={`post-action-dialog-backdrop${activeDialog.type === 'comment' ? ' is-post-comments' : ''}${activeDialog.type === 'share' ? ' is-post-share' : ''}`}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeCurrentModal()
+          }}
+        >
+          <section
+            className={`post-action-dialog${activeDialog.type === 'comment' ? ' post-comments-dialog' : ''}${activeDialog.type === 'share' ? ' post-share-dialog' : ''}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label={activeDialog.type === 'comment' ? 'Post comments' : activeDialog.type === 'share' ? 'Share post' : 'Report post'}
+          >
             <button className="post-action-dialog-close" type="button" aria-label="Close dialog" onClick={() => closeCurrentModal()}>×</button>
-            {activeDialog.type === 'comment' ? (
+            {activeDialog.type === 'share' ? (
               <>
-                <h2 id="post-action-dialog-title">Comments</h2>
-                <div className="post-comments-list">
-                  {(activePost.comments || []).map((comment) => (
-                    <article className="post-comment" key={comment._id}>
-                      <strong>{comment.user?.username || 'User'}</strong>
-                      <p>{comment.text}</p>
-                    </article>
-                  ))}
-                  {!activePost.comments?.length && <p className="post-dialog-empty">No comments yet.</p>}
+                <header className="post-share-header">
+                  <button
+                    className="post-share-back"
+                    type="button"
+                    aria-label="Back to post"
+                    onClick={() => closeCurrentModal()}
+                  >
+                    <img src={ICONS.backArrow} alt="" />
+                  </button>
+                  <h2>Share Post</h2>
+                </header>
+                <div className="post-share-content">
+                  <h3>Create post</h3>
+                  <form className="post-share-form" onSubmit={submitSharedPost}>
+                    {error && <p className="post-share-error" role="alert">{error}</p>}
+                    <div className="post-share-identity">
+                      <img className="post-share-avatar" src={getProfileAvatar(user)} alt="" />
+                      <div className="post-share-user">
+                        <strong>{user?.username || 'Feelamonger'}</strong>
+                        <label className="post-share-visibility">
+                          <img src={VISIBILITY_ICONS[shareVisibility]} alt="" />
+                          <select
+                            aria-label="Post visibility"
+                            value={shareVisibility}
+                            onChange={(event) => setShareVisibility(event.target.value)}
+                            disabled={isSubmittingShare}
+                          >
+                            <option value="public">Public</option>
+                            <option value="friends">Friends</option>
+                            <option value="private">Only me</option>
+                          </select>
+                        </label>
+                      </div>
+                      <img className="post-share-original-avatar" src={getProfileAvatar(shareSourcePost?.user)} alt="" />
+                      <button className="post-share-submit" type="submit" disabled={isSubmittingShare}>
+                        {isSubmittingShare ? 'Sharing...' : 'Share'}
+                      </button>
+                    </div>
+                    <textarea
+                      className="post-share-description"
+                      value={shareDescription}
+                      onChange={(event) => setShareDescription(event.target.value)}
+                      placeholder="Give a description to this post..."
+                      aria-label="Description for shared post"
+                      maxLength={1000}
+                      disabled={isSubmittingShare}
+                    />
+                    <button
+                      className="post-share-copy-link"
+                      type="button"
+                      onClick={() => copyPostLink(activeDialog.postId)
+                        .then(() => setShareLinkCopied(true))
+                        .catch((copyError) => setError(copyError.message))}
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="8" y="8" width="13" height="13" rx="2" />
+                        <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+                      </svg>
+                      Copy link
+                    </button>
+                    {shareLinkCopied && <span className="post-share-link-copied" role="status">Link copied</span>}
+                  </form>
                 </div>
-                <form onSubmit={addComment}>
-                  <label htmlFor="post-comment-input">Add a comment</label>
-                  <textarea id="post-comment-input" value={commentDraft} onChange={(event) => setCommentDraft(event.target.value)} maxLength={1000} required rows={3}
+              </>
+            ) : activeDialog.type === 'comment' ? (
+              <>
+                <header className="post-comments-mobile-header">
+                  <button
+                    className="post-comments-back"
+                    type="button"
+                    aria-label="Back to post"
+                    onClick={() => closeCurrentModal()}
+                  >
+                    <img src={ICONS.backArrow} alt="" />
+                  </button>
+                  <img
+                    className="post-comments-author-avatar"
+                    src={getAvatarSrc(activePost.user)}
+                    alt=""
                   />
-                  <button className="post-dialog-submit" type="submit">Comment</button>
+                  <div className="post-comments-heading">
+                    <h2 id="post-action-dialog-title">
+                      {activePost.user?.username || 'User'}'s post
+                    </h2>
+                    <p>
+                      {activeCommentCounts.comments} comments, {activeCommentCounts.replies} replies and {activeCommentCounts.subReplies} sub-replies ({activeCommentCounts.comments + activeCommentCounts.replies + activeCommentCounts.subReplies})
+                    </p>
+                  </div>
+                  <img className="post-comments-search" src={ICONS.search} alt="" />
+                </header>
+                <h2 className="post-comments-desktop-title">Comments</h2>
+                <div className="post-comments-list">
+                  {(activePost.comments || []).map((comment) => renderThreadItem(comment, comment._id))}
+                  {!activePost.comments?.length && (
+                    <>
+                      <p className="post-dialog-empty">No comments yet.</p>
+                      <div className="post-comments-mobile-empty" aria-live="polite">
+                        <svg viewBox="0 0 200 150" role="img" aria-label="Empty conversation">
+                          <path d="M75 20c-29 0-52 21-52 47 0 14 7 27 19 36l-9 22c-2 5 4 9 9 6l30-16c2 0 4 1 7 1 29 0 52-21 52-48S104 20 75 20Z" />
+                          <path d="M121 8c34 0 61 24 61 54 0 17-9 33-24 43l7 27c1 5-4 8-8 5l-30-20c-2 0-4 1-6 1-33 0-60-24-60-55S88 8 121 8Z" />
+                        </svg>
+                        <h3>No comments yet</h3>
+                        <p>Be the first to comment</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <form className="post-comment-form" onSubmit={addComment}>
+                  <label className="post-comment-desktop-label" htmlFor="post-comment-input">Add a comment</label>
+                  {replyTarget && (
+                    <div className="post-comment-reply-target">
+                      Replying to {replyTarget.username}
+                      <button
+                        type="button"
+                        aria-label="Cancel reply"
+                        onClick={() => setReplyTarget(null)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+                  <div className="post-comment-mobile-tools" aria-hidden="true">
+                    <img src={ICONS.addPhoto} alt="" />
+                    <img src={ICONS.micGreen} alt="" />
+                  </div>
+                  <div className="post-comment-input-row">
+                    <textarea
+                      id="post-comment-input"
+                      value={commentDraft}
+                      onChange={(event) => setCommentDraft(event.target.value)}
+                      placeholder={replyTarget
+                        ? `Reply to ${replyTarget.username}`
+                        : `Comment as ${[user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.username || 'you'}`}
+                      aria-label="Write a comment"
+                      maxLength={1000}
+                      required
+                      disabled={isSubmittingComment}
+                      rows={3}
+                    />
+                    <button
+                      className="post-dialog-submit"
+                      type="submit"
+                      aria-label={replyTarget ? 'Send reply' : 'Send comment'}
+                      disabled={isSubmittingComment}
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 20.5 22 12 3 3.5l.5 6.7L16 12l-12.5 1.8-.5 6.7Z" />
+                      </svg>
+                    </button>
+                  </div>
                 </form>
               </>
             ) : (

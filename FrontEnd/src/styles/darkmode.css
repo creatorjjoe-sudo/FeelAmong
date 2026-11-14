@@ -244,7 +244,8 @@ html[data-theme="dark"] .create-container {
    it in dark mode. */
 html[data-theme="dark"] .middle-section-mobile,
 html[data-theme="dark"] .mobile-active-chat-header {
- background-color: #121614;
+ --chat-header-background: #121614;
+ background-color: var(--chat-header-background);
  border-color: #303a33;
  color: #e5ebe6;
 }
@@ -403,6 +404,96 @@ html[data-theme="dark"] .post-action-dialog select {
  border-color: #455148;
  background: #202722;
  color: #e5ebe6;
+}
+
+html[data-theme="dark"] .post-action-dialog-backdrop.is-post-comments {
+ background: #121614;
+}
+
+html[data-theme="dark"] .post-action-dialog-backdrop.is-post-share,
+html[data-theme="dark"] .post-share-dialog {
+ background: #121614;
+}
+
+html[data-theme="dark"] .post-share-header {
+ border-color: #303a33;
+}
+
+html[data-theme="dark"] .post-share-header h2,
+html[data-theme="dark"] .post-share-content > h3,
+html[data-theme="dark"] .post-share-user > strong,
+html[data-theme="dark"] .post-share-visibility select {
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .post-share-form {
+ background: #202722;
+}
+
+html[data-theme="dark"] .post-share-visibility {
+ background: #303a33;
+}
+
+html[data-theme="dark"] .post-share-description {
+ border-color: #455148;
+ background: #202722;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .post-share-description::placeholder,
+html[data-theme="dark"] .post-shared-byline {
+ color: #b9c0d6;
+}
+
+html[data-theme="dark"] .post-share-copy-link {
+ background: #303a33;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .post-shared-original {
+ border-color: #455148;
+ background: #202722;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .post-comments-dialog,
+html[data-theme="dark"] .post-comments-dialog .post-comment-form {
+ background: #121614;
+}
+
+html[data-theme="dark"] .post-comments-mobile-header {
+ background: #202722;
+}
+
+html[data-theme="dark"] .post-comments-heading h2,
+html[data-theme="dark"] .post-comments-heading p,
+html[data-theme="dark"] .post-comments-mobile-empty {
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .post-thread-identity strong {
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .post-comments-back img {
+ filter: brightness(0) invert(1);
+}
+
+html[data-theme="dark"] .post-comments-mobile-empty svg {
+ fill: #232d44;
+}
+
+html[data-theme="dark"] .post-comments-mobile-empty svg path + path {
+ stroke: #121614;
+}
+
+html[data-theme="dark"] .post-comments-dialog .post-comment-input-row textarea {
+ background: #202722;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .post-comments-dialog .post-comment-input-row textarea::placeholder {
+ color: #b9c0d6;
 }
 
 /* Post feed loading shimmer — dark variant of the shimmer painted onto the

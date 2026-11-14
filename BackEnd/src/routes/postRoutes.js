@@ -9,8 +9,11 @@ const {
   toggleLikePost,
   toggleSavePost,
   addComment,
+  addCommentReply,
+  toggleCommentLike,
   reportPost,
-  incrementShareCount
+  incrementShareCount,
+  createSharedPost
 } = require('../controllers/postController');
 const { protect } = require('../middleware/authMiddleware');
 const { uploadPostImages } = require('../middleware/postImageUpload');
@@ -22,7 +25,10 @@ router.delete('/:id', protect, deletePost);
 router.put('/:id/like', protect, toggleLikePost);
 router.put('/:id/save', protect, toggleSavePost);
 router.post('/:id/comments', protect, addComment);
+router.post('/:id/comments/:commentId/replies', protect, addCommentReply);
+router.put('/:id/comments/:commentId/like', protect, toggleCommentLike);
 router.post('/:id/report', protect, reportPost);
 router.post('/:id/share', incrementShareCount);
+router.post('/:id/repost', protect, createSharedPost);
 
 module.exports = router;

@@ -152,6 +152,29 @@
  object-fit: contain;
 }
 
+.login-another-account,
+.mobile-device-account-back {
+ border: 0;
+ background: transparent;
+ color: #00ba00;
+ font: inherit;
+ font-weight: 600;
+ cursor: pointer;
+}
+
+.login-another-account {
+ display: none;
+ width: 100%;
+ margin-top: 16px;
+ padding: 12px;
+ border: 1px solid #bbc1db;
+ border-radius: 12px;
+}
+
+.mobile-device-account-back {
+ display: none;
+}
+
 .form-wrapper {
  width: 100%;
  max-width: 350px;
@@ -184,6 +207,10 @@
  justify-content: center;
  padding: 20px;
  background: rgba(0, 0, 0, 0.45);
+}
+
+.remove-account-backdrop {
+  z-index: 1010;
 }
 
 .login-error-modal {
@@ -545,6 +572,51 @@ span {
   height: 100%;
   border: none;
  }
+
+ .anonymous-btn {
+  margin-top: 0;
+ }
+
+ .welcome-container.is-mobile-device-accounts .wrapper.middle-container {
+  display: none;
+ }
+
+ .welcome-container.is-mobile-device-accounts .wrapper.right-container.is-mobile-device-accounts {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  height: 100dvh;
+  padding: 24px;
+  box-sizing: border-box;
+  overflow-y: auto;
+ }
+
+ .welcome-container.is-mobile-device-accounts .device-accounts {
+  width: min(100%, 420px);
+  max-height: 100%;
+  padding: 24px 18px;
+  overflow-y: auto;
+  box-sizing: border-box;
+ }
+
+ .welcome-container.is-mobile-device-accounts .login-another-account {
+  display: block;
+ }
+
+ .wrapper.middle-container.is-mobile-login-form {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 12px;
+  box-sizing: border-box;
+ }
+
+ .mobile-device-account-back {
+  display: block;
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 8px 12px;
+ }
 }
 
 .account-password-modal {
@@ -684,8 +756,95 @@ span {
   color: #fff;
 }
 
+.account-settings {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.account-settings-trigger {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  padding: 9px;
+  place-items: center;
+  border: 1px solid #bbc1db;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.account-settings-trigger img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.account-settings-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  z-index: 1;
+  width: min(280px, calc(100vw - 72px));
+  padding: 6px;
+  border: 1px solid #d5d9e5;
+  border-radius: 10px;
+  background: var(--background, #fff);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.account-settings-menu button {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-color, #222);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.account-settings-menu button:hover,
+.account-settings-menu button:focus-visible {
+  background: rgba(0, 186, 0, 0.1);
+  outline: none;
+}
+
+.remove-account-modal h2 {
+  margin: 0 0 10px;
+  color: var(--text-color, #222);
+  font-size: 19px;
+}
+
+.remove-account-modal > p {
+  margin: 0 0 20px;
+  color: #687080;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.remove-account-error {
+  margin: -8px 0 16px;
+  color: #cc2a1b;
+  font-size: 14px;
+}
+
 html[data-theme="dark"] .account-password-modal {
   border: 1px solid #3a4052;
+}
+
+html[data-theme="dark"] .account-settings-trigger {
+  border-color: #3a4052;
+}
+
+html[data-theme="dark"] .account-settings-menu {
+  border-color: #3a4052;
+}
+
+html[data-theme="dark"] .remove-account-modal > p {
+  color: #b9c0d6;
 }
 
 html[data-theme="dark"] .account-password-input input {

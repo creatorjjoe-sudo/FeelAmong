@@ -4,6 +4,7 @@ import LoginForm from '../components/welcome/LoginForm'
 import SignupForm from '../components/welcome/SignupForm'
 import { ICONS } from '../assets/icons'
 import { getProfileAvatar } from '../utils/profileAvatar'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 const DEVICE_ACCOUNTS_KEY = 'feelamong-device-accounts'
 
@@ -27,33 +28,103 @@ function formatLastLogin(timestamp) {
 }
 
 function WelcomePage() {
+  const location = useLocation()
+  const navigate = useNavigate()
   const [view, setView] = React.useState('login')
-  const [deviceAccounts] = React.useState(readDeviceAccounts)
+  const [deviceAccounts, setDeviceAccounts] = React.useState(readDeviceAccounts)
   const [selectedAccount, setSelectedAccount] = React.useState(null)
+  const [isMobile, setIsMobile] = React.useState(
+    () => window.matchMedia('(max-width: 800px)').matches
+  )
+  const [showLoginForm, setShowLoginForm] = React.useState(false)
+  const isRoutedLoginForm = location.state?.welcomeLoginForm === true
+  const showDeviceAccounts = isMobile
+    && deviceAccounts.length > 0
+    && view === 'login'
+    && !selectedAccount
+    && !showLoginForm
+    && !isRoutedLoginForm
+
+  React.useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 800px)')
+    const handleChange = (event) => setIsMobile(event.matches)
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  }, [])
 
   function switchView (value) {
     setView(value)
+    if (value !== 'login') {
+      setShowLoginForm(false)
+      if (isRoutedLoginForm) {
+        const state = { ...location.state }
+        delete state.welcomeLoginForm
+        navigate(`${location.pathname}${location.search}${location.hash}`, {
+          replace: true,
+          state: Object.keys(state).length ? state : null,
+        })
+      }
+    }
   }
+
+  function selectDeviceAccount(account) {
+    setShowLoginForm(true)
+    // Always pass a fresh object so selecting the same account again still
+    // triggers LoginForm's password-field focus effect.
+    setSelectedAccount({ ...account })
+  }
+
+  function removeDeviceAccount(accountId) {
+    const updatedAccounts = deviceAccounts.filter(
+      (account) => String(account._id) !== String(accountId)
+    )
+    try {
+      localStorage.setItem(DEVICE_ACCOUNTS_KEY, JSON.stringify(updatedAccounts))
+    } catch (error) {
+      console.error('Could not remove the account saved on this device:', error)
+      throw new Error('Could not remove this account from the device.', { cause: error })
+    }
+
+    setDeviceAccounts(updatedAccounts)
+    setSelectedAccount(null)
+    setShowLoginForm(false)
+  }
+
   return (
-    <div className='welcome-container'>
+    <div className={`welcome-container${showDeviceAccounts ? ' is-mobile-device-accounts' : ''}`}>
       <title>{view === 'login' ? 'Feelamong | Login' : 'Feelamong | Signup'}</title>
       <div className="wrapper left-container">
         <h1>feelamong</h1>
         <p>Makes connection with both emmediate or new people easier</p>
       </div>
-      <div className="wrapper middle-container">
+      <div className={`wrapper middle-container${isMobile && deviceAccounts.length > 0 && (showLoginForm || isRoutedLoginForm) && !selectedAccount ? ' is-mobile-login-form' : ''}`}>
         {view === 'login' && (
+          <>
+            {isMobile && deviceAccounts.length > 0 && (showLoginForm || isRoutedLoginForm) && !selectedAccount && (
+              <button
+                className="mobile-device-account-back"
+                type="button"
+                onClick={() => navigate(-1)}
+              >
+                Back to accounts on this device
+              </button>
+            )}
           <LoginForm
             key={selectedAccount?._id || 'login'}
             view={view}
             switchView={switchView}
             selectedAccount={selectedAccount}
-            onCancelAccount={() => setSelectedAccount(null)}
+            onRemoveDeviceAccount={removeDeviceAccount}
+            onCancelAccount={() => {
+              setSelectedAccount(null)
+              setShowLoginForm(false)
+            }}
           />
+          </>
         )}
         {view === 'signup' && <SignupForm view={view} switchView={switchView} />}
       </div>
-      <aside className="wrapper right-container">
+      <aside className={`wrapper right-container${showDeviceAccounts ? ' is-mobile-device-accounts' : ''}`}>
         <section className="device-accounts" aria-labelledby="device-accounts-title">
           <h2 id="device-accounts-title">Accounts on this device</h2>
           {deviceAccounts.length === 0 ? (
@@ -72,9 +143,7 @@ function WelcomePage() {
                       aria-label={`Continue as ${account.username || displayName}`}
                       onClick={() => {
                         setView('login')
-                        // Always pass a fresh object so a re-click of the same
-                        // account still triggers LoginForm's focus effect.
-                        setSelectedAccount({ ...account })
+                        selectDeviceAccount(account)
                       }}
                     >
                       <img src={getProfileAvatar(account)} alt="" />
@@ -88,6 +157,20 @@ function WelcomePage() {
                 )
               })}
             </ul>
+          )}
+          {deviceAccounts.length > 0 && (
+            <button
+              className="login-another-account"
+              type="button"
+              onClick={() => {
+                setSelectedAccount(null)
+                navigate(`${location.pathname}${location.search}${location.hash}`, {
+                  state: { ...(location.state || {}), welcomeLoginForm: true },
+                })
+              }}
+            >
+              Login another account
+            </button>
           )}
         </section>
       </aside>
