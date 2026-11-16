@@ -1,7 +1,7 @@
 import { createContext, useState, useEffect } from 'react';
 import InitialLoadingScreen from '../../components/InitialLoadingScreen'
 export const AuthContext = createContext();
-const INACTIVITY_LIMIT_MS = 3 * 60 * 1000;
+const INACTIVITY_LIMIT_MS = 24 * 60 * 60 * 1000;
 const INITIAL_LOADING_DURATION_MS = 2000;
 const DEVICE_ACCOUNTS_KEY = 'feelamong-device-accounts';
 

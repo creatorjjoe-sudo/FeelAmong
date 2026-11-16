@@ -459,6 +459,11 @@ html[data-theme="dark"] .post-comments-dialog .post-comment-form {
  background: #121614;
 }
 
+html[data-theme="dark"] .post-comments-dialog {
+ --post-thread-line-color: #8a8f93;
+ --post-thread-mask-color: #121614;
+}
+
 html[data-theme="dark"] .post-comments-mobile-header {
  background: #202722;
 }

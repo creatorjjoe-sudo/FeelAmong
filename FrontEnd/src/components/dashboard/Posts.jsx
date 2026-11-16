@@ -859,7 +859,7 @@ function Posts() {
     const subReplyId = depth > 1 ? item._id : null
 
     return (
-      <article className={`post-thread-item depth-${depth}`} key={item._id}>
+      <article className={`post-thread-item depth-${depth}${itemReplies.length > 0 ? ' has-replies' : ''}`} key={item._id}>
         <div className="post-thread-message">
           <div className="post-thread-identity">
             <img src={getAvatarSrc(item.user)} alt="" />
