@@ -1,9 +1,11 @@
 import React from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { createPortal } from 'react-dom'
+import { useBlocker, useLocation, useNavigate } from 'react-router-dom'
 import { useContext } from 'react'
 import { AuthContext } from '../../api/context/AuthContext'
 import { ICONS } from '../../assets/icons'
 import { getProfileAvatar } from '../../utils/profileAvatar'
+import PostImageGrid from './PostImageGrid'
 import {
   getTextPostColor,
   isNoneTextPostBackground,
@@ -11,6 +13,7 @@ import {
   NONE_TEXT_POST_BACKGROUND,
   TEXT_POST_BACKGROUNDS,
 } from '../../utils/textPostColors'
+import '../../styles/components/dashboard/posts.css'
 import '../../styles/components/createpost/textpostcomposer.css'
 
 const API_URL = 'http://localhost:5000/api/posts'
@@ -27,6 +30,7 @@ function TextPostComposer({ editPostId }) {
   const location = useLocation()
   const { user } = useContext(AuthContext)
   const [description, setDescription] = React.useState('')
+  const [hasEditedDescription, setHasEditedDescription] = React.useState(false)
   const [backgroundColor, setBackgroundColor] = React.useState(NONE_TEXT_POST_BACKGROUND)
   const [visibility, setVisibility] = React.useState('public')
   const step = new URLSearchParams(location.search).get('step') === 'review' ? 'review' : 'compose'
@@ -37,6 +41,7 @@ function TextPostComposer({ editPostId }) {
   const [images, setImages] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(Boolean(editPostId))
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [hasUploadedImage, setHasUploadedImage] = React.useState(false)
   const [error, setError] = React.useState('')
   const imageInputRef = React.useRef(null)
   const descriptionInputRef = React.useRef(null)
@@ -46,6 +51,13 @@ function TextPostComposer({ editPostId }) {
   const paletteOptionsRef = React.useRef(null)
   const previewUrls = React.useRef(new Set())
   const isImagePost = images.length > 0
+  const hasUnsavedContent = hasEditedDescription || hasUploadedImage
+  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
+    hasUnsavedContent
+    && !isSubmitting
+    && currentLocation.pathname !== nextLocation.pathname
+  )
+  const cancelDialogOpen = blocker.state === 'blocked'
   const hasBackground = !isImagePost && !isNoneTextPostBackground(backgroundColor)
   const selectedVisibility = VISIBILITY_OPTIONS.find((option) => option.value === visibility) || VISIBILITY_OPTIONS[0]
   const paletteOptions = [
@@ -207,7 +219,7 @@ function TextPostComposer({ editPostId }) {
         - parseFloat(cardStyles.paddingBottom)
 
       let smallestFontSize = 12
-      let largestFontSize = 64
+      let largestFontSize = 24
       for (let attempt = 0; attempt < 12; attempt += 1) {
         const fontSize = (smallestFontSize + largestFontSize) / 2
         text.style.fontSize = `${fontSize}px`
@@ -246,8 +258,10 @@ function TextPostComposer({ editPostId }) {
         const result = await response.json().catch(() => ({}))
         if (!response.ok) throw new Error(result.message || 'Could not load the post for editing.')
         setDescription(result.description || '')
+        setHasEditedDescription(false)
         setBackgroundColor(result.backgroundColor || NONE_TEXT_POST_BACKGROUND)
         setVisibility(result.visibility || 'public')
+        setHasUploadedImage(false)
         setImages((result.images || []).map((imagePath) => ({
           file: null,
           previewUrl: imagePath.startsWith('/') ? `http://localhost:5000${imagePath}` : imagePath,
@@ -291,6 +305,17 @@ function TextPostComposer({ editPostId }) {
     }
   }, [moreOpen, paletteOpen, visibilityOpen])
 
+  React.useEffect(() => {
+    if (!cancelDialogOpen) return undefined
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') blocker.reset()
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [blocker, cancelDialogOpen])
+
   function handleImageSelection(event) {
     const selectedFiles = Array.from(event.target.files || [])
     event.target.value = ''
@@ -304,6 +329,7 @@ function TextPostComposer({ editPostId }) {
       previewUrls.current.add(previewUrl)
       return { file, previewUrl }
     })
+    if (filesToAdd.length) setHasUploadedImage(true)
     setImages((current) => [...current, ...filesToAdd])
 
     if (oversizedFiles.length) setError('Each image must be smaller than 2 MB.')
@@ -438,7 +464,10 @@ function TextPostComposer({ editPostId }) {
             ref={descriptionInputRef}
             className={`text-post-compose-input${hasBackground ? ' has-background' : ''}`}
             value={description}
-            onChange={(event) => setDescription(event.target.value)}
+            onChange={(event) => {
+              setDescription(event.target.value)
+              setHasEditedDescription(true)
+            }}
             maxLength={1000}
             wrap="soft"
             placeholder={isImagePost ? 'Describe your photo' : 'Say something'}
@@ -576,22 +605,89 @@ function TextPostComposer({ editPostId }) {
               {isSubmitting ? 'Sharing…' : editPostId ? 'Save' : 'Share'}
             </button>
           </header>
-          <div
-            ref={previewCardRef}
-            className={`text-post-review-card${hasBackground ? ' has-background' : ''}${isImagePost ? ' is-image-post' : ''}`}
-            style={{
-              background: hasBackground ? backgroundColor : undefined,
-              color: hasBackground ? getTextPostColor(backgroundColor) : undefined,
-            }}
-          >
-            {images.length > 0 && (
-              <div className="text-post-review-images">
-                {images.map((image, index) => (
-                  <img key={image.previewUrl} src={image.previewUrl} alt={image.file?.name || `Attached photo ${index + 1}`} />
-                ))}
+          <div className="text-post-review-feed-stage">
+            <article className="post-wrapper">
+              <div className="left-items">
+                <div className="post-header">
+                  <div className="header-left-items">
+                    <div className="creator-avata">
+                      <img className="creator-icon" src={getProfileAvatar(user)} alt={user?.username || 'Your profile'} />
+                    </div>
+                    <div className="creator-details">
+                      <h2>{user?.username || 'Your account'}</h2>
+                      <div className="post-time-visibility">
+                        <p className="time-ago">just now</p>
+                        <img
+                          className="post-visibility-icon"
+                          src={selectedVisibility.icon}
+                          alt=""
+                          title={`${visibility[0].toUpperCase()}${visibility.slice(1)} post`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="header-right-items">
+                    <p className="add-friend">Add friend</p>
+                  </div>
+                </div>
+
+                <div className="top" />
+                <div className="middle">
+                  {isImagePost ? (
+                    <>
+                      <PostImageGrid
+                        images={images.map((image, index) => ({
+                          src: image.previewUrl,
+                          alt: image.file?.name || `Attached photo ${index + 1}`,
+                        }))}
+                        className="post-image-grid-feed"
+                      />
+                      {description && <p>Description: {description}</p>}
+                    </>
+                  ) : description && (
+                    <div
+                      ref={previewCardRef}
+                      className={`text-post-content${isNoneTextPostBackground(backgroundColor) ? ' text-post-content-plain' : ''}`}
+                      style={hasBackground ? {
+                        background: backgroundColor,
+                        color: getTextPostColor(backgroundColor),
+                      } : undefined}
+                    >
+                      <p ref={previewTextRef}>{description}</p>
+                    </div>
+                  )}
+                  <div className="liked-users">
+                    <img className="liked-img" src={ICONS.likedusersicon} alt="" />
+                    <div className="liked-users-list" role="list" aria-label="0 people liked this post" />
+                  </div>
+                </div>
+                <div className="bottom" />
               </div>
-            )}
-            {description && <p ref={previewTextRef}>{description}</p>}
+
+              <div className="right-items e" aria-hidden="true">
+                <div className="engage-folder likes">
+                  <div className="engage-background"><img src={ICONS.like} alt="" /></div>
+                  <p className="engage-count">0</p>
+                </div>
+                <div className="engage-folder comments">
+                  <div className="engage-background"><img src={ICONS.comment} alt="" /></div>
+                  <p className="engage-count">0</p>
+                </div>
+                <div className="engage-folder shares">
+                  <div className="engage-background"><img src={ICONS.share} alt="" /></div>
+                  <p className="engage-count">0</p>
+                </div>
+                <div className="engage-folder saves">
+                  <div className="engage-background"><img src={ICONS.save} alt="" /></div>
+                  <p className="engage-count">0</p>
+                </div>
+                <div className="post-more-menu">
+                  <button className="engage-folder post-more-trigger" type="button" disabled>
+                    <span className="engage-background"><img src={ICONS.more} alt="" /></span>
+                  </button>
+                </div>
+              </div>
+            </article>
           </div>
           <div className="text-post-review-controls">
             <div className="text-post-menu-anchor">
@@ -611,6 +707,62 @@ function TextPostComposer({ editPostId }) {
           </div>
           {error && <p className="text-post-error" role="alert">{error}</p>}
       </form>
+      {cancelDialogOpen && createPortal(
+        <div
+          className="text-post-cancel-backdrop"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) blocker.reset()
+          }}
+        >
+          <section
+            className="text-post-cancel-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="text-post-cancel-title"
+            aria-describedby="text-post-cancel-description"
+          >
+            <h2 id="text-post-cancel-title">Cancel post creation?</h2>
+            <p id="text-post-cancel-description">Your changes will be lost if you cancel.</p>
+            <div className="text-post-cancel-actions">
+              <button
+                className="text-post-cancel-confirm"
+                type="button"
+                onClick={() => blocker.proceed()}
+              >
+                <svg className="text-post-cancel-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="m9 9 6 6m0-6-6 6" />
+                </svg>
+                Cancel creation
+              </button>
+              <button
+                className="text-post-cancel-keep"
+                type="button"
+                autoFocus
+                onClick={() => blocker.reset()}
+              >
+                <svg className="text-post-cancel-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m14 5 5 5M4 20l4.5-1 10.1-10.1a2.1 2.1 0 0 0-3-3L5.5 16 4 20Z" />
+                </svg>
+                Keep editing
+              </button>
+              <button
+                className="text-post-cancel-draft"
+                type="button"
+                disabled
+                title="Draft saving will be available later."
+              >
+                <svg className="text-post-cancel-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 3h12l4 4v14H3V3h2Z" />
+                  <path d="M7 3v6h10V3M7 21v-7h10v7" />
+                </svg>
+                Save as draft
+              </button>
+            </div>
+          </section>
+        </div>,
+        document.body
+      )}
     </main>
   )
 }

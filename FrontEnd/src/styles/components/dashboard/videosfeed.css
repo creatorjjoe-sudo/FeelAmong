@@ -26,16 +26,18 @@
     box-sizing: border-box;
   }
 
-  /* Immersive video feed: hide the mobile header/footer */
-  .videos-active .header-wrapper,
-  .videos-active .footer-wrapper {
-    display: none;
-  }
-
   /* Keep rounded corners on the mobile player */
   .video-stage {
     border-radius: 28px;
     overflow: hidden;
+  }
+}
+
+@media (max-width: 799px) {
+  .videos-page {
+    margin-top: 60px;
+    height: calc(100vh - 110px);
+    height: calc(100dvh - 110px);
   }
 }
 
@@ -321,7 +323,7 @@
 /* Mobile: keep buttons beside the player, shrunken rail */
 @media (max-width: 800px) {
   .video-slide {
-    height: 100dvh;
+    height: 100%;
     /* Extra padding so the stage's rounded corners have room to show
        against the dark background instead of being clipped at the
        viewport edge. */

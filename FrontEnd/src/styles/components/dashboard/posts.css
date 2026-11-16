@@ -43,27 +43,6 @@
    padding: 10px;
 }
 
-.post-container.post-preview-container {
-   display: flex;
-   justify-content: center;
-   width: 100%;
-   max-width: none;
-   height: 100%;
-   padding: 0 10px;
-   overflow-y: auto;
-   border-radius: 0;
-   background: transparent;
-   box-shadow: none;
-}
-
-.post-preview-container .post-preview-item {
-   flex: 0 0 min(500px, 100%);
-   width: min(500px, 100%);
-   max-width: 500px;
-   height: 100%;
-   margin: 0 auto;
-}
-
 .post-preview-state {
    display: grid;
    min-height: 100%;
@@ -690,6 +669,15 @@
    gap: 8px;
 }
 
+.post-comment-avatar {
+   flex: 0 0 32px;
+   align-self: center;
+   width: 32px;
+   height: 32px;
+   border-radius: 50%;
+   object-fit: cover;
+}
+
 .post-comment-input-row textarea {
    flex: 1;
    min-width: 0;
@@ -699,6 +687,7 @@
    max-height: 100px;
    overflow-x: hidden;
    overflow-y: hidden;
+   resize: none;
    scrollbar-width: none;
    -ms-overflow-style: none;
 }
@@ -824,12 +813,24 @@
    z-index: 1;
 }
 
-.post-thread-identity strong {
+.post-thread-identity strong,
+.post-thread-identity .post-thread-author-link {
+   flex: 0 1 auto;
    overflow: hidden;
    color: #000;
    font-size: 14px;
    text-overflow: ellipsis;
    white-space: nowrap;
+}
+
+.post-thread-identity .post-thread-author-link {
+   font-weight: 700;
+   text-decoration: none;
+}
+
+.post-thread-identity .post-thread-author-link:hover,
+.post-thread-identity .post-thread-author-link:focus-visible {
+   color: #00ba00;
 }
 
 .post-thread-number {
@@ -1560,12 +1561,6 @@
       border-radius: 50%;
       background: #00ba00;
       color: #fff;
-   }
-
-   .post-container.post-preview-container {
-      width: 100%;
-      height: 100%;
-      padding: 0 8px;
    }
 
    .post-preview-close {

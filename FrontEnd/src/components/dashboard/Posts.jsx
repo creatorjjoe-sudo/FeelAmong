@@ -883,7 +883,13 @@ function Posts() {
         <div className="post-thread-message">
           <div className="post-thread-identity">
             <img src={getAvatarSrc(item.user)} alt="" />
-            <strong>{item.user?.username || 'User'}</strong>
+            {item.user?._id ? (
+              <Link className="post-thread-author-link" to={`/for-you/profile/${item.user._id}`}>
+                {item.user.username || 'User'}
+              </Link>
+            ) : (
+              <strong>{item.user?.username || 'User'}</strong>
+            )}
             <span className="post-thread-number">{depth === 0 ? '' : itemReplies.length || ''}</span>
           </div>
           <div className="post-thread-bubble">
@@ -998,6 +1004,8 @@ function Posts() {
           const postLikes = Array.isArray(post.likes) ? post.likes : []
           const likedByCurrentUser = Boolean(user && postLikes.some((like) => getLikeUserId(like) === String(user._id)))
           const likeCount = typeof post.likesCount === 'number' ? post.likesCount : (Array.isArray(post.likes) ? post.likes.length : 0)
+          const commentCounts = getCommentThreadCounts(post.comments || [])
+          const commentCount = commentCounts.comments + commentCounts.replies + commentCounts.subReplies
           const visibility = VISIBILITY_ICONS[post.visibility] ? post.visibility : 'public'
           const isTextPost = post.postType === 'text'
           const isPostCreator = Boolean(user?._id) && String(post.user?._id) === String(user._id)
@@ -1155,7 +1163,7 @@ function Posts() {
                   <div className="engage-background">
                     <img src={ICONS.comment} alt="" />
                   </div>
-                  <p className='engage-count'>{post.comments?.length || 0}</p>
+                  <p className='engage-count'>{commentCount}</p>
                 </button>
                 <button className="engage-folder shares" type="button" onClick={() => {
                   setOpenPostMenuId(null)
@@ -1441,6 +1449,7 @@ function Posts() {
                     <img src={ICONS.micGreen} alt="" />
                   </div>
                   <div className="post-comment-input-row">
+                    <img className="post-comment-avatar" src={getProfileAvatar(user)} alt="" />
                     <textarea
                       id="post-comment-input"
                       ref={commentInputRef}
@@ -1453,7 +1462,7 @@ function Posts() {
                       maxLength={1000}
                       required
                       disabled={isSubmittingComment}
-                      rows={3}
+                      rows={1}
                     />
                     <button
                       className="post-dialog-submit"
