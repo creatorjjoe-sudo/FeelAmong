@@ -1,5 +1,5 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useContext } from 'react'
 import { AuthContext } from '../../api/context/AuthContext'
 import { ICONS } from '../../assets/icons'
@@ -24,39 +24,146 @@ const VISIBILITY_OPTIONS = [
 
 function TextPostComposer({ editPostId }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useContext(AuthContext)
   const [description, setDescription] = React.useState('')
   const [backgroundColor, setBackgroundColor] = React.useState(NONE_TEXT_POST_BACKGROUND)
   const [visibility, setVisibility] = React.useState('public')
-  const [step, setStep] = React.useState('compose')
+  const step = new URLSearchParams(location.search).get('step') === 'review' ? 'review' : 'compose'
   const [visibilityOpen, setVisibilityOpen] = React.useState(false)
   const [moreOpen, setMoreOpen] = React.useState(false)
   const [paletteOpen, setPaletteOpen] = React.useState(false)
+  const [visiblePaletteCount, setVisiblePaletteCount] = React.useState(0)
   const [images, setImages] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(Boolean(editPostId))
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [error, setError] = React.useState('')
   const imageInputRef = React.useRef(null)
   const descriptionInputRef = React.useRef(null)
+  const previewCardRef = React.useRef(null)
+  const previewTextRef = React.useRef(null)
   const menuRef = React.useRef(null)
+  const paletteOptionsRef = React.useRef(null)
   const previewUrls = React.useRef(new Set())
   const isImagePost = images.length > 0
   const hasBackground = !isImagePost && !isNoneTextPostBackground(backgroundColor)
   const selectedVisibility = VISIBILITY_OPTIONS.find((option) => option.value === visibility) || VISIBILITY_OPTIONS[0]
+  const paletteOptions = [
+    { color: NONE_TEXT_POST_BACKGROUND, label: 'No background' },
+    ...TEXT_POST_BACKGROUNDS,
+  ]
+
+  function navigateToStep(nextStep) {
+    const searchParams = new URLSearchParams(location.search)
+    if (nextStep === 'review') searchParams.set('step', 'review')
+    else searchParams.delete('step')
+    const search = searchParams.toString()
+    navigate(`${location.pathname}${search ? `?${search}` : ''}`, {
+      replace: nextStep !== 'review',
+    })
+  }
+
+  React.useLayoutEffect(() => {
+    const palette = paletteOptionsRef.current
+    if (!palette || isImagePost || !description.trim()) return undefined
+
+    function updateVisiblePaletteCount() {
+      const swatchWidth = 31
+      const swatchGap = 8
+      const horizontalPadding = 8
+      const availableWidth = Math.max(0, palette.clientWidth - horizontalPadding)
+      const count = Math.floor((availableWidth + swatchGap) / (swatchWidth + swatchGap))
+      setVisiblePaletteCount(Math.min(paletteOptions.length, count))
+    }
+
+    updateVisiblePaletteCount()
+    const resizeObserver = new ResizeObserver(updateVisiblePaletteCount)
+    resizeObserver.observe(palette)
+    return () => resizeObserver.disconnect()
+  }, [description, isImagePost, paletteOptions.length])
 
   React.useLayoutEffect(() => {
     const textarea = descriptionInputRef.current
     if (!textarea) return undefined
 
     function fitDescription() {
-      const baseFontSize = hasBackground ? 26 : 20
+      const isDesktopComposer = window.matchMedia('(min-width: 700px)').matches
+      const isMobileColoredPost = hasBackground && !isDesktopComposer
+      const baseFontSize = isMobileColoredPost ? (description ? 64 : 26) : 20
       textarea.style.height = ''
       textarea.style.overflowY = 'hidden'
       textarea.style.fontSize = `${baseFontSize}px`
+      textarea.style.lineHeight = ''
+      textarea.style.paddingTop = ''
+      textarea.style.paddingBottom = ''
 
       if (!description) return
 
-      if (textarea.scrollHeight <= textarea.clientHeight) return
+      function centerMobileText() {
+        if (!isMobileColoredPost) return
+
+        const styles = window.getComputedStyle(textarea)
+        const paddingTop = parseFloat(styles.paddingTop)
+        const paddingBottom = parseFloat(styles.paddingBottom)
+        const contentWidth = textarea.clientWidth
+          - parseFloat(styles.paddingLeft)
+          - parseFloat(styles.paddingRight)
+        const mirror = document.createElement('div')
+        Object.assign(mirror.style, {
+          position: 'absolute',
+          top: '0',
+          left: '-10000px',
+          width: `${contentWidth}px`,
+          margin: '0',
+          padding: '0',
+          border: '0',
+          boxSizing: 'content-box',
+          whiteSpace: 'pre-wrap',
+          overflowWrap: 'anywhere',
+          font: styles.font,
+          lineHeight: styles.lineHeight,
+          letterSpacing: styles.letterSpacing,
+          textAlign: styles.textAlign,
+        })
+        mirror.textContent = description
+        document.body.appendChild(mirror)
+        const contentHeight = mirror.getBoundingClientRect().height
+        mirror.remove()
+
+        const freeSpace = textarea.clientHeight - paddingTop - paddingBottom - contentHeight
+        if (freeSpace > 0) {
+          textarea.style.paddingTop = `${paddingTop + freeSpace / 2}px`
+          textarea.style.paddingBottom = `${paddingBottom + freeSpace / 2}px`
+        }
+      }
+
+      if (textarea.scrollHeight <= textarea.clientHeight) {
+        centerMobileText()
+        return
+      }
+
+      if (isMobileColoredPost) {
+        let smallestLineHeight = 1
+        let largestLineHeight = 1.4
+        let fittingLineHeight = null
+        for (let attempt = 0; attempt < 8; attempt += 1) {
+          const lineHeight = (smallestLineHeight + largestLineHeight) / 2
+          textarea.style.lineHeight = `${lineHeight}`
+          if (textarea.scrollHeight <= textarea.clientHeight) {
+            fittingLineHeight = lineHeight
+            smallestLineHeight = lineHeight
+          } else {
+            largestLineHeight = lineHeight
+          }
+        }
+
+        if (fittingLineHeight !== null) {
+          textarea.style.lineHeight = `${fittingLineHeight}`
+          centerMobileText()
+          return
+        }
+        textarea.style.lineHeight = '1'
+      }
 
       let smallestFontSize = 6
       let largestFontSize = baseFontSize
@@ -74,6 +181,7 @@ function TextPostComposer({ editPostId }) {
       if (textarea.scrollHeight > textarea.clientHeight && description.length >= 1000) {
         textarea.style.overflowY = 'auto'
       }
+      centerMobileText()
     }
 
     fitDescription()
@@ -81,6 +189,43 @@ function TextPostComposer({ editPostId }) {
     resizeObserver.observe(textarea)
     return () => resizeObserver.disconnect()
   }, [description, hasBackground])
+
+  React.useLayoutEffect(() => {
+    const card = previewCardRef.current
+    const text = previewTextRef.current
+    if (!card || !text) return undefined
+
+    function fitPreviewText() {
+      if (!hasBackground || isImagePost || !description) {
+        text.style.fontSize = ''
+        return
+      }
+
+      const cardStyles = window.getComputedStyle(card)
+      const availableHeight = card.clientHeight
+        - parseFloat(cardStyles.paddingTop)
+        - parseFloat(cardStyles.paddingBottom)
+
+      let smallestFontSize = 12
+      let largestFontSize = 64
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        const fontSize = (smallestFontSize + largestFontSize) / 2
+        text.style.fontSize = `${fontSize}px`
+        if (text.scrollHeight <= availableHeight) {
+          smallestFontSize = fontSize
+        } else {
+          largestFontSize = fontSize
+        }
+      }
+
+      text.style.fontSize = `${smallestFontSize}px`
+    }
+
+    fitPreviewText()
+    const resizeObserver = new ResizeObserver(fitPreviewText)
+    resizeObserver.observe(card)
+    return () => resizeObserver.disconnect()
+  }, [description, hasBackground, isImagePost, step])
 
   React.useEffect(() => () => {
     previewUrls.current.forEach((url) => URL.revokeObjectURL(url))
@@ -242,11 +387,10 @@ function TextPostComposer({ editPostId }) {
   }
 
   return (
-    <main className="text-post-composer" ref={menuRef}>
-      {step === 'compose' ? (
-        <form className="text-post-compose-form" onSubmit={(event) => {
+    <main className="text-post-composer" ref={menuRef} data-step={step}>
+      <form className="text-post-compose-form" onSubmit={(event) => {
           event.preventDefault()
-          if (description.trim() || isImagePost) setStep('review')
+          if (description.trim() || isImagePost) navigateToStep('review')
         }}>
           <header className="text-post-create-header">
             <button className="text-post-back" type="button" aria-label="Go back" onClick={() => navigate(-1)}>
@@ -296,6 +440,7 @@ function TextPostComposer({ editPostId }) {
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             maxLength={1000}
+            wrap="soft"
             placeholder={isImagePost ? 'Describe your photo' : 'Say something'}
             aria-label={isImagePost ? 'Add a description for your photos' : 'Write your post'}
             style={{
@@ -331,26 +476,19 @@ function TextPostComposer({ editPostId }) {
 
           {!isImagePost && description.trim() && (
             <div className="text-post-palette-row">
-              <div className="text-post-background-options" role="group" aria-label="Text post background">
-                <button
-                  className={`text-post-background-option text-post-background-none${!hasBackground ? ' is-selected' : ''}`}
-                  type="button"
-                  aria-label="No background"
-                  aria-pressed={!hasBackground}
-                  onClick={() => setBackgroundColor(NONE_TEXT_POST_BACKGROUND)}
-                >
-                  ×
-                </button>
-                {TEXT_POST_BACKGROUNDS.map(({ color, label }) => (
+              <div className="text-post-background-options" role="group" aria-label="Text post background" ref={paletteOptionsRef}>
+                {paletteOptions.slice(0, visiblePaletteCount).map(({ color, label }) => (
                   <button
                     key={color}
-                    className={`text-post-background-option${backgroundColor === color ? ' is-selected' : ''}`}
+                    className={`text-post-background-option${color === NONE_TEXT_POST_BACKGROUND ? ' text-post-background-none' : ''}${backgroundColor === color ? ' is-selected' : ''}`}
                     type="button"
-                    style={{ background: color }}
+                    style={color === NONE_TEXT_POST_BACKGROUND ? undefined : { background: color }}
                     aria-label={label}
                     aria-pressed={backgroundColor === color}
                     onClick={() => setBackgroundColor(color)}
-                  />
+                  >
+                    {color === NONE_TEXT_POST_BACKGROUND ? '×' : null}
+                  </button>
                 ))}
               </div>
               <div className="text-post-palette-more">
@@ -368,19 +506,21 @@ function TextPostComposer({ editPostId }) {
                 </button>
                 {paletteOpen && (
                   <div className="text-post-more-colors" role="group" aria-label="More text post backgrounds">
-                    {MORE_TEXT_POST_BACKGROUNDS.map(({ color, label }) => (
+                    {[...paletteOptions.slice(visiblePaletteCount), ...MORE_TEXT_POST_BACKGROUNDS].map(({ color, label }) => (
                       <button
                         key={color}
-                        className={`text-post-background-option${backgroundColor === color ? ' is-selected' : ''}`}
+                        className={`text-post-background-option${color === NONE_TEXT_POST_BACKGROUND ? ' text-post-background-none' : ''}${backgroundColor === color ? ' is-selected' : ''}`}
                         type="button"
-                        style={{ background: color }}
+                        style={color === NONE_TEXT_POST_BACKGROUND ? undefined : { background: color }}
                         aria-label={label}
                         aria-pressed={backgroundColor === color}
                         onClick={() => {
                           setBackgroundColor(color)
                           setPaletteOpen(false)
                         }}
-                      />
+                      >
+                        {color === NONE_TEXT_POST_BACKGROUND ? '×' : null}
+                      </button>
                     ))}
                   </div>
                 )}
@@ -425,19 +565,19 @@ function TextPostComposer({ editPostId }) {
             </button>
           </div>
           {error && <p className="text-post-error" role="alert">{error}</p>}
-        </form>
-      ) : (
-        <form className="text-post-review-form" onSubmit={submitPost}>
+      </form>
+      <form className="text-post-review-form" onSubmit={submitPost}>
           <header className="text-post-review-header">
-            <button className="text-post-back" type="button" aria-label="Back to compose" onClick={() => setStep('compose')}>
+            <button className="text-post-back" type="button" aria-label="Back to compose" onClick={() => navigateToStep('compose')}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
             </button>
-            <h1>Review post</h1>
+            <h1>Preview</h1>
             <button className="text-post-publish-button" type="submit" disabled={isSubmitting || isLoading}>
               {isSubmitting ? 'Sharing…' : editPostId ? 'Save' : 'Share'}
             </button>
           </header>
           <div
+            ref={previewCardRef}
             className={`text-post-review-card${hasBackground ? ' has-background' : ''}${isImagePost ? ' is-image-post' : ''}`}
             style={{
               background: hasBackground ? backgroundColor : undefined,
@@ -451,7 +591,7 @@ function TextPostComposer({ editPostId }) {
                 ))}
               </div>
             )}
-            {description && <p>{description}</p>}
+            {description && <p ref={previewTextRef}>{description}</p>}
           </div>
           <div className="text-post-review-controls">
             <div className="text-post-menu-anchor">
@@ -470,8 +610,7 @@ function TextPostComposer({ editPostId }) {
             </div>
           </div>
           {error && <p className="text-post-error" role="alert">{error}</p>}
-        </form>
-      )}
+      </form>
     </main>
   )
 }
