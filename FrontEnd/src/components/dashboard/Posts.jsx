@@ -56,6 +56,13 @@ function getCommentThreadCounts(comments = []) {
   }, { comments: comments.length, replies: 0, subReplies: 0 })
 }
 
+function getCommentReplyCount(comment) {
+  return (comment.replies || []).reduce(
+    (count, reply) => count + 1 + (reply.replies?.length || 0),
+    0,
+  )
+}
+
 function getAvatarSrc(user) {
   return getProfileAvatar(user)
 }
@@ -361,6 +368,7 @@ function Posts() {
   ))
   const [activeDialog, setActiveDialog] = React.useState(null)
   const [commentDraft, setCommentDraft] = React.useState('')
+  const commentInputRef = React.useRef(null)
   const [replyTarget, setReplyTarget] = React.useState(null)
   const [isSubmittingComment, setIsSubmittingComment] = React.useState(false)
   const [shareDescription, setShareDescription] = React.useState('')
@@ -375,6 +383,16 @@ function Posts() {
   const [textPostPreview, setTextPostPreview] = React.useState(null)
   const [savedItemFolders, setSavedItemFolders] = React.useState({})
   const [saveModalItem, setSaveModalItem] = React.useState(null)
+  React.useLayoutEffect(() => {
+    const textarea = commentInputRef.current
+    if (!textarea) return
+
+    textarea.style.height = '40px'
+    const contentHeight = textarea.scrollHeight
+    const maxHeight = 100
+    textarea.style.height = `${Math.min(contentHeight, maxHeight)}px`
+    textarea.style.overflowY = contentHeight > maxHeight ? 'auto' : 'hidden'
+  }, [activeDialog, commentDraft])
   const visiblePosts = isPostPreviewOpen
     ? posts.filter((post) => String(post._id) === previewPostId)
     : posts
@@ -641,6 +659,7 @@ function Posts() {
         body: JSON.stringify({
           text,
           ...(replyTarget?.replyId ? { parentReplyId: replyTarget.replyId } : {}),
+          ...(replyTarget?.replyToSubReplyId ? { replyToSubReplyId: replyTarget.replyToSubReplyId } : {}),
         }),
       })
       const result = await response.json()
@@ -860,6 +879,7 @@ function Posts() {
 
     return (
       <article className={`post-thread-item depth-${depth}${itemReplies.length > 0 ? ' has-replies' : ''}`} key={item._id}>
+        {depth > 0 && <span className="post-thread-branch" aria-hidden="true" />}
         <div className="post-thread-message">
           <div className="post-thread-identity">
             <img src={getAvatarSrc(item.user)} alt="" />
@@ -881,7 +901,7 @@ function Posts() {
               </svg>
               {itemLikes.length > 0 && <span>{itemLikes.length}</span>}
             </button>
-            {depth < 2 && (
+            {depth < 3 && (
               <button
                 type="button"
                 className="post-thread-action"
@@ -890,7 +910,8 @@ function Posts() {
                   if (!requireLogin()) return
                   setReplyTarget({
                     commentId,
-                    replyId: depth === 0 ? null : item._id,
+                    replyId: depth === 0 ? null : depth === 1 ? item._id : parentReplyId,
+                    replyToSubReplyId: depth === 2 ? item._id : null,
                     username: item.user?.username || 'User',
                   })
                   window.requestAnimationFrame(() => document.getElementById('post-comment-input')?.focus())
@@ -917,7 +938,7 @@ function Posts() {
                 window.requestAnimationFrame(() => document.getElementById('post-comment-input')?.focus())
               }}
             >
-              Replies: {itemReplies.length}
+              Replies: {getCommentReplyCount(item)}
             </button>
           )}
         </div>
@@ -1422,6 +1443,7 @@ function Posts() {
                   <div className="post-comment-input-row">
                     <textarea
                       id="post-comment-input"
+                      ref={commentInputRef}
                       value={commentDraft}
                       onChange={(event) => setCommentDraft(event.target.value)}
                       placeholder={replyTarget

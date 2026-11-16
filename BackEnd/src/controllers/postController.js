@@ -292,11 +292,21 @@ const addCommentReply = async (req, res) => {
 
     const comment = post.comments.id(req.params.commentId);
     if (!comment) return res.status(404).json({ message: 'Comment not found' });
+    if (req.body.replyToSubReplyId && !req.body.parentReplyId) {
+      return res.status(400).json({ message: 'A parent reply is required for sub-reply targets' });
+    }
 
     let reply;
+    let replyRecipient = comment.user;
     if (req.body.parentReplyId) {
       const parentReply = comment.replies.id(req.body.parentReplyId);
       if (!parentReply) return res.status(404).json({ message: 'Reply not found' });
+      replyRecipient = parentReply.user;
+      if (req.body.replyToSubReplyId) {
+        const targetSubReply = parentReply.replies.id(req.body.replyToSubReplyId);
+        if (!targetSubReply) return res.status(404).json({ message: 'Sub-reply not found' });
+        replyRecipient = targetSubReply.user;
+      }
       parentReply.replies.push({ user: req.user._id, text });
       reply = parentReply.replies[parentReply.replies.length - 1];
     } else {
@@ -306,6 +316,7 @@ const addCommentReply = async (req, res) => {
 
     await post.save();
     await post.populate([
+      { path: 'user', select: 'username firstName lastName' },
       { path: 'comments.user', select: 'username avatar sex' },
       { path: 'comments.replies.user', select: 'username avatar sex' },
       { path: 'comments.replies.replies.user', select: 'username avatar sex' }
@@ -314,15 +325,35 @@ const addCommentReply = async (req, res) => {
     const savedReply = req.body.parentReplyId
       ? savedComment.replies.id(req.body.parentReplyId).replies.id(reply._id)
       : savedComment.replies.id(reply._id);
+    const postOwner = post.user;
+    const postOwnerId = postOwner?._id || postOwner;
+    const postOwnerName = [postOwner?.firstName, postOwner?.lastName].filter(Boolean).join(' ')
+      || postOwner?.username
+      || 'the creator';
+    const previewText = text.length > 80 ? `${text.slice(0, 80)}…` : text;
 
     await createNotification({
-      recipient: post.user,
+      recipient: postOwnerId,
       actor: req.user._id,
       type: 'comment',
       target: post._id,
       targetModel: 'Post',
-      text: text.length > 80 ? `${text.slice(0, 80)}…` : text
+      text: previewText
     });
+    if (String(replyRecipient) !== String(postOwnerId)) {
+      const actorName = [req.user.firstName, req.user.lastName].filter(Boolean).join(' ')
+        || req.user.username
+        || 'Someone';
+      await createNotification({
+        recipient: replyRecipient,
+        actor: req.user._id,
+        type: 'comment_reply',
+        target: post._id,
+        targetModel: 'Post',
+        text: previewText,
+        message: `${actorName} replied to your comment on ${postOwnerName}'s post`
+      });
+    }
 
     res.status(201).json({
       postId: post._id,

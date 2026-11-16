@@ -17,6 +17,8 @@ function buildMessage(type, actorName) {
       return `${name} liked your video`;
     case 'comment':
       return `${name} commented on your post`;
+    case 'comment_reply':
+      return `${name} replied to your comment`;
     case 'video_comment':
       return `${name} commented on your video`;
     case 'share':
@@ -45,7 +47,7 @@ function buildMessage(type, actorName) {
  * @param {String} [options.text]  optional preview text (e.g. comment snippet)
  * @param {String} [options.status]  for friend requests: 'pending' | 'accepted' | 'declined'
  */
-async function createNotification({ recipient, actor, type, target = null, targetModel = null, text = '', status = null }) {
+async function createNotification({ recipient, actor, type, target = null, targetModel = null, text = '', status = null, message = '' }) {
   try {
     if (!recipient) return null;
     // Skip self-notifications: you don't need to be told you liked your own post
@@ -68,6 +70,7 @@ async function createNotification({ recipient, actor, type, target = null, targe
       target: target || undefined,
       targetModel: targetModel || undefined,
       text,
+      message,
       status: status || undefined
     });
 
@@ -82,7 +85,7 @@ async function createNotification({ recipient, actor, type, target = null, targe
       text,
       status: status || null,
       isRead: false,
-      message: buildMessage(type, actorName),
+      message: message || buildMessage(type, actorName),
       createdAt: notification.createdAt
     };
 

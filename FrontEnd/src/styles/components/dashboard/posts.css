@@ -693,6 +693,18 @@
 .post-comment-input-row textarea {
    flex: 1;
    min-width: 0;
+   box-sizing: border-box;
+   height: 40px;
+   min-height: 40px;
+   max-height: 100px;
+   overflow-x: hidden;
+   overflow-y: hidden;
+   scrollbar-width: none;
+   -ms-overflow-style: none;
+}
+
+.post-comment-input-row textarea::-webkit-scrollbar {
+   display: none;
 }
 
 .post-action-dialog h2 {
@@ -916,7 +928,7 @@
    left: 18px;
 }
 
-.post-thread-children>.post-thread-item::before {
+.post-thread-branch {
    position: absolute;
    top: -1px;
    left: -16px;
@@ -926,7 +938,11 @@
    border-left: 2px solid var(--post-thread-line-color, #9a9da0);
    border-bottom: 2px solid var(--post-thread-line-color, #9a9da0);
    border-bottom-left-radius: 10px;
-   content: "";
+}
+
+.post-thread-children>.post-thread-item:last-child>.post-thread-branch {
+   left: -19px;
+   width: 16px;
 }
 
 .post-thread-children>.post-thread-item:last-child::after {
@@ -1520,9 +1536,6 @@
    }
 
    .post-comments-dialog .post-comment-input-row textarea {
-      height: 40px;
-      min-height: 40px;
-      max-height: 100px;
       padding: 9px 14px;
       border: 0;
       border-radius: 22px;

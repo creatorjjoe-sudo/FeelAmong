@@ -32,6 +32,8 @@ function buildMessage(type, actorName) {
       return `${actorName} liked your video`
     case 'comment':
       return `${actorName} commented on your post`
+    case 'comment_reply':
+      return `${actorName} replied to your comment`
     case 'video_comment':
       return `${actorName} commented on your video`
     case 'share':

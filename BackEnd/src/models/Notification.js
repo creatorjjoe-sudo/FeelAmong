@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // Actions a notification can represent
-const NOTIFICATION_TYPES = ['like', 'comment', 'friend_request', 'friend_accept', 'share', 'video_like', 'video_comment', 'post'];
+const NOTIFICATION_TYPES = ['like', 'comment', 'comment_reply', 'friend_request', 'friend_accept', 'share', 'video_like', 'video_comment', 'post'];
 
 const notificationSchema = new mongoose.Schema(
   {
@@ -19,7 +19,9 @@ const notificationSchema = new mongoose.Schema(
     // For friend requests: pending / accepted / declined
     status: { type: String, enum: ['pending', 'accepted', 'declined'], default: null },
     // Optional extra text (e.g. comment preview)
-    text: { type: String, default: '' }
+    text: { type: String, default: '' },
+    // Optional custom display message for contextual notifications
+    message: { type: String, default: '' }
   },
   { timestamps: true }
 );
