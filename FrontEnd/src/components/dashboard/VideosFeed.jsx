@@ -88,7 +88,7 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
   }
 
   return (
-    <section className={`video-slide${isActive ? ' is-active' : ''}`}>
+    <section className={`video-slide${isActive ? ' is-active' : ''}`} data-slide-index={index}>
       <div className="video-slide-row">
       <div className="video-stage" onClick={togglePlayback}>
         <video
