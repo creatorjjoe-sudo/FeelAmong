@@ -208,6 +208,7 @@ const registerUser = async (req, res) => {
       avatar: user.avatar,
       email: user.email,
       friends: user.friends,
+      isCompany: false,
       token: generateToken(user._id)
     });
   } catch (error) {
@@ -224,7 +225,8 @@ const loginUser = async (req, res) => {
     }
 
     const user = await User.findOne({
-      $or: [{ email: loginIdentifier }, { username: loginIdentifier }]
+      $or: [{ email: loginIdentifier }, { username: loginIdentifier }],
+      isCompany: { $ne: true }
     });
 
     if (user && (await bcrypt.compare(password, user.password))) {
@@ -237,6 +239,7 @@ const loginUser = async (req, res) => {
         avatar: user.avatar,
         email: user.email,
         friends: user.friends,
+        isCompany: false,
         token: generateToken(user._id)
       });
     } else {

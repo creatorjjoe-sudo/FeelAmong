@@ -41,7 +41,7 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
       return
     }
 
-    navigate('/post-create-one')
+    navigate(user.isCompany ? '/video-create-one' : '/post-create-one')
   }
 
   async function handleLogin() {
@@ -108,7 +108,7 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
       </Link>
 
       <button className="create-btn" type="button" onClick={handleCreate}>
-        Create post
+        {user?.isCompany ? 'Create video' : 'Create post'}
       </button>
 
 

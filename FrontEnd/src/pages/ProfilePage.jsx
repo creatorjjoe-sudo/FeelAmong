@@ -324,9 +324,13 @@ function ProfilePage() {
             </div>
             <div className="profile-actions">
               {isOwnProfile ? (
-                <button className="profile-action-button profile-edit-button" type="button" onClick={openEditProfile}>
-                  Edit profile
-                </button>
+                profile?.isCompany
+                  ? <span className="profile-account-type">Company account</span>
+                  : (
+                    <button className="profile-action-button profile-edit-button" type="button" onClick={openEditProfile}>
+                      Edit profile
+                    </button>
+                  )
               ) : (
                 <>
                   <button className="profile-action-button profile-friend-button" type="button" onClick={toggleFriend}>

@@ -4,7 +4,14 @@ const { getVideos, createVideo, toggleVideoLike, addVideoComment, shareVideo, re
 const { protect } = require('../middleware/authMiddleware');
 const { uploadVideo } = require('../middleware/videoUpload');
 
-router.route('/').get(getVideos).post(protect, uploadVideo, createVideo);
+const requireCompanyAccount = (req, res, next) => {
+  if (!req.user.isCompany) {
+    return res.status(403).json({ message: 'Switch to a company account to create videos' });
+  }
+  next();
+};
+
+router.route('/').get(getVideos).post(protect, requireCompanyAccount, uploadVideo, createVideo);
 router.put('/:id/like', protect, toggleVideoLike);
 router.post('/:id/comments', protect, addVideoComment);
 router.post('/:id/share', protect, shareVideo);

@@ -1,0 +1,178 @@
+.create-company-page {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100vh;
+  padding: 36px 32px 48px 230px;
+  overflow-y: auto;
+  background: #f6f8f6;
+  color: #202720;
+}
+
+.create-company-page-inner {
+  width: min(100%, 760px);
+  margin: 0 auto;
+}
+
+.create-company-back {
+  margin: 0 0 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #4c6b50;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.create-company-card {
+  padding: 30px;
+  border: 1px solid #e1e8e1;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(25, 47, 25, 0.06);
+}
+
+.create-company-heading {
+  margin-bottom: 24px;
+}
+
+.create-company-eyebrow {
+  margin: 0 0 8px;
+  color: #2a7d36;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.create-company-heading h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.create-company-heading > p:last-child {
+  margin: 8px 0 0;
+  color: #718077;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.create-company-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.create-company-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #475247;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.create-company-form input,
+.create-company-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #cfd9cf;
+  border-radius: 8px;
+  background: #fff;
+  color: #202720;
+  font: inherit;
+  font-weight: 400;
+}
+
+.create-company-form input[type="file"] {
+  height: auto;
+  padding: 8px;
+}
+
+.create-company-form textarea {
+  resize: vertical;
+}
+
+.create-company-form label small {
+  color: #718077;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.create-company-avatar-preview {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.create-company-error {
+  margin: 0;
+  color: #a13434;
+  font-size: 13px;
+}
+
+.create-company-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.create-company-actions button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #d7e2d7;
+  border-radius: 8px;
+  background: #fff;
+  color: #315a34;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.create-company-actions .create-company-submit {
+  border-color: #00ba00;
+  background: #00ba00;
+  color: #fff;
+}
+
+.create-company-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+@media (max-width: 1000px) {
+  .create-company-page {
+    padding-right: 22px;
+    padding-left: 185px;
+  }
+}
+
+@media (max-width: 800px) {
+  .create-company-page {
+    min-height: 100dvh;
+    padding: 82px 14px 90px;
+  }
+
+  .create-company-card {
+    padding: 22px 18px;
+  }
+
+  .create-company-heading h1 {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .create-company-page {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .create-company-actions {
+    flex-direction: column-reverse;
+  }
+}

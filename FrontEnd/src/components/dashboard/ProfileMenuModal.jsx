@@ -1,7 +1,9 @@
 import React, { useContext } from 'react'
+import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ICONS } from '../../assets/icons'
 import { AuthContext } from '../../api/context/AuthContext'
+import { getProfileAvatar } from '../../utils/profileAvatar'
 import { replaceWithRoutedModal } from '../../utils/routedModal'
 import '../../styles/components/dashboard/profile-menu.css'
 
@@ -9,8 +11,54 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
   const [anchorStyle, setAnchorStyle] = React.useState({})
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, logout } = useContext(AuthContext)
+  const { user, personalUser, logout, switchToPersonal, switchToCompany } = useContext(AuthContext)
   const isAnonymous = !user || user.isAnonymous === true
+  const [companies, setCompanies] = React.useState([])
+  const [companyError, setCompanyError] = React.useState('')
+  const [isCompanyLoading, setIsCompanyLoading] = React.useState(false)
+  const [accountsExpanded, setAccountsExpanded] = React.useState(false)
+  const [accountActivity, setAccountActivity] = React.useState({})
+
+  React.useEffect(() => {
+    if (!open || !personalUser?.token) return undefined
+
+    const controller = new AbortController()
+    async function loadCompanies() {
+      setIsCompanyLoading(true)
+      setCompanyError('')
+      try {
+        const response = await fetch('http://localhost:5000/api/companies', {
+          headers: { Authorization: `Bearer ${personalUser.token}` },
+          signal: controller.signal,
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.message || 'Could not load company accounts.')
+        setCompanies(Array.isArray(result) ? result : [])
+      } catch (error) {
+        if (error.name !== 'AbortError') setCompanyError(error.message)
+      } finally {
+        if (!controller.signal.aborted) setIsCompanyLoading(false)
+      }
+    }
+
+    loadCompanies()
+    return () => controller.abort()
+  }, [open, personalUser])
+
+  React.useEffect(() => {
+    if (!open) {
+      setAccountsExpanded(false)
+      return
+    }
+
+    try {
+      const savedActivity = JSON.parse(localStorage.getItem('feelamong-account-activity') || '{}')
+      setAccountActivity(savedActivity?.[String(personalUser?._id)] || {})
+    } catch (error) {
+      console.error('Could not read account activity:', error)
+      setAccountActivity({})
+    }
+  }, [open, personalUser?._id])
 
   React.useEffect(() => {
     if (!open) return undefined
@@ -22,10 +70,11 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
       }
       const bounds = anchorRef?.current?.getBoundingClientRect()
       if (bounds) {
+        const width = Math.min(360, window.innerWidth - 24)
         setAnchorStyle({
-          left: `${bounds.left}px`,
+          left: `${Math.max(12, Math.min(bounds.right - width, window.innerWidth - width - 12))}px`,
           bottom: `${Math.max(window.innerHeight - bounds.bottom, 12)}px`,
-          width: `${bounds.width}px`,
+          width: `${width}px`,
         })
       }
     }
@@ -56,7 +105,33 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
     navigate('/', { replace: true })
   }
 
-  return (
+  async function handleIdentitySwitch(companyId) {
+    setCompanyError('')
+    try {
+      if (companyId === 'personal') switchToPersonal()
+      else await switchToCompany(companyId)
+      onClose()
+    } catch (error) {
+      setCompanyError(error.message || 'Could not switch accounts.')
+    }
+  }
+
+  const accountOptions = [
+    ...(personalUser
+      ? [{ ...personalUser, accountId: String(personalUser._id), isCompany: false, description: 'Personal account' }]
+      : user && !user.isCompany
+        ? [{ ...user, accountId: String(user._id), isCompany: false, description: 'Personal account' }]
+        : []),
+    ...companies.map((company) => ({ ...company, accountId: String(company._id) })),
+  ]
+  const activeAccountId = String(user?._id || '')
+  const sortedAccountOptions = accountOptions.sort((first, second) => {
+    if (first.accountId === activeAccountId) return -1
+    if (second.accountId === activeAccountId) return 1
+    return (Number(accountActivity[second.accountId]) || 0) - (Number(accountActivity[first.accountId]) || 0)
+  })
+
+  return createPortal(
     <div
       className="profile-menu-backdrop"
       onMouseDown={(event) => {
@@ -77,6 +152,71 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
           </button>
         </div>
         <nav className="profile-menu-options" aria-label="Account options">
+          {!isAnonymous && (
+            <section className={`profile-menu-identities${accountsExpanded ? ' is-expanded' : ''}`} aria-label="Switch account">
+              <div className={`profile-menu-account-switcher${accountsExpanded ? ' is-expanded' : ''}`}>
+                <button
+                  type="button"
+                  className="profile-menu-active-account"
+                  aria-expanded={accountsExpanded}
+                  aria-controls="profile-menu-account-list"
+                  onClick={() => setAccountsExpanded((expanded) => !expanded)}
+                >
+                  <span className="profile-menu-option-icon">
+                    <img src={getProfileAvatar(user)} alt="" />
+                  </span>
+                  <span className="profile-menu-option-copy">
+                    <span>{user?.username || 'Account'}</span>
+                    <small>{user?.isCompany ? 'Company account' : 'Personal account'}</small>
+                  </span>
+                  <svg className={`profile-menu-account-chevron${accountsExpanded ? ' is-expanded' : ''}`} viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
+                {accountsExpanded && (
+                  <div className="profile-menu-account-list" id="profile-menu-account-list">
+                    {sortedAccountOptions.map((account) => {
+                      const isActive = account.accountId === activeAccountId
+                      return (
+                        <button
+                          key={account.accountId}
+                          type="button"
+                          className="profile-menu-option"
+                          aria-current={isActive ? 'true' : undefined}
+                          disabled={isActive}
+                          onClick={() => handleIdentitySwitch(account.isCompany ? account.accountId : 'personal')}
+                        >
+                          <span className="profile-menu-option-icon">
+                            <img src={getProfileAvatar(account)} alt="" />
+                          </span>
+                          <span className="profile-menu-option-copy">
+                            <span>{account.username}{isActive ? ' (Active)' : ''}</span>
+                            <small>{account.description || (account.isCompany ? 'Company account' : 'Personal account')}</small>
+                          </span>
+                        </button>
+                      )
+                    })}
+                    {!sortedAccountOptions.some((account) => account.accountId !== activeAccountId) && !isCompanyLoading && (
+                      <p className="profile-menu-company-state">No other accounts available.</p>
+                    )}
+                    {isCompanyLoading && <p className="profile-menu-company-state">Loading company accounts…</p>}
+                    <button
+                      type="button"
+                      className="profile-menu-option profile-menu-create-company"
+                      onClick={() => navigate('/for-you/company-create', { replace: true })}
+                    >
+                      <span className="profile-menu-option-icon" aria-hidden="true">+</span>
+                      <span className="profile-menu-option-copy">
+                        <span>Create company account</span>
+                        <small>Create another public company identity</small>
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+          {!isAnonymous && companyError && <p className="profile-menu-company-error" role="alert">{companyError}</p>}
           <button type="button" className="profile-menu-option" onClick={() => openDestination('/for-you/profile')}>
             <span className="profile-menu-option-icon profile-menu-user-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24">
@@ -122,7 +262,8 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
           </button>
         </nav>
       </section>
-    </div>
+    </div>,
+    document.body
   )
 }
 

@@ -4,9 +4,7 @@ const userSchema = new mongoose.Schema(
   {
     email: {
       type: String,
-      required: function () { return !this.isAnonymous; },
-      unique: true,
-      sparse: true,
+      required: function () { return !this.isAnonymous && !this.isCompany; },
       lowercase: true,
       trim: true
     },
@@ -21,7 +19,7 @@ const userSchema = new mongoose.Schema(
     lastName: { type: String, trim: true, default: '' },
     password: {
       type: String,
-      required: function () { return !this.isAnonymous; }
+      required: function () { return !this.isAnonymous && !this.isCompany; }
     },
     dateOfBirth: { type: String, default: '' },
     sex: { type: String, default: '' },
@@ -29,6 +27,8 @@ const userSchema = new mongoose.Schema(
     from: { type: String, default: '' },
     bio: { type: String, default: '' },
     avatar: { type: String, default: '' },
+    isCompany: { type: Boolean, default: false },
+    companyOwner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     lastSeen: { type: Date, default: null },
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     isAnonymous: { type: Boolean, default: false },
@@ -37,7 +37,12 @@ const userSchema = new mongoose.Schema(
     resetPasswordCode: { type: String, default: null },
     resetPasswordCodeExpiresAt: { type: Date, default: null }
   },
-  { timestamps: true }
+  { timestamps: true, autoIndex: false }
+);
+
+userSchema.index(
+  { email: 1 },
+  { unique: true, partialFilterExpression: { email: { $type: 'string' } } }
 );
 
 module.exports = mongoose.model('User', userSchema);

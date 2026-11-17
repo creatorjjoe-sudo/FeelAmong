@@ -11,9 +11,13 @@ import '../../styles/pages/profile.css'
 
 const API_ORIGIN = 'http://localhost:5000'
 
-function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, onLike, onComment, onShare, onMore, isLikedByMe, likedUsers, isMoreOpen, moreActions, moreAnchorsRef }) {
+function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, onLike, onComment, onShare, onMore, isLikedByMe, likedUsers, isMoreOpen, moreActions, moreAnchorsRef, isLoading = false }) {
   const videoRef = React.useRef(null)
+  const rowRef = React.useRef(null)
   const [isPaused, setIsPaused] = React.useState(false)
+  const [isMediaLoading, setIsMediaLoading] = React.useState(true)
+  const [videoAspectRatio, setVideoAspectRatio] = React.useState(9 / 16)
+  const [stageSize, setStageSize] = React.useState(null)
   const registerVideo = React.useCallback((element) => {
     videoRef.current = element
     if (element) {
@@ -26,13 +30,45 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
   const [progress, setProgress] = React.useState(0)
   const [burst, setBurst] = React.useState(false)
 
-  const likeCount = video.likes?.length || 0
-  const commentCount = video.comments?.length || 0
-  const shareCount = video.sharesCount || 0
+  const likeCount = video?.likes?.length || 0
+  const commentCount = video?.comments?.length || 0
+  const shareCount = video?.sharesCount || 0
 
-  const videoUrl = typeof video.videoUrl === 'string' && video.videoUrl.startsWith('/')
+  const videoUrl = typeof video?.videoUrl === 'string' && video.videoUrl.startsWith('/')
     ? `${API_ORIGIN}${video.videoUrl}`
-    : video.videoUrl
+    : video?.videoUrl
+
+  React.useEffect(() => {
+    const row = rowRef.current
+    if (!row) return undefined
+
+    function updateStageSize() {
+      const bounds = row.getBoundingClientRect()
+      const styles = window.getComputedStyle(row)
+      const horizontalPadding = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight)
+      const verticalPadding = parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom)
+      const isMobile = window.matchMedia('(max-width: 800px)').matches
+      const availableWidth = Math.max(0, bounds.width - horizontalPadding)
+      const availableHeight = Math.max(0, bounds.height - verticalPadding)
+      const maxWidth = isMobile ? availableWidth : Math.min(480, availableWidth)
+      const maxHeight = Math.min(780, availableHeight)
+      const height = Math.min(maxHeight, maxWidth / videoAspectRatio)
+      const nextSize = { width: height * videoAspectRatio, height }
+
+      setStageSize((current) => (
+        current
+        && Math.abs(current.width - nextSize.width) < 0.5
+        && Math.abs(current.height - nextSize.height) < 0.5
+          ? current
+          : nextSize
+      ))
+    }
+
+    updateStageSize()
+    const observer = new ResizeObserver(updateStageSize)
+    observer.observe(row)
+    return () => observer.disconnect()
+  }, [videoAspectRatio])
 
   // Play when this slide snaps into view, pause when it leaves.
   React.useEffect(() => {
@@ -70,6 +106,15 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
     setProgress((element.currentTime / element.duration) * 100)
   }
 
+  function handleLoadedMetadata(event) {
+    const { videoWidth, videoHeight } = event.currentTarget
+    if (videoWidth && videoHeight) setVideoAspectRatio(videoWidth / videoHeight)
+  }
+
+  const stageStyle = stageSize
+    ? { width: `${stageSize.width}px`, height: `${stageSize.height}px` }
+    : undefined
+
   function handleSeek(event) {
     event.stopPropagation()
     const element = videoRef.current
@@ -87,33 +132,82 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
     element.play().catch(() => { })
   }
 
-  return (
-    <section className={`video-slide${isActive ? ' is-active' : ''}`} data-slide-index={index}>
-      <div className="video-slide-row">
-      <div className="video-stage" onClick={togglePlayback}>
-        <video
-          ref={registerVideo}
-          className="video-stage-player"
-          src={videoUrl}
-          loop
-          playsInline
-          preload="metadata"
-          onTimeUpdate={handleTimeUpdate}
-          onEnded={handleEnded}
-        >
-          Your browser does not support video playback.
-        </video>
-
-        {isPaused && <span className="video-pause-badge"><img src={ICONS.play} alt="Paused" /></span>}
-
-        <div className="video-overlay video-overlay-creator-only">
-          <header className="video-overlay-creator">
-            <img src={getProfileAvatar(video.user)} alt="" />
-            <div className="video-overlay-creator-copy">
-              <strong>{video.user?.username || 'Unknown creator'}</strong>
-              {video.caption && <p>{video.caption}</p>}
+  if (isLoading) {
+    return (
+      <section className={`video-slide${isActive ? ' is-active' : ''}`} data-slide-index={index}>
+        <div className="video-slide-row" ref={rowRef}>
+          <div className="video-stage" style={stageStyle}>
+            <div className="video-stage-content">
+              <video className="video-stage-player is-loading" aria-hidden="true" />
+              <div className="video-overlay video-overlay-creator-only" aria-hidden="true">
+                <header className="video-overlay-creator">
+                  <span className="video-loading-shape video-loading-avatar" />
+                  <div className="video-overlay-creator-copy video-loading-copy">
+                    <span className="video-loading-shape video-loading-name" />
+                    <span className="video-loading-shape video-loading-caption" />
+                    <span className="video-loading-shape video-loading-caption" />
+                  </div>
+                </header>
+              </div>
             </div>
-          </header>
+            <aside className="video-overlay-actions video-side-actions video-loading-actions" aria-hidden="true">
+              {[0, 1, 2, 3, 4].map((action) => (
+                <span className="video-action-btn video-loading-action" key={action}>
+                  <span className="icon-disc video-loading-shape video-loading-icon" />
+                  {action < 4 && <span className="video-loading-shape video-loading-count" />}
+                </span>
+              ))}
+            </aside>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className={`video-slide${isActive ? ' is-active' : ''}${isMediaLoading ? ' is-media-loading' : ''}`} data-slide-index={index}>
+      <div className="video-slide-row" ref={rowRef}>
+      <div className="video-stage" style={stageStyle} onClick={togglePlayback}>
+        <div className="video-stage-content">
+          <video
+            ref={registerVideo}
+            className={`video-stage-player${isMediaLoading ? ' is-loading' : ''}`}
+            src={videoUrl}
+            loop
+            playsInline
+            preload="metadata"
+            onLoadStart={() => setIsMediaLoading(true)}
+            onWaiting={() => setIsMediaLoading(true)}
+            onPlaying={() => setIsMediaLoading(false)}
+            onLoadedMetadata={handleLoadedMetadata}
+            onTimeUpdate={handleTimeUpdate}
+            onEnded={handleEnded}
+          >
+            Your browser does not support video playback.
+          </video>
+
+          {isPaused && <span className="video-pause-badge"><img src={ICONS.play} alt="Paused" /></span>}
+
+          <div className="video-overlay video-overlay-creator-only">
+            <header className="video-overlay-creator">
+              {isMediaLoading
+                ? <span className="video-loading-shape video-loading-avatar" />
+                : <img src={getProfileAvatar(video.user)} alt="" />}
+              <div className="video-overlay-creator-copy">
+                {isMediaLoading ? (
+                  <>
+                    <span className="video-loading-shape video-loading-name" />
+                    <span className="video-loading-shape video-loading-caption" />
+                    <span className="video-loading-shape video-loading-caption" />
+                  </>
+                ) : (
+                  <>
+                    <strong>{video.user?.username || 'Unknown creator'}</strong>
+                    {video.caption && <p>{video.caption}</p>}
+                  </>
+                )}
+              </div>
+            </header>
         </div>
 
         <div
@@ -128,9 +222,9 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
         >
           <span style={{ width: `${progress}%` }} />
         </div>
-      </div>
+        </div>
 
-      <aside className="video-overlay-actions video-side-actions">
+      <aside className="video-overlay-actions video-side-actions" onClick={(event) => event.stopPropagation()}>
             <button
               type="button"
               className={`video-action-btn${isLikedByMe ? ' is-liked' : ''}${burst ? ' is-burst' : ''}`}
@@ -249,6 +343,7 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
               )}
             </div>
       </aside>
+      </div>
       </div>
     </section>
   )
@@ -612,7 +707,26 @@ function Videos() {
   return (
     <main className="videos-page">
       <h1 className="sr-only">Videos</h1>
-      {isLoading && <div className="videos-state"><span className="videos-spinner" />Loading videos...</div>}
+      {user?.isCompany && (
+        <button
+          className="videos-create-button"
+          type="button"
+          onClick={() => navigate('/video-create-one')}
+        >
+          Create video
+        </button>
+      )}
+      {isLoading && (
+        <div className="videos-scroll videos-loading" role="status" aria-label="Loading videos">
+          <VideoFeedItem
+            isLoading
+            video={null}
+            isActive={false}
+            index={0}
+            registryRef={videoRegistryRef}
+          />
+        </div>
+      )}
       {error && <p className="videos-state videos-error" role="alert">{error}</p>}
       {!isLoading && !error && videos.length === 0 && (
         <p className="videos-state">No videos yet.</p>

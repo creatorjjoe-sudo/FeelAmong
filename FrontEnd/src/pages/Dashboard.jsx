@@ -12,6 +12,7 @@ import Notifications from '../components/dashboard/Notifications'
 import ProfilePage from './ProfilePage'
 import SavedItemsPage from './SavedItemsPage'
 import SettingsPage from './SettingsPage'
+import CreateCompanyPage from './CreateCompanyPage'
 import { AuthContext } from '../api/context/AuthContext'
 
 function Dashboard({ isDarkMode, setIsDarkMode }) {
@@ -237,6 +238,7 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
         />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="profile/:userId" element={<ProfilePage />} />
+        <Route path="company-create" element={<CreateCompanyPage />} />
         <Route path="saved" element={<SavedItemsPage />} />
         <Route
           path="settings"

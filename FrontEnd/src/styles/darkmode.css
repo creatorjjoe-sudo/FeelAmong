@@ -138,6 +138,63 @@ html[data-theme="dark"] .profile-menu-option-icon {
  background-color: #29352d;
 }
 
+html[data-theme="dark"] .create-company-page {
+ background-color: #121614;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .create-company-card {
+ border-color: #303a33;
+ background-color: #1b211e;
+}
+
+html[data-theme="dark"] .create-company-form label {
+ color: #c3cdc5;
+}
+
+html[data-theme="dark"] .create-company-form input,
+html[data-theme="dark"] .create-company-form textarea {
+ border-color: #3a483e;
+ background: #121614;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .create-company-back,
+html[data-theme="dark"] .create-company-form label small {
+ color: #a5b2a8;
+}
+
+html[data-theme="dark"] .create-company-actions .create-company-cancel {
+ border-color: #455148;
+ background: #29352d;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .profile-menu-account-switcher {
+ background-color: #1b211e;
+ box-shadow: 0 0 14px rgba(0, 0, 0, 0.5);
+}
+
+html[data-theme="dark"] .profile-menu-account-switcher .profile-menu-option-copy > span {
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .profile-menu-account-switcher .profile-menu-option-copy small {
+ color: #a5b2a8;
+}
+
+html[data-theme="dark"] .profile-menu-active-account {
+ background: transparent;
+}
+
+html[data-theme="dark"] .profile-menu-account-list {
+ border-top-color: #303a33;
+}
+
+html[data-theme="dark"] .profile-menu-option[aria-current="true"] {
+ background: #29352d;
+}
+
 html[data-theme="dark"] .profile-dialog-actions button:not([type="submit"]) {
  border-color: #455148;
  background-color: #29352d;

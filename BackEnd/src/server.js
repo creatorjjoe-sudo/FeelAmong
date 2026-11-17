@@ -14,10 +14,9 @@ const searchRoutes = require('./routes/searchRoutes');
 const userRoutes = require('./routes/userRoutes');
 const savedItemRoutes = require('./routes/savedItemRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const companyRoutes = require('./routes/companyRoutes');
 
 dotenv.config();
-
-connectDB();
 
 const app = express();
 
@@ -35,6 +34,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/saves', savedItemRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/companies', companyRoutes);
 
 // 3. Create HTTP Server & Pass to Socket.io
 const server = http.createServer(app);
@@ -43,6 +43,8 @@ initSocket(server);
 const PORT = process.env.PORT || 5000;
 
 // 4. Listen on HTTP Server instead of express app
-server.listen(PORT, () => {
-  console.log(`Server & Socket.io running on port ${PORT}`);
+connectDB().then(() => {
+  server.listen(PORT, () => {
+    console.log(`Server & Socket.io running on port ${PORT}`);
+  });
 });

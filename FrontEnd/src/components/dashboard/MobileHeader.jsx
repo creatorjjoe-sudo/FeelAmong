@@ -29,7 +29,7 @@ function MobileHeader() {
    return
   }
 
-  navigate('/post-create-one')
+  navigate(user.isCompany ? '/video-create-one' : '/post-create-one')
  }
 
  async function handleLogin() {
@@ -44,7 +44,7 @@ function MobileHeader() {
     <button className="search-wrapper" type="button" aria-label="Open search" onClick={openSearch}>
     <img className='search-icon' src={ICONS.search} alt="" />
     </button>
-   <button className="create-post-mobile" type="button" onClick={handleCreate} aria-label="Create post">
+   <button className="create-post-mobile" type="button" onClick={handleCreate} aria-label={user?.isCompany ? 'Create video' : 'Create post'}>
     <img className='plus-circle' src={ICONS.pluscircle} alt="" />
    </button>
    <button ref={profileButtonRef} className="profile-shortcut" type="button" aria-label="Open account menu" aria-haspopup="dialog" aria-expanded={profileMenuOpen} onClick={openProfileMenu}>

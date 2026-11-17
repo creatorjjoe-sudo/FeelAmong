@@ -37,7 +37,7 @@ const getPublicProfile = async (req, res) => {
       return res.status(400).json({ message: 'Invalid user ID' });
     }
     const profile = await User.findById(req.params.id)
-      .select('username firstName lastName avatar sex bio from status friends lastSeen');
+      .select('username firstName lastName avatar sex bio from status friends lastSeen isCompany');
     if (!profile) return res.status(404).json({ message: 'User not found' });
 
     res.json({
@@ -51,6 +51,8 @@ const getPublicProfile = async (req, res) => {
       from: profile.from,
       status: profile.status,
       lastSeen: profile.lastSeen,
+      isCompany: profile.isCompany,
+      companyDescription: profile.isCompany ? profile.bio : '',
       friendsCount: profile.friends.length
     });
   } catch (error) {

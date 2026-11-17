@@ -21,6 +21,10 @@ const getVideos = async (req, res) => {
 
 const createVideo = async (req, res) => {
   try {
+    if (!req.user.isCompany) {
+      return res.status(403).json({ message: 'Switch to a company account to create videos' });
+    }
+
     // Accept either a file upload (multer puts it in req.file) or a raw videoUrl.
     const videoUrl = req.file ? `/uploads/videos/${req.file.filename}` : req.body.videoUrl;
     const { caption } = req.body;
