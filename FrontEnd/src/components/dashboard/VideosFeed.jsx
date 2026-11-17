@@ -1,5 +1,5 @@
 import React from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../api/context/AuthContext'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
@@ -10,6 +10,37 @@ import '../../styles/components/dashboard/videosfeed.css'
 import '../../styles/pages/profile.css'
 
 const API_ORIGIN = 'http://localhost:5000'
+
+function getCommentThreadCounts(comments = []) {
+  return comments.reduce((counts, comment) => {
+    counts.replies += comment.replies?.length || 0
+    for (const reply of comment.replies || []) {
+      counts.subReplies += reply.replies?.length || 0
+    }
+    return counts
+  }, { comments: comments.length, replies: 0, subReplies: 0 })
+}
+
+function getCommentReplyCount(comment) {
+  return (comment.replies || []).reduce(
+    (count, reply) => count + 1 + (reply.replies?.length || 0),
+    0,
+  )
+}
+
+function getLikeUserId(like) {
+  return String(typeof like === 'object' && like !== null ? like._id : like)
+}
+
+function formatThreadTime(createdAt) {
+  if (!createdAt) return ''
+  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000))
+  if (elapsedSeconds < 60) return 'just now'
+  const units = [['year', 31536000, 'y'], ['month', 2592000, 'mo'], ['day', 86400, 'd'], ['hour', 3600, 'h'], ['minute', 60, 'm']]
+  const [unit, secondsPerUnit, shortUnit] = units.find(([, seconds]) => elapsedSeconds >= seconds)
+  const value = Math.floor(elapsedSeconds / secondsPerUnit)
+  return `${value}${shortUnit}`
+}
 
 function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, onLike, onComment, onShare, onMore, isLikedByMe, likedUsers, isMoreOpen, moreActions, moreAnchorsRef, isLoading = false }) {
   const videoRef = React.useRef(null)
@@ -364,6 +395,9 @@ function Videos() {
   const [activeIndex, setActiveIndex] = React.useState(0)
   const [activeVideoDialogData, setActiveVideoDialogData] = React.useState(null)
   const [commentDraft, setCommentDraft] = React.useState('')
+  const [replyTarget, setReplyTarget] = React.useState(null)
+  const [isSubmittingComment, setIsSubmittingComment] = React.useState(false)
+  const commentInputRef = React.useRef(null)
   const [moreMenuVideoId, setMoreMenuVideoId] = React.useState(null)
   const moreAnchorsRef = React.useRef(new Map())
   const [reportVideoItemData, setReportVideoItemData] = React.useState(null)
@@ -377,6 +411,15 @@ function Videos() {
   // Every mounted <video> element registers itself here so the parent can
   // pause all of them except the active one whenever the active slide changes.
   const videoRegistryRef = React.useRef(new Map())
+
+  React.useLayoutEffect(() => {
+    const textarea = commentInputRef.current
+    if (!textarea) return
+    textarea.style.height = '40px'
+    const contentHeight = textarea.scrollHeight
+    textarea.style.height = `${Math.min(contentHeight, 100)}px`
+    textarea.style.overflowY = contentHeight > 100 ? 'auto' : 'hidden'
+  }, [activeVideoDialog, commentDraft])
 
   const closeSaveModal = React.useCallback(() => {
     setSaveModalItem(null)
@@ -532,32 +575,121 @@ function Videos() {
       return
     }
     setCommentDraft('')
+    setReplyTarget(null)
     setActiveVideoDialogData({ type: 'comment', video })
     pushRoutedModal(navigate, location, 'video-feed-comments')
   }
 
+  function updateVideoComments(videoId, updateComments) {
+    setVideos((current) => current.map((video) => (
+      String(video._id) === String(videoId)
+        ? { ...video, comments: updateComments(video.comments || []) }
+        : video
+    )))
+    setActiveVideoDialogData((current) => (
+      current && String(current.video._id) === String(videoId)
+        ? { ...current, video: { ...current.video, comments: updateComments(current.video.comments || []) } }
+        : current
+    ))
+  }
+
   async function addComment(event) {
     event.preventDefault()
-    if (!activeVideoDialog) return
+    if (!activeVideoDialog || !token || isSubmittingComment) return
     const text = commentDraft.trim()
     if (!text) return
+    setIsSubmittingComment(true)
     try {
-      const response = await fetch(`${API_ORIGIN}/api/videos/${activeVideoDialog.video._id}/comments`, {
+      const endpoint = replyTarget
+        ? `${API_ORIGIN}/api/videos/${activeVideoDialog.video._id}/comments/${replyTarget.commentId}/replies`
+        : `${API_ORIGIN}/api/videos/${activeVideoDialog.video._id}/comments`
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({
+          text,
+          ...(replyTarget?.replyId ? { parentReplyId: replyTarget.replyId } : {}),
+          ...(replyTarget?.replyToSubReplyId ? { replyToSubReplyId: replyTarget.replyToSubReplyId } : {}),
+        }),
       })
       const result = await response.json()
-      if (!response.ok) throw new Error(result.message || 'Unable to add comment.')
-      setVideos((current) => current.map((item) =>
-        String(item._id) === String(activeVideoDialog.video._id)
-          ? { ...item, comments: [...(item.comments || []), result.comment] }
-          : item
-      ))
+      if (!response.ok) throw new Error(result.message || (replyTarget ? 'Unable to add reply.' : 'Unable to add comment.'))
+      updateVideoComments(activeVideoDialog.video._id, (comments) => {
+        if (!replyTarget) return [...comments, result.comment]
+        return comments.map((comment) => {
+          if (String(comment._id) !== String(result.commentId)) return comment
+          if (!result.parentReplyId) return { ...comment, replies: [...(comment.replies || []), result.reply] }
+          return {
+            ...comment,
+            replies: (comment.replies || []).map((reply) => (
+              String(reply._id) === String(result.parentReplyId)
+                ? { ...reply, replies: [...(reply.replies || []), result.reply] }
+                : reply
+            )),
+          }
+        })
+      })
       setCommentDraft('')
-      closeRoutedDialog()
+      setReplyTarget(null)
     } catch (commentError) {
       setNotice(commentError.message)
+    } finally {
+      setIsSubmittingComment(false)
+    }
+  }
+
+  async function toggleVideoCommentLike(videoId, commentId, replyId = null, subReplyId = null) {
+    if (!user || user.isAnonymous || !token) {
+      pushRoutedModal(navigate, location, 'video-feed-login-required')
+      return
+    }
+
+    try {
+      const response = await fetch(`${API_ORIGIN}/api/videos/${videoId}/comments/${commentId}/like`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(replyId ? { replyId } : {}),
+          ...(subReplyId ? { subReplyId } : {}),
+        }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.message || 'Unable to update comment like.')
+
+      const currentUserId = String(user._id)
+      const currentUser = {
+        _id: currentUserId,
+        username: user.username || 'User',
+        avatar: user.avatar || '',
+        sex: user.sex || '',
+      }
+      const updateLikes = (likes = []) => (
+        result.isLiked
+          ? [...likes.filter((like) => getLikeUserId(like) !== currentUserId), currentUser]
+          : likes.filter((like) => getLikeUserId(like) !== currentUserId)
+      )
+
+      updateVideoComments(videoId, (comments) => comments.map((comment) => {
+        if (String(comment._id) !== String(commentId)) return comment
+        if (!replyId) return { ...comment, likes: updateLikes(comment.likes) }
+        return {
+          ...comment,
+          replies: (comment.replies || []).map((reply) => {
+            if (String(reply._id) !== String(replyId)) return reply
+            if (!subReplyId) return { ...reply, likes: updateLikes(reply.likes) }
+            return {
+              ...reply,
+              replies: (reply.replies || []).map((subReply) => (
+                String(subReply._id) === String(subReplyId)
+                  ? { ...subReply, likes: updateLikes(subReply.likes) }
+                  : subReply
+              )),
+            }
+          }),
+        }
+      }))
+    } catch (likeError) {
+      setNotice(likeError.message)
     }
   }
 
@@ -704,6 +836,106 @@ function Videos() {
     ))
   )
 
+  const activeVideoCommentCounts = getCommentThreadCounts(activeVideoDialog?.video.comments || [])
+
+  function renderVideoComment(item, commentId, depth = 0, parentReplyId = null) {
+    const itemLikes = item.likes || []
+    const isLiked = itemLikes.some((like) => getLikeUserId(like) === String(user?._id))
+    const itemReplies = item.replies || []
+    const replyId = depth === 1 ? item._id : (depth === 2 ? parentReplyId : null)
+    const subReplyId = depth > 1 ? item._id : null
+
+    return (
+      <article className={`post-thread-item depth-${depth}${itemReplies.length > 0 ? ' has-replies' : ''}`} key={item._id}>
+        {depth > 0 && <span className="post-thread-branch" aria-hidden="true" />}
+        <div className="post-thread-message">
+          <div className="post-thread-identity">
+            <img src={getProfileAvatar(item.user)} alt="" />
+            {item.user?._id ? (
+              <Link className="post-thread-author-link" to={`/for-you/profile/${item.user._id}`}>
+                {item.user.username || 'User'}
+              </Link>
+            ) : (
+              <strong>{item.user?.username || 'User'}</strong>
+            )}
+            <span className="post-thread-number">{depth === 0 ? '' : itemReplies.length || ''}</span>
+          </div>
+          <div className="post-thread-bubble">
+            <p>{item.text}</p>
+          </div>
+          <div className="post-thread-actions">
+            <button
+              type="button"
+              className={`post-thread-action${isLiked ? ' is-liked' : ''}`}
+              aria-label={isLiked ? 'Unlike comment' : 'Like comment'}
+              onClick={() => toggleVideoCommentLike(activeVideoDialog.video._id, commentId, replyId || parentReplyId, subReplyId)}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" />
+              </svg>
+              {itemLikes.length > 0 && <span>{itemLikes.length}</span>}
+            </button>
+            {depth < 3 && (
+              <button
+                type="button"
+                className="post-thread-action"
+                aria-label={`Reply to ${item.user?.username || 'comment'}`}
+                onClick={() => {
+                  if (!user || user.isAnonymous || !token) {
+                    pushRoutedModal(navigate, location, 'video-feed-login-required')
+                    return
+                  }
+                  setReplyTarget({
+                    commentId,
+                    replyId: depth === 0 ? null : depth === 1 ? item._id : parentReplyId,
+                    replyToSubReplyId: depth === 2 ? item._id : null,
+                    username: item.user?.username || 'User',
+                  })
+                  window.requestAnimationFrame(() => document.getElementById('video-comment-input')?.focus())
+                }}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M14 4 21 11l-7 7v-4C8.5 14 5 16 3 20c0-7 3-11 11-11V4Z" />
+                </svg>
+              </button>
+            )}
+            <time>{formatThreadTime(item.createdAt)}</time>
+          </div>
+          {depth === 0 && itemReplies.length > 0 && (
+            <button
+              className="post-thread-replies-count"
+              type="button"
+              onClick={() => {
+                if (!user || user.isAnonymous || !token) {
+                  pushRoutedModal(navigate, location, 'video-feed-login-required')
+                  return
+                }
+                setReplyTarget({
+                  commentId,
+                  replyId: null,
+                  username: item.user?.username || 'User',
+                })
+                window.requestAnimationFrame(() => document.getElementById('video-comment-input')?.focus())
+              }}
+            >
+              Replies: {getCommentReplyCount(item)}
+            </button>
+          )}
+        </div>
+        {itemReplies.length > 0 && depth < 2 && (
+          <div className="post-thread-children">
+            {itemReplies.map((reply) => renderVideoComment(
+              reply,
+              commentId,
+              depth + 1,
+              depth === 0 ? reply._id : parentReplyId
+            ))}
+          </div>
+        )}
+      </article>
+    )
+  }
+
   return (
     <main className="videos-page">
       <h1 className="sr-only">Videos</h1>
@@ -788,25 +1020,97 @@ function Videos() {
       )}
 
       {activeVideoDialog?.type === 'comment' && (
-        <div className="post-action-dialog-backdrop" onMouseDown={(event) => {
+        <div className="post-action-dialog-backdrop is-post-comments" onMouseDown={(event) => {
           if (event.target === event.currentTarget) closeRoutedDialog()
         }}>
-          <section className="post-action-dialog" role="dialog" aria-modal="true" aria-labelledby="video-comment-dialog-title">
+          <section className="post-action-dialog post-comments-dialog" role="dialog" aria-modal="true" aria-labelledby="video-comment-dialog-title">
             <button className="post-action-dialog-close" type="button" aria-label="Close dialog" onClick={closeRoutedDialog}>×</button>
-            <h2 id="video-comment-dialog-title">Comments</h2>
+            <header className="post-comments-mobile-header">
+              <button
+                className="post-comments-back"
+                type="button"
+                aria-label="Back to video"
+                onClick={closeRoutedDialog}
+              >
+                <img src={ICONS.backArrow} alt="" />
+              </button>
+              <img
+                className="post-comments-author-avatar"
+                src={getProfileAvatar(activeVideoDialog.video.user)}
+                alt=""
+              />
+              <div className="post-comments-heading">
+                <h2 id="video-comment-dialog-title">
+                  {activeVideoDialog.video.user?.username || 'User'}'s video
+                </h2>
+                <p>
+                  {activeVideoCommentCounts.comments} comments, {activeVideoCommentCounts.replies} replies and {activeVideoCommentCounts.subReplies} sub-replies ({activeVideoCommentCounts.comments + activeVideoCommentCounts.replies + activeVideoCommentCounts.subReplies})
+                </p>
+              </div>
+              <img className="post-comments-search" src={ICONS.search} alt="" />
+            </header>
+            <h2 className="post-comments-desktop-title">Comments</h2>
             <div className="post-comments-list">
-              {(activeVideoDialog.video.comments || []).map((comment) => (
-                <article className="post-comment" key={comment._id}>
-                  <strong>{comment.user?.username || 'User'}</strong>
-                  <p>{comment.text}</p>
-                </article>
-              ))}
-              {!activeVideoDialog.video.comments?.length && <p className="post-dialog-empty">No comments yet.</p>}
+              {(activeVideoDialog.video.comments || []).map((comment) => renderVideoComment(comment, comment._id))}
+              {!activeVideoDialog.video.comments?.length && (
+                <>
+                  <p className="post-dialog-empty">No comments yet.</p>
+                  <div className="post-comments-mobile-empty" aria-live="polite">
+                    <svg viewBox="0 0 200 150" role="img" aria-label="Empty conversation">
+                      <path d="M75 20c-29 0-52 21-52 47 0 14 7 27 19 36l-9 22c-2 5 4 9 9 6l30-16c2 0 4 1 7 1 29 0 52-21 52-48S104 20 75 20Z" />
+                      <path d="M121 8c34 0 61 24 61 54 0 17-9 33-24 43l7 27c1 5-4 8-8 5l-30-20c-2 0-4 1-6 1-33 0-60-24-60-55S88 8 121 8Z" />
+                    </svg>
+                    <h3>No comments yet</h3>
+                    <p>Be the first to comment</p>
+                  </div>
+                </>
+              )}
             </div>
-            <form onSubmit={addComment}>
-              <label htmlFor="video-comment-input">Add a comment</label>
-              <textarea id="video-comment-input" value={commentDraft} onChange={(event) => setCommentDraft(event.target.value)} maxLength={1000} required rows={3} />
-              <button className="post-dialog-submit" type="submit">Comment</button>
+            <form className="post-comment-form" onSubmit={addComment}>
+              <label className="post-comment-desktop-label" htmlFor="video-comment-input">Add a comment</label>
+              {replyTarget && (
+                <div className="post-comment-reply-target">
+                  Replying to {replyTarget.username}
+                  <button
+                    type="button"
+                    aria-label="Cancel reply"
+                    onClick={() => setReplyTarget(null)}
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+              <div className="post-comment-mobile-tools" aria-hidden="true">
+                <img src={ICONS.addPhoto} alt="" />
+                <img src={ICONS.micGreen} alt="" />
+              </div>
+              <div className="post-comment-input-row">
+                <img className="post-comment-avatar" src={getProfileAvatar(user)} alt="" />
+                <textarea
+                  id="video-comment-input"
+                  ref={commentInputRef}
+                  value={commentDraft}
+                  onChange={(event) => setCommentDraft(event.target.value)}
+                  placeholder={replyTarget
+                    ? `Reply to ${replyTarget.username}`
+                    : `Comment as ${[user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.username || 'you'}`}
+                  aria-label="Write a comment"
+                  maxLength={1000}
+                  required
+                  disabled={isSubmittingComment}
+                  rows={1}
+                />
+                <button
+                  className="post-dialog-submit"
+                  type="submit"
+                  aria-label={replyTarget ? 'Send reply' : 'Send comment'}
+                  disabled={isSubmittingComment}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M3 20.5 22 12 3 3.5l.5 6.7L16 12l-12.5 1.8-.5 6.7Z" />
+                  </svg>
+                </button>
+              </div>
             </form>
           </section>
         </div>

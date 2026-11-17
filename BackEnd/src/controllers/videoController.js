@@ -7,7 +7,12 @@ const getVideos = async (req, res) => {
   try {
     const videos = await Video.find()
       .populate('user', 'username avatar sex')
+      .populate('comments.likes', 'username avatar sex')
       .populate('comments.user', 'username avatar sex')
+      .populate('comments.replies.user', 'username avatar sex')
+      .populate('comments.replies.likes', 'username avatar sex')
+      .populate('comments.replies.replies.user', 'username avatar sex')
+      .populate('comments.replies.replies.likes', 'username avatar sex')
       .sort({ createdAt: -1 });
     // Hide videos the caller marked as not interested.
     const visibleVideos = req.user && req.user._id
@@ -94,7 +99,10 @@ const addVideoComment = async (req, res) => {
     video.comments.push({ user: req.user._id, text });
     await video.save();
     const commentIndex = video.comments.length - 1;
-    await video.populate(`comments.${commentIndex}.user`, 'username avatar sex');
+    await video.populate([
+      { path: `comments.${commentIndex}.user`, select: 'username avatar sex' },
+      { path: `comments.${commentIndex}.likes`, select: 'username avatar sex' }
+    ]);
     const comment = video.comments[commentIndex];
 
     // Notify the video owner about the new comment
@@ -108,6 +116,130 @@ const addVideoComment = async (req, res) => {
     });
 
     res.status(201).json({ videoId: video._id, comment });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const addVideoCommentReply = async (req, res) => {
+  try {
+    const text = typeof req.body.text === 'string' ? req.body.text.trim() : '';
+    if (!text) return res.status(400).json({ message: 'Reply cannot be empty' });
+    if (text.length > 1000) return res.status(400).json({ message: 'Reply must be 1000 characters or fewer' });
+
+    const video = await Video.findById(req.params.id);
+    if (!video) return res.status(404).json({ message: 'Video not found' });
+
+    const comment = video.comments.id(req.params.commentId);
+    if (!comment) return res.status(404).json({ message: 'Comment not found' });
+    if (req.body.replyToSubReplyId && !req.body.parentReplyId) {
+      return res.status(400).json({ message: 'A parent reply is required for sub-reply targets' });
+    }
+
+    let reply;
+    let replyRecipient = comment.user;
+    if (req.body.parentReplyId) {
+      const parentReply = comment.replies.id(req.body.parentReplyId);
+      if (!parentReply) return res.status(404).json({ message: 'Reply not found' });
+      replyRecipient = parentReply.user;
+      if (req.body.replyToSubReplyId) {
+        const targetSubReply = parentReply.replies.id(req.body.replyToSubReplyId);
+        if (!targetSubReply) return res.status(404).json({ message: 'Sub-reply not found' });
+        replyRecipient = targetSubReply.user;
+      }
+      parentReply.replies.push({ user: req.user._id, text });
+      reply = parentReply.replies[parentReply.replies.length - 1];
+    } else {
+      comment.replies.push({ user: req.user._id, text });
+      reply = comment.replies[comment.replies.length - 1];
+    }
+
+    await video.save();
+    await video.populate([
+      { path: 'user', select: 'username firstName lastName' },
+      { path: 'comments.user', select: 'username avatar sex' },
+      { path: 'comments.replies.user', select: 'username avatar sex' },
+      { path: 'comments.replies.replies.user', select: 'username avatar sex' }
+    ]);
+    const savedComment = video.comments.id(comment._id);
+    const savedReply = req.body.parentReplyId
+      ? savedComment.replies.id(req.body.parentReplyId).replies.id(reply._id)
+      : savedComment.replies.id(reply._id);
+    const videoOwner = video.user;
+    const videoOwnerId = videoOwner?._id || videoOwner;
+    const videoOwnerName = [videoOwner?.firstName, videoOwner?.lastName].filter(Boolean).join(' ')
+      || videoOwner?.username
+      || 'the creator';
+    const actorName = [req.user.firstName, req.user.lastName].filter(Boolean).join(' ')
+      || req.user.username
+      || 'Someone';
+    const previewText = text.length > 80 ? `${text.slice(0, 80)}…` : text;
+
+    await createNotification({
+      recipient: videoOwnerId,
+      actor: req.user._id,
+      type: 'video_comment',
+      target: video._id,
+      targetModel: 'Video',
+      text: previewText
+    });
+    if (String(replyRecipient) !== String(videoOwnerId)) {
+      await createNotification({
+        recipient: replyRecipient,
+        actor: req.user._id,
+        type: 'comment_reply',
+        target: video._id,
+        targetModel: 'Video',
+        text: previewText,
+        message: `${actorName} replied to your comment on ${videoOwnerName}'s video`
+      });
+    }
+
+    res.status(201).json({
+      videoId: video._id,
+      commentId: comment._id,
+      parentReplyId: req.body.parentReplyId || null,
+      reply: savedReply.toObject()
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const toggleVideoCommentLike = async (req, res) => {
+  try {
+    const video = await Video.findById(req.params.id);
+    if (!video) return res.status(404).json({ message: 'Video not found' });
+
+    const comment = video.comments.id(req.params.commentId);
+    if (!comment) return res.status(404).json({ message: 'Comment not found' });
+
+    let target = comment;
+    if (req.body.replyId) {
+      target = comment.replies.id(req.body.replyId);
+      if (!target) return res.status(404).json({ message: 'Reply not found' });
+    }
+    if (req.body.subReplyId) {
+      if (!req.body.replyId) return res.status(400).json({ message: 'A parent reply is required' });
+      target = target.replies.id(req.body.subReplyId);
+      if (!target) return res.status(404).json({ message: 'Sub-reply not found' });
+    }
+
+    const userId = String(req.user._id);
+    const alreadyLiked = target.likes.some((likeId) => String(likeId) === userId);
+    target.likes = alreadyLiked
+      ? target.likes.filter((likeId) => String(likeId) !== userId)
+      : [...target.likes, req.user._id];
+    await video.save();
+
+    res.json({
+      videoId: video._id,
+      commentId: comment._id,
+      replyId: req.body.replyId || null,
+      subReplyId: req.body.subReplyId || null,
+      isLiked: !alreadyLiked,
+      likesCount: target.likes.length
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -178,4 +310,14 @@ const toggleNotInterested = async (req, res) => {
   }
 };
 
-module.exports = { getVideos, createVideo, toggleVideoLike, addVideoComment, shareVideo, reportVideo, toggleNotInterested };
+module.exports = {
+  getVideos,
+  createVideo,
+  toggleVideoLike,
+  addVideoComment,
+  addVideoCommentReply,
+  toggleVideoCommentLike,
+  shareVideo,
+  reportVideo,
+  toggleNotInterested
+};

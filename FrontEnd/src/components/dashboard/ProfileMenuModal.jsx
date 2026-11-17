@@ -18,6 +18,9 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
   const [isCompanyLoading, setIsCompanyLoading] = React.useState(false)
   const [accountsExpanded, setAccountsExpanded] = React.useState(false)
   const [accountActivity, setAccountActivity] = React.useState({})
+  const [selectedAccount, setSelectedAccount] = React.useState(null)
+  const [isSwitchingAccount, setIsSwitchingAccount] = React.useState(false)
+  const [switchingFromAccount, setSwitchingFromAccount] = React.useState(null)
 
   React.useEffect(() => {
     if (!open || !personalUser?.token) return undefined
@@ -48,6 +51,8 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
   React.useEffect(() => {
     if (!open) {
       setAccountsExpanded(false)
+      setSelectedAccount(null)
+      setSwitchingFromAccount(null)
       return
     }
 
@@ -88,11 +93,15 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
     if (!open) return undefined
 
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') {
+        if (isSwitchingAccount) return
+        if (selectedAccount) setSelectedAccount(null)
+        else onClose()
+      }
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose, open])
+  }, [isSwitchingAccount, onClose, open, selectedAccount])
 
   if (!open) return null
 
@@ -110,10 +119,29 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
     try {
       if (companyId === 'personal') switchToPersonal()
       else await switchToCompany(companyId)
-      onClose()
+      return true
     } catch (error) {
       setCompanyError(error.message || 'Could not switch accounts.')
+      return false
     }
+  }
+
+  async function confirmIdentitySwitch() {
+    if (!selectedAccount || isSwitchingAccount) return
+    const startedAt = Date.now()
+    setSwitchingFromAccount(user)
+    setIsSwitchingAccount(true)
+    const didSwitch = await handleIdentitySwitch(selectedAccount.isCompany ? selectedAccount.accountId : 'personal')
+    if (didSwitch) {
+      const remainingTime = Math.max(0, 10000 - (Date.now() - startedAt))
+      if (remainingTime) await new Promise((resolve) => window.setTimeout(resolve, remainingTime))
+      setSelectedAccount(null)
+      setSwitchingFromAccount(null)
+      onClose()
+    } else {
+      setSwitchingFromAccount(null)
+    }
+    setIsSwitchingAccount(false)
   }
 
   const accountOptions = [
@@ -151,71 +179,80 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
             Close
           </button>
         </div>
+        {!isAnonymous && (
+          <section className="profile-menu-identities" aria-label="Switch account">
+            <div className={`profile-menu-account-switcher${accountsExpanded ? ' is-expanded' : ''}`}>
+              <button
+                type="button"
+                className="profile-menu-active-account"
+                aria-expanded={accountsExpanded}
+                aria-controls="profile-menu-account-list"
+                onClick={() => setAccountsExpanded((expanded) => !expanded)}
+              >
+                <span className="profile-menu-option-icon profile-menu-account-avatar">
+                  <img src={getProfileAvatar(user)} alt="" />
+                </span>
+                <span className="profile-menu-option-copy">
+                  <span>{user?.username || 'Account'}</span>
+                  <small>{user?.isCompany ? 'Company account' : 'Personal account'}</small>
+                </span>
+                <svg className={`profile-menu-account-chevron${accountsExpanded ? ' is-expanded' : ''}`} viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              {accountsExpanded && (
+                <div className="profile-menu-account-list" id="profile-menu-account-list">
+                  {sortedAccountOptions.map((account) => {
+                    const isActive = account.accountId === activeAccountId
+                    return (
+                      <button
+                        key={account.accountId}
+                        type="button"
+                        className="profile-menu-option"
+                        aria-current={isActive ? 'true' : undefined}
+                        disabled={isActive}
+                        onClick={() => {
+                          setCompanyError('')
+                          setSelectedAccount(account)
+                        }}
+                      >
+                        <span className="profile-menu-option-icon profile-menu-account-avatar">
+                          <img src={getProfileAvatar(account)} alt="" />
+                        </span>
+                        <span className="profile-menu-option-copy">
+                          <span>{account.username}{isActive ? ' (Active)' : ''}</span>
+                          <small>{account.description || (account.isCompany ? 'Company account' : 'Personal account')}</small>
+                        </span>
+                        {isActive && (
+                          <svg className="profile-menu-account-current-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="m8 12 2.5 2.5L16 9" />
+                          </svg>
+                        )}
+                      </button>
+                    )
+                  })}
+                  {!sortedAccountOptions.some((account) => account.accountId !== activeAccountId) && !isCompanyLoading && (
+                    <p className="profile-menu-company-state">No other accounts available.</p>
+                  )}
+                  {isCompanyLoading && <p className="profile-menu-company-state">Loading company accounts…</p>}
+                  <button
+                    type="button"
+                    className="profile-menu-option profile-menu-create-company"
+                    onClick={() => navigate('/for-you/company-create', { replace: true })}
+                  >
+                    <span className="profile-menu-option-icon" aria-hidden="true">+</span>
+                    <span className="profile-menu-option-copy">
+                      <span>Create company account</span>
+                      <small>Create another public company identity</small>
+                    </span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
         <nav className="profile-menu-options" aria-label="Account options">
-          {!isAnonymous && (
-            <section className={`profile-menu-identities${accountsExpanded ? ' is-expanded' : ''}`} aria-label="Switch account">
-              <div className={`profile-menu-account-switcher${accountsExpanded ? ' is-expanded' : ''}`}>
-                <button
-                  type="button"
-                  className="profile-menu-active-account"
-                  aria-expanded={accountsExpanded}
-                  aria-controls="profile-menu-account-list"
-                  onClick={() => setAccountsExpanded((expanded) => !expanded)}
-                >
-                  <span className="profile-menu-option-icon">
-                    <img src={getProfileAvatar(user)} alt="" />
-                  </span>
-                  <span className="profile-menu-option-copy">
-                    <span>{user?.username || 'Account'}</span>
-                    <small>{user?.isCompany ? 'Company account' : 'Personal account'}</small>
-                  </span>
-                  <svg className={`profile-menu-account-chevron${accountsExpanded ? ' is-expanded' : ''}`} viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="m6 9 6 6 6-6" />
-                  </svg>
-                </button>
-                {accountsExpanded && (
-                  <div className="profile-menu-account-list" id="profile-menu-account-list">
-                    {sortedAccountOptions.map((account) => {
-                      const isActive = account.accountId === activeAccountId
-                      return (
-                        <button
-                          key={account.accountId}
-                          type="button"
-                          className="profile-menu-option"
-                          aria-current={isActive ? 'true' : undefined}
-                          disabled={isActive}
-                          onClick={() => handleIdentitySwitch(account.isCompany ? account.accountId : 'personal')}
-                        >
-                          <span className="profile-menu-option-icon">
-                            <img src={getProfileAvatar(account)} alt="" />
-                          </span>
-                          <span className="profile-menu-option-copy">
-                            <span>{account.username}{isActive ? ' (Active)' : ''}</span>
-                            <small>{account.description || (account.isCompany ? 'Company account' : 'Personal account')}</small>
-                          </span>
-                        </button>
-                      )
-                    })}
-                    {!sortedAccountOptions.some((account) => account.accountId !== activeAccountId) && !isCompanyLoading && (
-                      <p className="profile-menu-company-state">No other accounts available.</p>
-                    )}
-                    {isCompanyLoading && <p className="profile-menu-company-state">Loading company accounts…</p>}
-                    <button
-                      type="button"
-                      className="profile-menu-option profile-menu-create-company"
-                      onClick={() => navigate('/for-you/company-create', { replace: true })}
-                    >
-                      <span className="profile-menu-option-icon" aria-hidden="true">+</span>
-                      <span className="profile-menu-option-copy">
-                        <span>Create company account</span>
-                        <small>Create another public company identity</small>
-                      </span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
           {!isAnonymous && companyError && <p className="profile-menu-company-error" role="alert">{companyError}</p>}
           <button type="button" className="profile-menu-option" onClick={() => openDestination('/for-you/profile')}>
             <span className="profile-menu-option-icon profile-menu-user-icon" aria-hidden="true">
@@ -262,6 +299,62 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
           </button>
         </nav>
       </section>
+      {selectedAccount && (
+        <div
+          className="profile-menu-switch-confirm-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isSwitchingAccount) setSelectedAccount(null)
+          }}
+        >
+          <section
+            className="profile-menu-switch-confirm"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="profile-menu-switch-confirm-title"
+            aria-busy={isSwitchingAccount}
+          >
+            <h2 id="profile-menu-switch-confirm-title">
+              {isSwitchingAccount ? 'Switching account…' : 'Switch account?'}
+            </h2>
+            {isSwitchingAccount ? (
+              <div className="profile-menu-switch-flow" aria-live="polite">
+                <span>Switching from</span>
+                <span className="profile-menu-switch-account profile-menu-switch-account-from">
+                  <img src={getProfileAvatar(switchingFromAccount || user)} alt="" />
+                  <strong>{switchingFromAccount?.username || user?.username || 'Current account'}</strong>
+                </span>
+                <span>to</span>
+                <span className="profile-menu-switch-account profile-menu-switch-account-to">
+                  <img src={getProfileAvatar(selectedAccount)} alt="" />
+                  <strong>{selectedAccount.username}</strong>
+                </span>
+                <span className="profile-menu-switch-spinner" role="status" aria-label="Switching account" />
+              </div>
+            ) : (
+              <>
+                <p>Switch to <strong>{selectedAccount.username}</strong>?</p>
+                {companyError && <p className="profile-menu-company-error" role="alert">{companyError}</p>}
+                <div className="profile-menu-switch-confirm-actions">
+                  <button
+                    type="button"
+                    className="profile-menu-switch-cancel"
+                    onClick={() => setSelectedAccount(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="profile-menu-switch-submit"
+                    onClick={confirmIdentitySwitch}
+                  >
+                    Switch account
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
+        </div>
+      )}
     </div>,
     document.body
   )

@@ -55,13 +55,13 @@
 .profile-menu-identities {
   position: relative;
   z-index: 1;
-  min-height: 52px;
+  min-height: 64px;
 }
 
 .profile-menu-account-switcher {
   box-sizing: border-box;
   padding: 10px;
-  border-radius: 10px;
+  border-radius: 16px;
   background: #fff;
   box-shadow: 0 0 14px rgba(20, 31, 24, 0.18);
 }
@@ -118,8 +118,7 @@
   margin-top: 8px;
   padding-top: 6px;
   border-top: 1px solid #e6ece6;
-  max-height: 240px;
-  overflow-y: auto;
+  overflow: visible;
   transform-origin: top center;
   animation: profile-menu-account-list-in 180ms ease-out both;
 }
@@ -146,7 +145,7 @@
 
 .profile-menu-option[aria-current="true"] {
   border-radius: 8px;
-  background: #f0f5ef;
+  background: transparent;
 }
 
 .profile-menu-option-icon {
@@ -177,6 +176,145 @@
 
 .profile-menu-company-error {
   color: #a13434;
+}
+
+.profile-menu-switch-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 6000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  background: rgba(15, 20, 17, 0.48);
+}
+
+.profile-menu-switch-confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(100%, 380px);
+  padding: 22px;
+  border: 1px solid #dce6dc;
+  border-radius: 16px;
+  background: #fff;
+  color: #202124;
+  text-align: center;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.24);
+}
+
+.profile-menu-switch-confirm h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.profile-menu-switch-confirm p {
+  margin: 12px 0 20px;
+  color: #60666d;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.profile-menu-switch-flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  color: #60666d;
+  font-size: 14px;
+}
+
+.profile-menu-switch-account {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #202124;
+}
+
+.profile-menu-switch-account img {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-menu-switch-account-from img {
+  width: 64px;
+  height: 64px;
+}
+
+.profile-menu-switch-account-to img {
+  width: 88px;
+  height: 88px;
+}
+
+.profile-menu-switch-spinner {
+  align-self: center;
+  width: 24px;
+  height: 24px;
+  border: 3px solid #dce6dc;
+  border-top-color: #2a7d36;
+  border-radius: 50%;
+  animation: profile-menu-switch-spin 1.4s linear infinite;
+}
+
+@keyframes profile-menu-switch-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.profile-menu-switch-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.profile-menu-switch-confirm-actions button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #dce6dc;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.profile-menu-switch-cancel {
+  background: #fff;
+  color: #202124;
+}
+
+.profile-menu-switch-submit {
+  border-color: #00ba00 !important;
+  background: #00ba00;
+  color: #fff;
+}
+
+.profile-menu-switch-confirm-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+@media (max-width: 799px) {
+  .profile-menu-switch-confirm-backdrop {
+    align-items: stretch;
+    padding: 16px;
+    background: #101311;
+  }
+
+  .profile-menu-switch-confirm {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    min-height: 100%;
+    justify-content: center;
+    padding: 24px;
+    border: 0;
+    border-radius: 18px;
+    box-shadow: none;
+  }
 }
 
 .profile-menu-option {
@@ -220,6 +358,38 @@
   width: 18px;
   height: 18px;
   object-fit: contain;
+}
+
+.profile-menu-account-current-icon {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: #2a7d36;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.profile-menu-option-icon.profile-menu-account-avatar {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+
+.profile-menu-account-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-menu-account-avatar + .profile-menu-option-copy > span {
+  font-size: 16px;
+}
+
+.profile-menu-account-avatar + .profile-menu-option-copy small {
+  font-size: 13px;
 }
 
 .profile-menu-user-icon svg {
@@ -491,6 +661,10 @@
     }
 
     .profile-menu-account-list {
+      animation: none;
+    }
+
+    .profile-menu-switch-spinner {
       animation: none;
     }
   }

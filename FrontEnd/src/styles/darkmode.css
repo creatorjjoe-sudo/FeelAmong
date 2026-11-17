@@ -92,6 +92,7 @@ html[data-theme="dark"] .dashboard-container {
 html[data-theme="dark"] .header-wrapper,
 html[data-theme="dark"] .footer-wrapper,
 html[data-theme="dark"] .profile-menu-panel,
+html[data-theme="dark"] .profile-menu-switch-confirm,
 html[data-theme="dark"] .theme-setting,
 html[data-theme="dark"] .video-card,
 html[data-theme="dark"] .profile-card,
@@ -192,7 +193,11 @@ html[data-theme="dark"] .profile-menu-account-list {
 }
 
 html[data-theme="dark"] .profile-menu-option[aria-current="true"] {
- background: #29352d;
+ background: transparent;
+}
+
+html[data-theme="dark"] .profile-menu-account-current-icon {
+ stroke: #9bd49e;
 }
 
 html[data-theme="dark"] .profile-dialog-actions button:not([type="submit"]) {
@@ -265,6 +270,7 @@ html[data-theme="dark"] .videos-state,
 html[data-theme="dark"] .saved-folder-copy,
 html[data-theme="dark"] .saved-item-copy,
 html[data-theme="dark"] .profile-menu-option-copy,
+html[data-theme="dark"] .profile-menu-switch-confirm,
 html[data-theme="dark"] .settings-placeholder,
 html[data-theme="dark"] .saved-items-page,
 html[data-theme="dark"] .profile-page,
@@ -403,6 +409,7 @@ html[data-theme="dark"] .msg-composer-skeleton-input::after {
 }
 
 html[data-theme="dark"] .profile-menu-option-copy small,
+html[data-theme="dark"] .profile-menu-switch-confirm p,
 html[data-theme="dark"] .theme-setting-copy small,
 html[data-theme="dark"] .settings-placeholder p,
 html[data-theme="dark"] .device-accounts-empty,
@@ -440,8 +447,30 @@ html[data-theme="dark"] textarea::placeholder {
 html[data-theme="dark"] .navbar-wrapper .search-wrapper span,
 html[data-theme="dark"] .header-wrapper .search-wrapper,
 html[data-theme="dark"] .profile-menu-close,
+html[data-theme="dark"] .profile-menu-switch-cancel,
 html[data-theme="dark"] .saved-items-back {
  color: #b7c3ba;
+}
+
+html[data-theme="dark"] .profile-menu-switch-confirm-actions button {
+ border-color: #455148;
+}
+
+html[data-theme="dark"] .profile-menu-switch-flow {
+ color: #a5b2a8;
+}
+
+html[data-theme="dark"] .profile-menu-switch-account {
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .profile-menu-switch-spinner {
+ border-color: #455148;
+ border-top-color: #8bd58f;
+}
+
+html[data-theme="dark"] .profile-menu-switch-cancel {
+ background: #202722;
 }
 
 html[data-theme="dark"] .profile-menu-option-copy > span,
