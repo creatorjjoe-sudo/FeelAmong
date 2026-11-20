@@ -11,6 +11,8 @@ import Messages from '../components/dashboard/Messages'
 import Notifications from '../components/dashboard/Notifications'
 import ProfilePage from './ProfilePage'
 import SavedItemsPage from './SavedItemsPage'
+import SaveToContainerPage from './SaveToContainerPage'
+import CreateContainerPage from './CreateContainerPage'
 import SettingsPage from './SettingsPage'
 import CreateCompanyPage from './CreateCompanyPage'
 import { AuthContext } from '../api/context/AuthContext'
@@ -23,6 +25,8 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
     profilePath && (!profilePath[1] || profilePath[1] === String(user?._id))
   )
   const isVideosView = location.pathname.endsWith('/videos')
+  const isSavePage = location.pathname.endsWith('/save')
+    || location.pathname.endsWith('/create-container')
   const [activeView, setActiveView] = React.useState('for-you')
   const [unreadMessageCount, setUnreadMessageCount] = React.useState(0)
   const [unreadNotificationCount, setUnreadNotificationCount] = React.useState(0)
@@ -207,22 +211,26 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
   return (
     <div className={`dashboard-container${isVideosView ? ' videos-active' : ''}${isChromeLoading ? ' is-loading' : ''}`}>
       <title>Feelamong | Dashboard</title>
-      <MobileHeader />
-      <Navbar
-        activeView={activeView}
-        switchActive={switchActive}
-        unreadMessageCount={unreadMessageCount}
-        isOwnProfileRoute={isOwnProfileRoute}
-        unreadNotificationCount={unreadNotificationCount}
-      />
+      {!isSavePage && <MobileHeader />}
+      {!isSavePage && (
+        <Navbar
+          activeView={activeView}
+          switchActive={switchActive}
+          unreadMessageCount={unreadMessageCount}
+          isOwnProfileRoute={isOwnProfileRoute}
+          unreadNotificationCount={unreadNotificationCount}
+        />
+      )}
 
-      <MobileFooter
-        activeView={activeView}
-        switchActive={switchActive}
-        unreadMessageCount={unreadMessageCount}
-        unreadNotificationCount={unreadNotificationCount}
-        isOwnProfileRoute={isOwnProfileRoute}
-      />
+      {!isSavePage && (
+        <MobileFooter
+          activeView={activeView}
+          switchActive={switchActive}
+          unreadMessageCount={unreadMessageCount}
+          unreadNotificationCount={unreadNotificationCount}
+          isOwnProfileRoute={isOwnProfileRoute}
+        />
+      )}
       <Routes>
         <Route index element={<Posts />} />
         <Route path="messages" element={<Messages />} />
@@ -240,6 +248,8 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
         <Route path="profile/:userId" element={<ProfilePage />} />
         <Route path="company-create" element={<CreateCompanyPage />} />
         <Route path="saved" element={<SavedItemsPage />} />
+        <Route path="save" element={<SaveToContainerPage />} />
+        <Route path="save/create-container" element={<CreateContainerPage />} />
         <Route
           path="settings"
           element={<SettingsPage isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />}

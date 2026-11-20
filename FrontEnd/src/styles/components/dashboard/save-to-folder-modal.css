@@ -136,3 +136,74 @@
  opacity: .5;
  cursor: not-allowed;
 }
+
+.save-folder-empty {
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ gap: 6px;
+ padding: 28px 12px 8px;
+ text-align: center;
+}
+
+.save-folder-empty-icon {
+ display: grid;
+ place-items: center;
+ width: 96px;
+ height: 96px;
+ border-radius: 24px;
+ background: #eef1ee;
+ color: #a9b3aa;
+}
+
+.save-folder-empty-icon svg {
+ width: 52px;
+ height: 52px;
+}
+
+.save-folder-empty h3 {
+ margin: 10px 0 0;
+ font-size: 18px;
+ color: #252525;
+}
+
+.save-folder-empty p {
+ margin: 0;
+ color: #647268;
+ font-size: 14px;
+}
+
+.save-folder-empty-create {
+ margin-top: 14px;
+ padding: 10px 22px;
+ border: 0;
+ border-radius: 8px;
+ background: #00ba00;
+ color: #fff;
+ font: inherit;
+ font-weight: 600;
+ cursor: pointer;
+}
+
+.save-folder-empty-create:disabled {
+ opacity: .5;
+ cursor: not-allowed;
+}
+
+.save-folder-empty .save-folder-create {
+ margin-top: 14px;
+ width: 100%;
+}
+
+html[data-theme="dark"] .save-folder-empty-icon {
+ background: #22282a;
+ color: #5c6660;
+}
+
+html[data-theme="dark"] .save-folder-empty h3 {
+ color: #f2f2f2;
+}
+
+html[data-theme="dark"] .save-folder-empty p {
+ color: #9aa79d;
+}

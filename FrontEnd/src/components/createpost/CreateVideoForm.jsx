@@ -13,7 +13,17 @@ function CreateVideoForm() {
   const navigate = useNavigate()
   const { user } = useContext(AuthContext)
 
+  const VISIBILITY_OPTIONS = [
+    { value: 'public', label: 'Public', icon: ICONS.publicIcon },
+    { value: 'private', label: 'Private', icon: ICONS.lock },
+    { value: 'friends', label: 'Friends', icon: ICONS.userIcon },
+  ]
+
+  const [title, setTitle] = React.useState('')
   const [caption, setCaption] = React.useState('')
+  const [visibility, setVisibility] = React.useState('public')
+  const [visibilityOpen, setVisibilityOpen] = React.useState(false)
+  const visibilityRef = React.useRef(null)
   const [videoFile, setVideoFile] = React.useState(null)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [error, setError] = React.useState('')
@@ -23,6 +33,27 @@ function CreateVideoForm() {
   React.useEffect(() => () => {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
   }, [])
+
+  React.useEffect(() => {
+    if (!visibilityOpen) return undefined
+
+    function handlePointerDown(event) {
+      if (!visibilityRef.current?.contains(event.target)) {
+        setVisibilityOpen(false)
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setVisibilityOpen(false)
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [visibilityOpen])
 
   function handleVideoSelection(event) {
     const file = event.target.files?.[0]
@@ -60,6 +91,11 @@ function CreateVideoForm() {
       return
     }
 
+    if (!title.trim()) {
+      setError('Please enter a title.')
+      return
+    }
+
     const token =
       user?.token ||
       user?.accessToken ||
@@ -74,7 +110,9 @@ function CreateVideoForm() {
     try {
       const body = new FormData()
       body.append('video', videoFile.file)
+      body.append('title', title.trim())
       body.append('caption', caption.trim())
+      body.append('visibility', visibility)
 
       const response = await fetch(API_URL, { method: 'POST', headers, body })
 
@@ -108,6 +146,12 @@ function CreateVideoForm() {
               </div>
             )}
             <h2>Create video</h2>
+
+            <div className="title-container">
+              <p className="option-text">Title</p>
+              <input type="text" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={100} placeholder="Add title here..." required/>
+              <p className="value-length">{title.length} / 100</p>
+            </div>
 
             <div className="description-container">
               <p className="option-text">Caption</p>
@@ -144,6 +188,40 @@ function CreateVideoForm() {
                 </li>
               </ul>
             )}
+
+            <div className="visibility" ref={visibilityRef}>
+              <button className="upper" type="button" aria-expanded={visibilityOpen} aria-haspopup="listbox" onClick={() => setVisibilityOpen((open) => !open)}>
+                <p className="option-text">Visibility</p>
+                <img className={visibilityOpen ? 'visibility-arrow open' : 'visibility-arrow'} src={ICONS.arrowDown} alt=""/>
+              </button>
+              <div className="lower">
+                <p className="option-value">
+                  {VISIBILITY_OPTIONS.find((option) => option.value === visibility).label}
+                </p>
+                <img src={VISIBILITY_OPTIONS.find((option) => option.value === visibility).icon} alt=""/>
+              </div>
+              {visibilityOpen && (
+                <div className="visibility-options" role="listbox" aria-label="Video visibility">
+                  {VISIBILITY_OPTIONS.map((option) => (
+                    <button key={option.value} className="visibility-option" type="button" role="option" aria-selected={visibility === option.value} onClick={() => {
+                        setVisibility(option.value); setVisibilityOpen(false)}}>
+                      <img src={option.icon} alt="" />
+                      <span>{option.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="tag-people">
+              <p className="option-text">People</p>
+              <p className="option-value">You have not tagged anyone yet!</p>
+            </div>
+
+            <div className="settings">
+              <img src={ICONS.more} alt="" />
+              <p className="option-text">More settings</p>
+            </div>
 
             {error && <p role="alert">{error}</p>}
 

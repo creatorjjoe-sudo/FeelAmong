@@ -32,13 +32,15 @@ const createVideo = async (req, res) => {
 
     // Accept either a file upload (multer puts it in req.file) or a raw videoUrl.
     const videoUrl = req.file ? `/uploads/videos/${req.file.filename}` : req.body.videoUrl;
-    const { caption } = req.body;
+    const { caption, title, visibility } = req.body;
     if (!videoUrl) return res.status(400).json({ message: 'Video URL required' });
 
     const video = await Video.create({
       user: req.user._id,
       videoUrl,
-      caption
+      title: typeof title === 'string' ? title.trim() : '',
+      caption: typeof caption === 'string' ? caption.trim() : '',
+      visibility: ['public', 'private', 'friends'].includes(visibility) ? visibility : 'public'
     });
 
     res.status(201).json(video);

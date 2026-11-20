@@ -4,7 +4,6 @@ import { AuthContext } from '../../api/context/AuthContext'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 import LoginRequiredModal from './LoginRequiredModal'
-import SaveToFolderModal from './SaveToFolderModal'
 import '@vidstack/react/player/styles/default/theme.css'
 import '@vidstack/react/player/styles/default/layouts/video.css'
 import { MediaPlayer, MediaProvider, Poster } from '@vidstack/react/player'
@@ -22,10 +21,8 @@ function Videos() {
   const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
   const [videos, setVideos] = React.useState([])
   const [savedItemFolders, setSavedItemFolders] = React.useState({})
-  const [saveModalItem, setSaveModalItem] = React.useState(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState('')
-  const saveModalOpen = location.state?.routedModal === 'save-folder'
   const cardRefs = React.useRef(new Map())
   const playerRefs = React.useRef(new Map())
   const activePlayerRef = React.useRef(null)
@@ -83,10 +80,6 @@ function Videos() {
     else playerRefs.current.delete(id)
   }, [])
 
-  const closeSaveModal = React.useCallback(() => {
-    setSaveModalItem(null)
-    closeRoutedModal(navigate, location)
-  }, [location, navigate])
   const closeLoginModal = React.useCallback(() => {
     closeRoutedModal(navigate, location)
   }, [location, navigate])
@@ -131,8 +124,18 @@ function Videos() {
       pushRoutedModal(navigate, location, 'videos-login-required')
       return
     }
-    setSaveModalItem(video)
-    pushRoutedModal(navigate, location, 'save-folder')
+    navigate('/for-you/save', {
+      state: {
+        itemType: 'video',
+        itemId: video._id,
+        authorName: video.user?.username || 'this user',
+        currentFolderId: savedItemFolders[`video:${video._id}`] || '',
+        isSaved: Object.prototype.hasOwnProperty.call(savedItemFolders, `video:${video._id}`)
+          || Boolean(video.saves?.some((savedId) => (
+            String(typeof savedId === 'object' ? savedId?._id : savedId) === String(user?._id)
+          ))),
+      },
+    })
   }
 
   function handleSavedItem(result) {
@@ -161,7 +164,7 @@ function Videos() {
           )),
       }
     }))
-    closeSaveModal()
+    closeLoginModal()
   }
 
   async function handleLogin() {
@@ -243,19 +246,6 @@ function Videos() {
         })}
       </div>
 
-      {saveModalItem && saveModalOpen && (
-        <SaveToFolderModal
-          itemType="video"
-          itemId={saveModalItem._id}
-          currentFolderId={savedItemFolders[`video:${saveModalItem._id}`]}
-          isSaved={Object.prototype.hasOwnProperty.call(savedItemFolders, `video:${saveModalItem._id}`)
-            || saveModalItem.saves?.some((savedId) => (
-              String(typeof savedId === 'object' ? savedId?._id : savedId) === String(user?._id)
-            ))}
-          onClose={closeSaveModal}
-          onSaved={handleSavedItem}
-        />
-      )}
       {isLoginRequiredOpen && (
         <LoginRequiredModal
           message="Please log in to save videos"

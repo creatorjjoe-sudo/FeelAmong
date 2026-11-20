@@ -1,0 +1,191 @@
+/* Desktop: dimmed overlay revealing the dashboard, centered modal card —
+   same shell as the save page. Mobile: full opaque screen. */
+.create-container-page {
+   position: fixed;
+   inset: 0;
+   z-index: 1300;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   padding: 16px;
+   background: rgb(0 0 0 / 15%);
+   overflow-y: auto;
+}
+
+.create-container-card {
+   width: min(100%, 440px);
+   max-height: 100%;
+   padding: 24px;
+   border-radius: 16px;
+   background: #fff;
+   color: #252525;
+   box-shadow: 0 12px 40px rgb(0 0 0 / 24%);
+   overflow-y: auto;
+}
+
+.create-container-header {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   margin: -24px -24px 20px;
+   padding: 14px 12px;
+   border-bottom: 1px solid rgb(0 0 0 / 8%);
+}
+
+.create-container-back {
+   border: 0;
+   background: transparent;
+   padding: 0 6px;
+   font-size: 30px;
+   line-height: 1;
+   color: inherit;
+   cursor: pointer;
+}
+
+.create-container-header h1 {
+   margin: 0;
+   font-size: 20px;
+   font-weight: 600;
+}
+
+.create-container-form {
+   display: flex;
+   flex-direction: column;
+}
+
+.create-container-label {
+   margin: 0 0 8px;
+   color: #4b5563;
+   font-size: 14px;
+   font-weight: 600;
+}
+
+.create-container-name {
+   width: 100%;
+   padding: 12px 14px;
+   margin-bottom: 22px;
+   border: 1px solid #c8d1c8;
+   border-radius: 10px;
+   font: inherit;
+}
+
+.create-container-types {
+   display: flex;
+   gap: 10px;
+   margin-bottom: 14px;
+}
+
+.create-container-type {
+   position: relative;
+   flex: 1;
+}
+
+.create-container-type input {
+   position: absolute;
+   inset: 0;
+   opacity: 0;
+   cursor: pointer;
+}
+
+.create-container-type span {
+   display: block;
+   padding: 12px 0;
+   border: 1px solid #c8d1c8;
+   border-radius: 10px;
+   text-align: center;
+   font-size: 15px;
+   font-weight: 600;
+   color: #4b5563;
+   cursor: pointer;
+}
+
+.create-container-type.is-selected span {
+   border-color: #00a800;
+   background: #eaf6ea;
+   color: #008a00;
+}
+
+.create-container-learn {
+   margin-bottom: 22px;
+   color: #00a800;
+   font-size: 14px;
+   text-decoration: underline;
+}
+
+.create-container-error {
+   margin: 0 0 14px;
+   color: #b42318;
+   font-size: 14px;
+}
+
+.create-container-submit {
+   padding: 13px 16px;
+   border: 0;
+   border-radius: 10px;
+   background: #00ba00;
+   color: #fff;
+   font: inherit;
+   font-weight: 600;
+   cursor: pointer;
+}
+
+.create-container-submit:disabled {
+   opacity: .5;
+   cursor: not-allowed;
+}
+
+/* Mobile: fully opaque, covers the screen, nothing else visible */
+@media (max-width: 768px) {
+   .create-container-page {
+      padding: 0;
+      background: #fff;
+   }
+
+   .create-container-card {
+      width: 100%;
+      max-width: none;
+      min-height: 100%;
+      padding: 16px 16px 32px;
+      border-radius: 0;
+      box-shadow: none;
+   }
+}
+
+/* Dark mode */
+html[data-theme="dark"] .create-container-page {
+   background: rgb(0 0 0 / 35%);
+}
+
+html[data-theme="dark"] .create-container-card {
+   background: #16181a;
+   color: #f2f2f2;
+}
+
+html[data-theme="dark"] .create-container-header {
+   border-bottom-color: rgb(255 255 255 / 10%);
+}
+
+html[data-theme="dark"] .create-container-label {
+   color: #9aa79d;
+}
+
+html[data-theme="dark"] .create-container-name {
+   border-color: #2c3430;
+   background: #1c1f22;
+   color: inherit;
+}
+
+html[data-theme="dark"] .create-container-type span {
+   border-color: #2c3430;
+   color: #9aa79d;
+}
+
+html[data-theme="dark"] .create-container-type.is-selected span {
+   border-color: #00c200;
+   background: #12291a;
+   color: #4ade80;
+}
+
+html[data-theme="dark"] .create-container-page {
+   --page-bg: #16181a;
+}

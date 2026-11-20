@@ -4,7 +4,6 @@ import { AuthContext } from '../../api/context/AuthContext'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 import LoginRequiredModal from './LoginRequiredModal'
-import SaveToFolderModal from './SaveToFolderModal'
 import { ICONS } from '../../assets/icons'
 import '../../styles/components/dashboard/videosfeed.css'
 import '../../styles/pages/profile.css'
@@ -388,7 +387,6 @@ function Videos() {
   const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
   const [videos, setVideos] = React.useState([])
   const [savedItemFolders, setSavedItemFolders] = React.useState({})
-  const [saveModalItem, setSaveModalItem] = React.useState(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState('')
   const isLoginRequiredOpen = routedModal === 'video-feed-login-required'
@@ -421,10 +419,6 @@ function Videos() {
     textarea.style.overflowY = contentHeight > 100 ? 'auto' : 'hidden'
   }, [activeVideoDialog, commentDraft])
 
-  const closeSaveModal = React.useCallback(() => {
-    setSaveModalItem(null)
-    closeRoutedModal(navigate, location)
-  }, [location, navigate])
   const closeRoutedDialog = React.useCallback(() => {
     closeRoutedModal(navigate, location)
   }, [location, navigate])
@@ -537,8 +531,15 @@ function Videos() {
       pushRoutedModal(navigate, location, 'video-feed-login-required')
       return
     }
-    setSaveModalItem(video)
-    pushRoutedModal(navigate, location, 'save-folder')
+    navigate('/for-you/save', {
+      state: {
+        itemType: 'video',
+        itemId: video._id,
+        authorName: video.user?.username || 'this user',
+        currentFolderId: savedItemFolders[`video:${video._id}`] || '',
+        isSaved: isVideoSaved(video),
+      },
+    })
   }
 
   async function toggleLike(video) {
@@ -821,7 +822,7 @@ function Videos() {
           )),
       }
     }))
-    closeSaveModal()
+    closeRoutedDialog()
   }
 
   async function handleLogin() {
@@ -1001,16 +1002,6 @@ function Videos() {
         </div>
       )}
 
-      {saveModalItem && saveModalOpen && (
-        <SaveToFolderModal
-          itemType="video"
-          itemId={saveModalItem._id}
-          currentFolderId={savedItemFolders[`video:${saveModalItem._id}`]}
-          isSaved={isVideoSaved(saveModalItem)}
-          onClose={closeSaveModal}
-          onSaved={handleSavedItem}
-        />
-      )}
       {isLoginRequiredOpen && (
         <LoginRequiredModal
           message="Please log in to save videos"

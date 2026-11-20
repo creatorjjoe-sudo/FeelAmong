@@ -1,0 +1,312 @@
+.save-container-page {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgb(0 0 0 / 15%);
+  overflow-y: auto;
+}
+
+.save-container-card {
+  width: min(100%, 440px);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  border-radius: 16px;
+  background: var(--page-bg, #fff);
+  color: var(--page-fg, #252525);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 24%);
+  overflow-y: auto;
+}
+
+.save-container-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -24px -24px 0;
+  padding: 14px 12px;
+  border-bottom: 1px solid rgb(0 0 0 / 8%);
+}
+
+.save-container-back {
+  border: 0;
+  background: transparent;
+  padding: 0 6px;
+  font-size: 30px;
+  line-height: 1;
+  color: inherit;
+  cursor: pointer;
+}
+
+.save-container-header h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.save-container-subtitle {
+  margin: 16px 0 4px;
+  font-size: 14px;
+  color: #647268;
+  text-align: center;
+}
+
+.save-container-subtitle strong {
+  color: inherit;
+  font-weight: 600;
+}
+
+.save-container-state {
+  margin: 24px 0;
+  color: #647268;
+}
+
+.save-container-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 16px 0 0;
+  padding: 8px 12px;
+  border: 1px solid #d7dfd7;
+  border-radius: 12px;
+}
+
+.save-container-list legend,
+.save-container-create>label {
+  padding: 0 4px;
+  color: #4b5563;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.save-container-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgb(0 0 0 / 5%);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.save-container-option:last-child {
+  border-bottom: 0;
+}
+
+.save-container-option input {
+  width: 18px;
+  height: 18px;
+  accent-color: #00a800;
+}
+
+.save-container-create {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.save-container-create>div {
+  display: flex;
+  gap: 8px;
+}
+
+.save-container-create input {
+  min-width: 0;
+  flex: 1;
+  padding: 11px 12px;
+  border: 1px solid #c8d1c8;
+  border-radius: 10px;
+  font: inherit;
+}
+
+.save-container-create button {
+  padding: 11px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: #00ba00;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.save-container-create button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+/* Empty state — mirrors the "No container" design */
+.save-container-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 48px 8px 24px;
+  text-align: center;
+}
+
+.save-container-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 110px;
+  height: 110px;
+  border-radius: 28px;
+  background: #ecefee;
+  color: #b3bcb4;
+}
+
+.save-container-empty-icon svg {
+  width: 60px;
+  height: 60px;
+}
+
+.save-container-empty h2 {
+  margin: 18px 0 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #252525;
+}
+
+.save-container-empty p {
+  margin: 0;
+  color: #647268;
+  font-size: 14px;
+}
+
+.save-container-empty-create {
+  margin-top: 22px;
+  padding: 12px 26px;
+  border: 0;
+  border-radius: 10px;
+  background: #00ba00;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.save-container-empty-create:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.save-container-empty .save-container-create {
+  margin-top: 20px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.save-container-error {
+  margin-top: 16px;
+  color: #b42318;
+  font-size: 14px;
+}
+
+.save-container-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.save-container-actions button {
+  padding: 13px 16px;
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.save-container-actions button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.save-container-submit {
+  border: 0;
+  background: #00ba00;
+  color: #fff;
+}
+
+.save-container-remove {
+  border: 1px solid #c8d1c8;
+  background: transparent;
+  color: #4b5563;
+}
+
+/* Mobile: the card covers the whole screen with an opaque background —
+   no dimmed backdrop shows through, only the page and its items */
+@media (max-width: 768px) {
+  .save-container-page {
+    padding: 0;
+    background: var(--page-bg, #fff);
+  }
+
+  .save-container-card {
+    width: 100%;
+    max-width: none;
+    min-height: 100%;
+    padding: 16px 16px 32px;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+}
+
+/* Dark mode */
+html[data-theme="dark"] .save-container-page {
+  --page-bg: #16181a;
+  --page-fg: #f2f2f2;
+}
+
+html[data-theme="dark"] .save-container-header {
+  border-bottom-color: rgb(255 255 255 / 10%);
+}
+
+html[data-theme="dark"] .save-container-subtitle,
+html[data-theme="dark"] .save-container-state {
+  color: #9aa79d;
+}
+
+html[data-theme="dark"] .save-container-list {
+  border-color: #2c3430;
+}
+
+html[data-theme="dark"] .save-container-list legend,
+html[data-theme="dark"] .save-container-create>label {
+  color: #9aa79d;
+}
+
+html[data-theme="dark"] .save-container-option {
+  border-bottom-color: rgb(255 255 255 / 6%);
+}
+
+html[data-theme="dark"] .save-container-create input {
+  border-color: #2c3430;
+  background: #1c1f22;
+  color: inherit;
+}
+
+html[data-theme="dark"] .save-container-empty-icon {
+  background: #22282a;
+  color: #5c6660;
+}
+
+html[data-theme="dark"] .save-container-empty h2 {
+  color: #f2f2f2;
+}
+
+html[data-theme="dark"] .save-container-empty p {
+  color: #9aa79d;
+}
+
+html[data-theme="dark"] .save-container-remove {
+  border-color: #2c3430;
+  color: #9aa79d;
+}

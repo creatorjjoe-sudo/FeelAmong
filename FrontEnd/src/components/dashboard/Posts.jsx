@@ -10,7 +10,6 @@ import { DEFAULT_TEXT_POST_BACKGROUND, getTextPostColor, isNoneTextPostBackgroun
 import { animate, motion } from 'framer-motion'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
-import SaveToFolderModal from './SaveToFolderModal'
 
 const API_ORIGIN = 'http://localhost:5000'
 function formatTimeAgo(createdAt) {
@@ -382,7 +381,6 @@ function Posts() {
   const [imagePreview, setImagePreview] = React.useState(null)
   const [textPostPreview, setTextPostPreview] = React.useState(null)
   const [savedItemFolders, setSavedItemFolders] = React.useState({})
-  const [saveModalItem, setSaveModalItem] = React.useState(null)
   React.useLayoutEffect(() => {
     const textarea = commentInputRef.current
     if (!textarea) return
@@ -405,10 +403,6 @@ function Posts() {
     (modalName) => pushRoutedModal(navigate, location, modalName),
     [location, navigate]
   )
-  const closeSaveFolderModal = React.useCallback(() => {
-    setSaveModalItem(null)
-    closeCurrentModal()
-  }, [closeCurrentModal])
   const showNotice = React.useCallback((message) => {
     setIsNoticeExiting(false)
     setNotice(message)
@@ -583,8 +577,20 @@ function Posts() {
 
   function toggleSave(postId) {
     if (!requireLogin()) return
-    setSaveModalItem({ itemType: 'post', itemId: postId })
-    openPostModal('save-folder')
+    const post = posts.find((candidate) => String(candidate._id) === String(postId))
+    const authorName = post?.user?.username || post?.user?.firstName || post?.company?.name || 'this user'
+    navigate('/for-you/save', {
+      state: {
+        itemType: 'post',
+        itemId: postId,
+        authorName,
+        currentFolderId: savedItemFolders[`post:${postId}`] || '',
+        isSaved: Object.prototype.hasOwnProperty.call(savedItemFolders, `post:${postId}`)
+          || Boolean(post?.saves?.some((savedId) => (
+            String(typeof savedId === 'object' ? savedId?._id : savedId) === String(user?._id)
+          ))),
+      },
+    })
   }
 
   function handleSavedItem(result) {
@@ -615,10 +621,7 @@ function Posts() {
         }
       }))
     }
-    setSaveModalItem(null)
-    closeCurrentModal()
-    const itemLabel = result.itemType === 'video' ? 'Video' : 'Post'
-    showNotice(result.isSaved ? `${itemLabel} saved to folder.` : 'Item removed from saved items.')
+    showNotice(result.isSaved ? `${itemLabel} saved to container.` : 'Item removed from saved items.')
   }
 
   async function toggleFriend(postUserId) {
@@ -1507,18 +1510,6 @@ function Posts() {
       )}
       {textPostPreview && routedModal === 'text-preview' && (
         <TextPostPreviewModal text={textPostPreview.text} backgroundColor={textPostPreview.backgroundColor} originRect={textPostPreview.originRect} onClose={() => closeCurrentModal()}
-        />
-      )}
-      {saveModalItem && routedModal === 'save-folder' && (
-        <SaveToFolderModal itemType={saveModalItem.itemType} itemId={saveModalItem.itemId} currentFolderId={savedItemFolders[`${saveModalItem.itemType}:${saveModalItem.itemId}`]} isSaved={Object.prototype.hasOwnProperty.call(savedItemFolders, `${saveModalItem.itemType}:${saveModalItem.itemId}`
-        ) || posts.some((post) => (
-          String(post._id) === String(saveModalItem.itemId)
-          && post.saves?.some((savedId) => (
-            String(typeof savedId === 'object' ? savedId?._id : savedId) === String(user?._id)
-          ))
-        ))}
-          onClose={closeSaveFolderModal}
-          onSaved={handleSavedItem}
         />
       )}
     </div>
