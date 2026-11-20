@@ -230,6 +230,51 @@
   font-size: 13px;
 }
 
+.video-post-preview-notice {
+  flex: 0 0 auto;
+  width: calc(100% - 32px);
+  margin: 8px 16px 0;
+  color: #167443;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.video-post-company-label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: -4px 0 18px;
+  color: #41474d;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.video-post-company-label select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid #d5d9de;
+  border-radius: 9px;
+  background: #fff;
+  color: #17191b;
+  font: inherit;
+}
+
+.video-post-account-error {
+  margin: 0 0 14px !important;
+  color: #b42318 !important;
+}
+
+.video-post-account-switch {
+  background: #008f43;
+  color: #fff;
+}
+
+.video-post-account-switch:disabled {
+  cursor: not-allowed;
+  opacity: .6;
+}
+
 .video-post-preview-empty {
   display: flex;
   flex-direction: column;
@@ -269,6 +314,20 @@ html[data-theme="dark"] .video-post-file span {
 
 html[data-theme="dark"] .video-post-file button {
   background: #303a33;
+  color: #e5ebe6;
+}
+
+html[data-theme="dark"] .video-post-preview-notice {
+  color: #80d5a5;
+}
+
+html[data-theme="dark"] .video-post-company-label {
+  color: #c4cdc7;
+}
+
+html[data-theme="dark"] .video-post-company-label select {
+  border-color: #3a443e;
+  background: #202722;
   color: #e5ebe6;
 }
 

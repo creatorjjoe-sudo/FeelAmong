@@ -14,12 +14,19 @@ const MAX_VIDEO_SIZE = 50 * 1024 * 1024
 function CreateVideoForm() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user } = useContext(AuthContext)
+  const { user, personalUser, switchToCompany } = useContext(AuthContext)
 
   const [caption, setCaption] = React.useState('')
   const [videoFile, setVideoFile] = React.useState(null)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [error, setError] = React.useState('')
+  const [accountPromptOpen, setAccountPromptOpen] = React.useState(false)
+  const [companies, setCompanies] = React.useState([])
+  const [selectedCompanyId, setSelectedCompanyId] = React.useState('')
+  const [isCompanyLoading, setIsCompanyLoading] = React.useState(false)
+  const [isSwitchingAccount, setIsSwitchingAccount] = React.useState(false)
+  const [accountError, setAccountError] = React.useState('')
+  const [accountNotice, setAccountNotice] = React.useState('')
   const videoInputRef = React.useRef(null)
   const previewUrlRef = React.useRef(null)
   const step = videoFile && new URLSearchParams(location.search).get('step') === 'review'
@@ -57,6 +64,45 @@ function CreateVideoForm() {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [blocker, cancelDialogOpen])
 
+  React.useEffect(() => {
+    if (!accountPromptOpen || !personalUser?.token) return undefined
+
+    const controller = new AbortController()
+    async function loadCompanies() {
+      setIsCompanyLoading(true)
+      setAccountError('')
+      try {
+        const response = await fetch('http://localhost:5000/api/companies', {
+          headers: { Authorization: `Bearer ${personalUser.token}` },
+          signal: controller.signal,
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.message || 'Could not load company accounts.')
+        if (!Array.isArray(result)) throw new Error('Could not load company accounts.')
+        setCompanies(result)
+        setSelectedCompanyId(result[0]?._id ? String(result[0]._id) : '')
+      } catch (loadError) {
+        if (loadError.name !== 'AbortError') setAccountError(loadError.message)
+      } finally {
+        if (!controller.signal.aborted) setIsCompanyLoading(false)
+      }
+    }
+
+    loadCompanies()
+    return () => controller.abort()
+  }, [accountPromptOpen, personalUser])
+
+  React.useEffect(() => {
+    if (!accountPromptOpen) return undefined
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape' && !isSwitchingAccount) setAccountPromptOpen(false)
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [accountPromptOpen, isSwitchingAccount])
+
   function handleVideoSelection(event) {
     const file = event.target.files?.[0]
     event.target.value = ''
@@ -93,6 +139,12 @@ function CreateVideoForm() {
       return
     }
 
+    if (!user?.isCompany) {
+      setAccountPromptOpen(true)
+      setAccountNotice('')
+      return
+    }
+
     const token =
       user?.token ||
       user?.accessToken ||
@@ -121,6 +173,23 @@ function CreateVideoForm() {
       setError(requestError.message || 'Could not create the video. Please try again.')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleSwitchAccount() {
+    if (!selectedCompanyId) return
+
+    setIsSwitchingAccount(true)
+    setAccountError('')
+    try {
+      const selectedCompany = companies.find((company) => String(company._id) === selectedCompanyId)
+      await switchToCompany(selectedCompanyId)
+      setAccountPromptOpen(false)
+      setAccountNotice(`Switched to ${selectedCompany?.username || 'your company account'}. Click Share again to publish your video.`)
+    } catch (switchError) {
+      setAccountError(switchError.message || 'Could not switch accounts. Please try again.')
+    } finally {
+      setIsSwitchingAccount(false)
     }
   }
 
@@ -202,6 +271,7 @@ function CreateVideoForm() {
             {isSubmitting ? 'Sharing…' : 'Share'}
           </button>
         </header>
+        {accountNotice && <p className="video-post-preview-notice" role="status">{accountNotice}</p>}
         {step === 'review' && error && <p className="video-post-preview-error" role="alert">{error}</p>}
         <div className="video-post-preview-media">
           {videoFile ? (
@@ -240,6 +310,66 @@ function CreateVideoForm() {
         </div>
         {caption.trim() && <p className="video-post-preview-caption">{caption.trim()}</p>}
       </aside>
+      {accountPromptOpen && createPortal(
+        <div
+          className="text-post-cancel-backdrop"
+          onClick={(event) => {
+            if (event.target === event.currentTarget && !isSwitchingAccount) setAccountPromptOpen(false)
+          }}
+        >
+          <section
+            className="text-post-cancel-dialog video-post-account-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="video-post-account-title"
+            aria-describedby="video-post-account-description"
+          >
+            <h2 id="video-post-account-title">Switch to a company account?</h2>
+            <p id="video-post-account-description">Video creation is currently available to company accounts. Switch accounts to share this video. Your video and caption will stay here.</p>
+            {isCompanyLoading ? (
+              <p role="status">Loading company accounts…</p>
+            ) : companies.length > 0 ? (
+              <label className="video-post-company-label">
+                Company account
+                <select
+                  value={selectedCompanyId}
+                  onChange={(event) => setSelectedCompanyId(event.target.value)}
+                  disabled={isSwitchingAccount}
+                >
+                  {companies.map((company) => (
+                    <option key={company._id} value={String(company._id)}>
+                      {company.username || company.name || 'Company account'}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              !accountError && <p>No company accounts are available to switch to.</p>
+            )}
+            {accountError && <p className="video-post-account-error" role="alert">{accountError}</p>}
+            <div className="text-post-cancel-actions">
+              <button
+                className="video-post-account-switch"
+                type="button"
+                onClick={handleSwitchAccount}
+                disabled={isCompanyLoading || isSwitchingAccount || !selectedCompanyId}
+              >
+                {isSwitchingAccount ? 'Switching…' : 'Switch account'}
+              </button>
+              <button
+                className="text-post-cancel-keep"
+                type="button"
+                autoFocus
+                onClick={() => setAccountPromptOpen(false)}
+                disabled={isSwitchingAccount}
+              >
+                Cancel
+              </button>
+            </div>
+          </section>
+        </div>,
+        document.body
+      )}
       {cancelDialogOpen && createPortal(
         <div
           className="text-post-cancel-backdrop"

@@ -1,4 +1,5 @@
 import React, { useContext } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import '../../styles/components/dashboard/posts.css'
 import { ICONS } from '../../assets/icons'
@@ -351,7 +352,7 @@ function Posts() {
   const baseURL = 'http://localhost:5000/api/posts'
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, logout } = useContext(AuthContext)
+  const { user, personalUser, switchToPersonal, logout } = useContext(AuthContext)
   const previewPostId = new URLSearchParams(location.search).get('post')
   const routedModal = location.state?.routedModal
   const isLoginRequiredOpen = routedModal === 'posts-login-required'
@@ -373,6 +374,8 @@ function Posts() {
   const [shareDescription, setShareDescription] = React.useState('')
   const [shareVisibility, setShareVisibility] = React.useState('public')
   const [isSubmittingShare, setIsSubmittingShare] = React.useState(false)
+  const [isCompanySharePromptOpen, setIsCompanySharePromptOpen] = React.useState(false)
+  const [companySharePromptError, setCompanySharePromptError] = React.useState('')
   const [shareLinkCopied, setShareLinkCopied] = React.useState(false)
   const [reportReason, setReportReason] = React.useState('')
   const [reportDetails, setReportDetails] = React.useState('')
@@ -396,7 +399,10 @@ function Posts() {
     : posts
 
   const closeCurrentModal = React.useCallback(
-    (fallbackUrl = '/for-you') => closeRoutedModal(navigate, location, fallbackUrl),
+    (fallbackUrl = '/for-you') => {
+      setIsCompanySharePromptOpen(false)
+      closeRoutedModal(navigate, location, fallbackUrl)
+    },
     [location, navigate]
   )
   const openPostModal = React.useCallback(
@@ -407,6 +413,17 @@ function Posts() {
     setIsNoticeExiting(false)
     setNotice(message)
   }, [])
+
+  React.useEffect(() => {
+    if (!isCompanySharePromptOpen) return undefined
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setIsCompanySharePromptOpen(false)
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isCompanySharePromptOpen])
 
   const getPosts = async () => {
     try {
@@ -804,6 +821,8 @@ function Posts() {
   async function sharePost(postId) {
     if (!requireLogin()) return
     setError('')
+    setIsCompanySharePromptOpen(false)
+    setCompanySharePromptError('')
     setShareDescription('')
     setShareLinkCopied(false)
     setShareVisibility('public')
@@ -815,6 +834,11 @@ function Posts() {
   async function submitSharedPost(event) {
     event.preventDefault()
     if (!requireLogin() || !activeDialog || isSubmittingShare) return
+    if (user?.isCompany) {
+      setCompanySharePromptError('')
+      setIsCompanySharePromptOpen(true)
+      return
+    }
 
     setIsSubmittingShare(true)
     setError('')
@@ -846,6 +870,18 @@ function Posts() {
       setError(shareError.message || 'Unable to share this post.')
     } finally {
       setIsSubmittingShare(false)
+    }
+  }
+
+  function switchToPersonalToShare() {
+    try {
+      if (!personalUser) throw new Error('Your main account is unavailable. Please sign in again.')
+      switchToPersonal()
+      setIsCompanySharePromptOpen(false)
+      setCompanySharePromptError('')
+      showNotice('Switched to your main account. Select Share again to share this post.')
+    } catch (switchError) {
+      setCompanySharePromptError(switchError.message || 'Could not switch to your main account.')
     }
   }
 
@@ -1495,6 +1531,46 @@ function Posts() {
             )}
           </section>
         </div>
+      )}
+      {isCompanySharePromptOpen && activeDialog?.type === 'share' && routedModal === 'share-post' && createPortal(
+        <div
+          className="post-company-share-prompt-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setIsCompanySharePromptOpen(false)
+          }}
+        >
+          <section
+            className="post-company-share-prompt"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="post-company-share-prompt-title"
+            aria-describedby="post-company-share-prompt-description"
+          >
+            <h2 id="post-company-share-prompt-title">Switch to your main account?</h2>
+            <p id="post-company-share-prompt-description">
+              Company accounts cannot create posts right now. You must switch to your main account to share this post. Company posting may be available in the future.
+            </p>
+            {companySharePromptError && <p className="post-company-share-prompt-error" role="alert">{companySharePromptError}</p>}
+            <div className="post-company-share-prompt-actions">
+              <button
+                type="button"
+                className="post-company-share-prompt-cancel"
+                onClick={() => setIsCompanySharePromptOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="post-company-share-prompt-switch"
+                autoFocus
+                onClick={switchToPersonalToShare}
+              >
+                Switch account
+              </button>
+            </div>
+          </section>
+        </div>,
+        document.body
       )}
       {imagePreview && routedModal === 'image-preview' && (
         <ImagePreviewModal images={imagePreview.images} initialIndex={imagePreview.initialIndex} originRect={imagePreview.originRect} onClose={() => closeCurrentModal()}

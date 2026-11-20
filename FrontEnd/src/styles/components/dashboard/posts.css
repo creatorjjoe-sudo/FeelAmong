@@ -1019,6 +1019,78 @@
    color: #00ba00;
 }
 
+.post-company-share-prompt-backdrop {
+   position: fixed;
+   inset: 0;
+   z-index: 1450;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   padding: 16px;
+   box-sizing: border-box;
+   background: rgba(15, 20, 17, 0.52);
+}
+
+.post-company-share-prompt {
+   width: min(100%, 400px);
+   padding: 24px;
+   box-sizing: border-box;
+   border: 1px solid #dce6dc;
+   border-radius: 16px;
+   background: #fff;
+   color: #202124;
+   box-shadow: 0 16px 42px rgba(0, 0, 0, 0.24);
+}
+
+.post-company-share-prompt h2 {
+   margin: 0;
+   font-size: 19px;
+}
+
+.post-company-share-prompt p {
+   margin: 12px 0 20px;
+   color: #60666d;
+   font-size: 14px;
+   line-height: 1.45;
+}
+
+.post-company-share-prompt .post-company-share-prompt-error {
+   margin: -8px 0 16px;
+   color: #a13434;
+}
+
+.post-company-share-prompt-actions {
+   display: flex;
+   justify-content: flex-end;
+   gap: 10px;
+}
+
+.post-company-share-prompt-actions button {
+   min-height: 40px;
+   padding: 0 15px;
+   border: 1px solid #dce6dc;
+   border-radius: 9px;
+   font: inherit;
+   font-weight: 600;
+   cursor: pointer;
+}
+
+.post-company-share-prompt-cancel {
+   background: #fff;
+   color: #202124;
+}
+
+.post-company-share-prompt-switch {
+   border-color: #00ba00 !important;
+   background: #00ba00;
+   color: #fff;
+}
+
+.post-company-share-prompt-actions button:focus-visible {
+   outline: 3px solid rgba(0, 143, 67, 0.35);
+   outline-offset: 2px;
+}
+
 .post-share-back {
    display: grid;
    width: 28px;

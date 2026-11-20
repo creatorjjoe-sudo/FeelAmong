@@ -534,6 +534,22 @@ html[data-theme="dark"] .post-share-copy-link {
  color: #e5ebe6;
 }
 
+html[data-theme="dark"] .post-company-share-prompt {
+ border-color: #303a33;
+ background: #1b211e;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .post-company-share-prompt p {
+ color: #a3afa7;
+}
+
+html[data-theme="dark"] .post-company-share-prompt-cancel {
+ border-color: #455148;
+ background: #202722;
+ color: #e5ebe6;
+}
+
 html[data-theme="dark"] .post-comments-dialog,
 html[data-theme="dark"] .post-comments-dialog .post-comment-form {
  background: #121614;

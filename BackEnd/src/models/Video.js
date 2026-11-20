@@ -35,6 +35,8 @@ const videoSchema = new mongoose.Schema(
     videoUrl: { type: String, required: true },
     title: { type: String, default: '', maxlength: 100 },
     caption: { type: String, default: '' },
+    sharedVideo: { type: mongoose.Schema.Types.ObjectId, ref: 'Video', default: null },
+    shareCaption: { type: String, trim: true, default: '' },
     visibility: { type: String, enum: ['public', 'private', 'friends'], default: 'public' },
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     saves: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],

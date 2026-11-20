@@ -1,5 +1,7 @@
 const Video = require('../models/Video');
 const VideoReport = require('../models/VideoReport');
+const User = require('../models/User');
+const VIDEO_VISIBILITIES = ['public', 'private', 'friends'];
 
 const REPORT_REASONS = ['Spam', 'Harassment', 'Inappropriate content', 'False information', 'Other'];
 
@@ -13,6 +15,10 @@ const getVideos = async (req, res) => {
       .populate('comments.replies.likes', 'username avatar sex')
       .populate('comments.replies.replies.user', 'username avatar sex')
       .populate('comments.replies.replies.likes', 'username avatar sex')
+      .populate({
+        path: 'sharedVideo',
+        populate: { path: 'user', select: 'username avatar sex' }
+      })
       .sort({ createdAt: -1 });
     // Hide videos the caller marked as not interested.
     const visibleVideos = req.user && req.user._id
@@ -262,6 +268,77 @@ const shareVideo = async (req, res) => {
   }
 };
 
+const createSharedVideo = async (req, res) => {
+  try {
+    const selectedVideo = await Video.findById(req.params.id);
+    if (!selectedVideo) return res.status(404).json({ message: 'Video not found' });
+
+    const sourceVideo = selectedVideo.sharedVideo
+      ? await Video.findById(selectedVideo.sharedVideo)
+      : selectedVideo;
+    if (!sourceVideo) return res.status(404).json({ message: 'Video not found' });
+
+    const ownerId = String(sourceVideo.user);
+    const currentUserId = String(req.user._id);
+    if (sourceVideo.visibility === 'private' && ownerId !== currentUserId) {
+      return res.status(403).json({ message: 'This video cannot be shared' });
+    }
+
+    if (sourceVideo.visibility === 'friends' && ownerId !== currentUserId) {
+      const owner = await User.findById(sourceVideo.user).select('friends');
+      const isFriend = owner?.friends?.some((friendId) => String(friendId) === currentUserId);
+      if (!isFriend) return res.status(403).json({ message: 'This video cannot be shared' });
+    }
+
+    const visibility = req.body.visibility || 'public';
+    const shareCaption = typeof req.body.description === 'string'
+      ? req.body.description.trim()
+      : '';
+    if (!VIDEO_VISIBILITIES.includes(visibility)) {
+      return res.status(400).json({ message: 'Visibility must be public, private, or friends' });
+    }
+    if (shareCaption.length > 1000) {
+      return res.status(400).json({ message: 'Description must be 1000 characters or fewer' });
+    }
+
+    const updatedSource = await Video.findByIdAndUpdate(
+      sourceVideo._id,
+      { $inc: { sharesCount: 1 } },
+      { new: true, select: 'sharesCount' }
+    );
+    if (!updatedSource) return res.status(404).json({ message: 'Video not found' });
+
+    let sharedVideo;
+    try {
+      sharedVideo = await Video.create({
+        user: req.user._id,
+        videoUrl: sourceVideo.videoUrl,
+        sharedVideo: sourceVideo._id,
+        shareCaption,
+        visibility
+      });
+    } catch (error) {
+      await Video.updateOne({ _id: sourceVideo._id }, { $inc: { sharesCount: -1 } });
+      throw error;
+    }
+
+    const populatedShare = await Video.findById(sharedVideo._id)
+      .populate('user', 'username avatar sex')
+      .populate({
+        path: 'sharedVideo',
+        populate: { path: 'user', select: 'username avatar sex' }
+      });
+
+    res.status(201).json({
+      video: populatedShare,
+      sourceVideoId: sourceVideo._id,
+      sharesCount: updatedSource.sharesCount
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Report a video
 const reportVideo = async (req, res) => {
   try {
@@ -320,6 +397,7 @@ module.exports = {
   addVideoCommentReply,
   toggleVideoCommentLike,
   shareVideo,
+  createSharedVideo,
   reportVideo,
   toggleNotInterested
 };

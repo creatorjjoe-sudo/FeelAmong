@@ -1,14 +1,21 @@
 import React from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../api/context/AuthContext'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 import LoginRequiredModal from './LoginRequiredModal'
 import { ICONS } from '../../assets/icons'
+import '../../styles/components/dashboard/posts.css'
 import '../../styles/components/dashboard/videosfeed.css'
 import '../../styles/pages/profile.css'
 
 const API_ORIGIN = 'http://localhost:5000'
+const VISIBILITY_ICONS = {
+  public: ICONS.publicIcon,
+  private: ICONS.lock,
+  friends: ICONS.userIcon,
+}
 
 function getCommentThreadCounts(comments = []) {
   return comments.reduce((counts, comment) => {
@@ -64,9 +71,10 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
   const commentCount = video?.comments?.length || 0
   const shareCount = video?.sharesCount || 0
 
-  const videoUrl = typeof video?.videoUrl === 'string' && video.videoUrl.startsWith('/')
-    ? `${API_ORIGIN}${video.videoUrl}`
-    : video?.videoUrl
+  const originalVideo = video?.sharedVideo || video
+  const videoUrl = typeof originalVideo?.videoUrl === 'string' && originalVideo.videoUrl.startsWith('/')
+    ? `${API_ORIGIN}${originalVideo.videoUrl}`
+    : originalVideo?.videoUrl
 
   React.useEffect(() => {
     const row = rowRef.current
@@ -233,7 +241,14 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
                 ) : (
                   <>
                     <strong>{video.user?.username || 'Unknown creator'}</strong>
-                    {video.caption && <p>{video.caption}</p>}
+                    {video.sharedVideo && <span className="video-shared-byline">shared a video</span>}
+                    {(video.shareCaption || video.caption) && <p>{video.shareCaption || video.caption}</p>}
+                    {video.sharedVideo && (
+                      <div className="video-original-creator">
+                        <img src={getProfileAvatar(video.sharedVideo.user)} alt="" />
+                        <span>Original video by <strong>{video.sharedVideo.user?.username || 'Unknown creator'}</strong></span>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -380,7 +395,7 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
 }
 
 function Videos() {
-  const { user, logout } = React.useContext(AuthContext)
+  const { user, personalUser, logout, switchToCompany } = React.useContext(AuthContext)
   const location = useLocation()
   const navigate = useNavigate()
   const routedModal = location.state?.routedModal
@@ -404,6 +419,18 @@ function Videos() {
   const [reportReason, setReportReason] = React.useState('')
   const [reportDetails, setReportDetails] = React.useState('')
   const [notice, setNotice] = React.useState('')
+  const [activeVideoShareData, setActiveVideoShareData] = React.useState(null)
+  const [shareDescription, setShareDescription] = React.useState('')
+  const [shareVisibility, setShareVisibility] = React.useState('public')
+  const [isSubmittingShare, setIsSubmittingShare] = React.useState(false)
+  const [shareError, setShareError] = React.useState('')
+  const [shareLinkCopied, setShareLinkCopied] = React.useState(false)
+  const [isCompanySharePromptOpen, setIsCompanySharePromptOpen] = React.useState(false)
+  const [companies, setCompanies] = React.useState([])
+  const [selectedCompanyId, setSelectedCompanyId] = React.useState('')
+  const [isCompanyLoading, setIsCompanyLoading] = React.useState(false)
+  const [isSwitchingAccount, setIsSwitchingAccount] = React.useState(false)
+  const [companyShareError, setCompanyShareError] = React.useState('')
   const scrollRef = React.useRef(null)
   const saveModalOpen = location.state?.routedModal === 'save-folder'
   // Every mounted <video> element registers itself here so the parent can
@@ -422,6 +449,45 @@ function Videos() {
   const closeRoutedDialog = React.useCallback(() => {
     closeRoutedModal(navigate, location)
   }, [location, navigate])
+  const isVideoShareOpen = routedModal === 'video-feed-share' && Boolean(activeVideoShareData)
+  const shareSourceVideo = activeVideoShareData?.sharedVideo || activeVideoShareData
+
+  React.useEffect(() => {
+    if (!isCompanySharePromptOpen || !personalUser?.token) return undefined
+
+    const controller = new AbortController()
+    async function loadCompanies() {
+      setIsCompanyLoading(true)
+      setCompanyShareError('')
+      try {
+        const response = await fetch(`${API_ORIGIN}/api/companies`, {
+          headers: { Authorization: `Bearer ${personalUser.token}` },
+          signal: controller.signal,
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.message || 'Could not load company accounts.')
+        if (!Array.isArray(result)) throw new Error('Could not load company accounts.')
+        setCompanies(result)
+        setSelectedCompanyId(result[0]?._id ? String(result[0]._id) : '')
+      } catch (loadError) {
+        if (loadError.name !== 'AbortError') setCompanyShareError(loadError.message)
+      } finally {
+        if (!controller.signal.aborted) setIsCompanyLoading(false)
+      }
+    }
+
+    loadCompanies()
+    return () => controller.abort()
+  }, [isCompanySharePromptOpen, personalUser])
+
+  React.useEffect(() => {
+    if (!isCompanySharePromptOpen) return undefined
+    function handleKeyDown(event) {
+      if (event.key === 'Escape' && !isSwitchingAccount) setIsCompanySharePromptOpen(false)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isCompanySharePromptOpen, isSwitchingAccount])
 
   React.useEffect(() => {
     let isActive = true
@@ -940,7 +1006,7 @@ function Videos() {
   return (
     <main className="videos-page">
       <h1 className="sr-only">Videos</h1>
-      {user?.isCompany && (
+      {user && !user.isAnonymous && (
         <button
           className="videos-create-button"
           type="button"

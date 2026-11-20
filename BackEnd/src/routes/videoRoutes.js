@@ -8,6 +8,7 @@ const {
   addVideoCommentReply,
   toggleVideoCommentLike,
   shareVideo,
+  createSharedVideo,
   reportVideo,
   toggleNotInterested
 } = require('../controllers/videoController');
@@ -27,6 +28,7 @@ router.post('/:id/comments', protect, addVideoComment);
 router.post('/:id/comments/:commentId/replies', protect, addVideoCommentReply);
 router.put('/:id/comments/:commentId/like', protect, toggleVideoCommentLike);
 router.post('/:id/share', protect, shareVideo);
+router.post('/:id/repost', protect, requireCompanyAccount, createSharedVideo);
 router.post('/:id/report', protect, reportVideo);
 router.put('/:id/not-interested', protect, toggleNotInterested);
 
