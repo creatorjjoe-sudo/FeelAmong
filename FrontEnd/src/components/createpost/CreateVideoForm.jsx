@@ -1,5 +1,6 @@
 import React from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { createPortal } from 'react-dom'
+import { useBlocker, useLocation, useNavigate } from 'react-router-dom'
 import { useContext } from 'react'
 import { AuthContext } from '../../api/context/AuthContext'
 import { ICONS } from '../../assets/icons'
@@ -24,6 +25,12 @@ function CreateVideoForm() {
   const step = videoFile && new URLSearchParams(location.search).get('step') === 'review'
     ? 'review'
     : 'compose'
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => (
+    Boolean(videoFile)
+    && !isSubmitting
+    && currentLocation.pathname !== nextLocation.pathname
+  ))
+  const cancelDialogOpen = blocker.state === 'blocked'
 
   function navigateToStep(nextStep) {
     const searchParams = new URLSearchParams(location.search)
@@ -38,6 +45,17 @@ function CreateVideoForm() {
   React.useEffect(() => () => {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
   }, [])
+
+  React.useEffect(() => {
+    if (!cancelDialogOpen) return undefined
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') blocker.reset()
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [blocker, cancelDialogOpen])
 
   function handleVideoSelection(event) {
     const file = event.target.files?.[0]
@@ -161,14 +179,9 @@ function CreateVideoForm() {
             disabled={isSubmitting || !videoFile}
           >
             Next
-          </button>
-          <button
-            className="text-post-next-button video-post-desktop-share"
-            type="button"
-            onClick={handleShare}
-            disabled={isSubmitting || !videoFile}
-          >
-            {isSubmitting ? 'Sharing…' : 'Share video'}
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14m-6-6 6 6-6 6" />
+            </svg>
           </button>
         </div>
         {error && <p className="text-post-error" role="alert">{error}</p>}
@@ -227,6 +240,62 @@ function CreateVideoForm() {
         </div>
         {caption.trim() && <p className="video-post-preview-caption">{caption.trim()}</p>}
       </aside>
+      {cancelDialogOpen && createPortal(
+        <div
+          className="text-post-cancel-backdrop"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) blocker.reset()
+          }}
+        >
+          <section
+            className="text-post-cancel-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="video-post-cancel-title"
+            aria-describedby="video-post-cancel-description"
+          >
+            <h2 id="video-post-cancel-title">Cancel video upload?</h2>
+            <p id="video-post-cancel-description">Your video and caption will be lost if you cancel.</p>
+            <div className="text-post-cancel-actions">
+              <button
+                className="text-post-cancel-confirm"
+                type="button"
+                onClick={() => blocker.proceed()}
+              >
+                <svg className="text-post-cancel-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="m9 9 6 6m0-6-6 6" />
+                </svg>
+                Cancel video upload
+              </button>
+              <button
+                className="text-post-cancel-keep"
+                type="button"
+                autoFocus
+                onClick={() => blocker.reset()}
+              >
+                <svg className="text-post-cancel-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m14 5 5 5M4 20l4.5-1 10.1-10.1a2.1 2.1 0 0 0-3-3L5.5 16 4 20Z" />
+                </svg>
+                Keep editing
+              </button>
+              <button
+                className="text-post-cancel-draft"
+                type="button"
+                disabled
+                title="Draft saving will be available later."
+              >
+                <svg className="text-post-cancel-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 3h12l4 4v14H3V3h2Z" />
+                  <path d="M7 3v6h10V3M7 21v-7h10v7" />
+                </svg>
+                Save as draft
+              </button>
+            </div>
+          </section>
+        </div>,
+        document.body
+      )}
     </main>
   )
 }

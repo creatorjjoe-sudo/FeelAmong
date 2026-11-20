@@ -993,20 +993,11 @@
    overflow-wrap: anywhere;
 }
 
-.post-shared-original {
-   display: flex;
-   flex-direction: column;
-   gap: 8px;
-   overflow: hidden;
-   padding: 10px;
-   border: 1px solid #d5dae2;
-   border-radius: 12px;
-}
-
 .post-shared-original-header {
    display: flex;
    align-items: center;
    gap: 8px;
+   min-height: 32px;
    font-size: 13px;
 }
 
@@ -1017,20 +1008,15 @@
    object-fit: cover;
 }
 
-.post-shared-original-title,
-.post-shared-original-text {
-   overflow-wrap: anywhere;
+.post-shared-original-header a {
+   color: inherit;
+   font-weight: 700;
+   text-decoration: none;
 }
 
-.post-shared-original-text {
-   margin: 0;
-}
-
-.post-shared-original-image {
-   width: 100%;
-   max-height: 480px;
-   border-radius: 8px;
-   object-fit: contain;
+.post-shared-original-header a:hover,
+.post-shared-original-header a:focus-visible {
+   color: #00ba00;
 }
 
 .post-share-back {

@@ -1020,15 +1020,17 @@ function Posts() {
               String(typeof savedId === 'object' ? savedId?._id : savedId) === String(user._id)
             )))
           )
-          const postTitle = typeof post.title === 'string' ? post.title.trim() : ''
-          const postDescription = typeof post.description === 'string' ? post.description.trim() : ''
           const shareCaption = typeof post.shareCaption === 'string' ? post.shareCaption.trim() : ''
           const sharedPost = post.sharedPost
-          const textPostBackground = isValidTextPostBackground(post.backgroundColor)
-            ? post.backgroundColor
+          const contentPost = sharedPost || post
+          const isTextContentPost = contentPost.postType === 'text'
+          const postTitle = typeof contentPost.title === 'string' ? contentPost.title.trim() : ''
+          const postDescription = typeof contentPost.description === 'string' ? contentPost.description.trim() : ''
+          const textPostBackground = isValidTextPostBackground(contentPost.backgroundColor)
+            ? contentPost.backgroundColor
             : DEFAULT_TEXT_POST_BACKGROUND
-          const postImages = Array.isArray(post.images)
-            ? post.images.filter((image) => typeof image === 'string').map((image) => ({
+          const postImages = Array.isArray(contentPost.images)
+            ? contentPost.images.filter((image) => typeof image === 'string').map((image) => ({
               src: image.startsWith('/') ? `${API_ORIGIN}${image}` : image,
             }))
             : []
@@ -1073,29 +1075,19 @@ function Posts() {
                   {sharedPost ? (
                     <div className="post-shared-content">
                       {shareCaption && <p className="post-share-caption">{shareCaption}</p>}
-                      <article className="post-shared-original">
-                        <div className="post-shared-original-header">
-                          <img src={getProfileAvatar(sharedPost.user)} alt="" />
-                          <strong>{sharedPost.user?.username || 'Original poster'}</strong>
-                        </div>
-                        {sharedPost.postType === 'text'
-                          ? <p className="post-shared-original-text">{sharedPost.description}</p>
-                          : (
-                            <>
-                              {sharedPost.title && <strong className="post-shared-original-title">{sharedPost.title}</strong>}
-                              {sharedPost.images?.[0] && (
-                                <img
-                                  className="post-shared-original-image"
-                                  src={sharedPost.images[0].startsWith('/') ? `${API_ORIGIN}${sharedPost.images[0]}` : sharedPost.images[0]}
-                                  alt=""
-                                />
-                              )}
-                              {sharedPost.description && <p className="post-shared-original-text">{sharedPost.description}</p>}
-                            </>
-                          )}
-                      </article>
+                      <div className="post-shared-original-header">
+                        <img src={getProfileAvatar(sharedPost.user)} alt="" />
+                        {sharedPost.user?._id ? (
+                          <Link to={`/for-you/profile/${sharedPost.user._id}`}>
+                            {sharedPost.user.username || 'Original creator'}
+                          </Link>
+                        ) : (
+                          <strong>{sharedPost.user?.username || 'Original creator'}</strong>
+                        )}
+                      </div>
                     </div>
-                  ) : isTextPost
+                  ) : null}
+                  {isTextContentPost
                     ? (
                       <>
                         {postDescription && (
@@ -1129,7 +1121,7 @@ function Posts() {
                             openPostModal('image-preview')
                           }}
                           />
-                          : <div className="signgle-image" style={{ background: post.color }}></div>}
+                          : <div className="signgle-image" style={{ background: contentPost.color }}></div>}
                         {postDescription && <p>Description: {postDescription}</p>}
                       </>
                     )}

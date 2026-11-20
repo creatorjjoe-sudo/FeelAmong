@@ -534,12 +534,6 @@ html[data-theme="dark"] .post-share-copy-link {
  color: #e5ebe6;
 }
 
-html[data-theme="dark"] .post-shared-original {
- border-color: #455148;
- background: #202722;
- color: #e5ebe6;
-}
-
 html[data-theme="dark"] .post-comments-dialog,
 html[data-theme="dark"] .post-comments-dialog .post-comment-form {
  background: #121614;
