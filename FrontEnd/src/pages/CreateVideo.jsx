@@ -1,11 +1,10 @@
-import CreatePostHeader from '../components/createpost/CreatePostHeader'
 import CreateVideoForm from '../components/createpost/CreateVideoForm'
 import '../styles/pages/createpost.css'
 
 function CreateVideo() {
   return (
-    <div className='post-create-container'>
-      <CreatePostHeader title="Create video" />
+    <div className="post-create-container text-post-create-container video-post-create-container">
+      <title>Create video</title>
       <CreateVideoForm />
     </div>
   )

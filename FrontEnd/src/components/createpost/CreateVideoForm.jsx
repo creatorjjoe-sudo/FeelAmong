@@ -1,9 +1,10 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useContext } from 'react'
 import { AuthContext } from '../../api/context/AuthContext'
 import { ICONS } from '../../assets/icons'
-import '../../styles/components/createpost/formbody.css'
+import { getProfileAvatar } from '../../utils/profileAvatar'
+import '../../styles/components/createpost/textpostcomposer.css'
 import '../../styles/components/createpost/createvideo.css'
 
 const API_URL = 'http://localhost:5000/api/videos'
@@ -11,49 +12,32 @@ const MAX_VIDEO_SIZE = 50 * 1024 * 1024
 
 function CreateVideoForm() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useContext(AuthContext)
 
-  const VISIBILITY_OPTIONS = [
-    { value: 'public', label: 'Public', icon: ICONS.publicIcon },
-    { value: 'private', label: 'Private', icon: ICONS.lock },
-    { value: 'friends', label: 'Friends', icon: ICONS.userIcon },
-  ]
-
-  const [title, setTitle] = React.useState('')
   const [caption, setCaption] = React.useState('')
-  const [visibility, setVisibility] = React.useState('public')
-  const [visibilityOpen, setVisibilityOpen] = React.useState(false)
-  const visibilityRef = React.useRef(null)
   const [videoFile, setVideoFile] = React.useState(null)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [error, setError] = React.useState('')
   const videoInputRef = React.useRef(null)
   const previewUrlRef = React.useRef(null)
+  const step = videoFile && new URLSearchParams(location.search).get('step') === 'review'
+    ? 'review'
+    : 'compose'
+
+  function navigateToStep(nextStep) {
+    const searchParams = new URLSearchParams(location.search)
+    if (nextStep === 'review') searchParams.set('step', 'review')
+    else searchParams.delete('step')
+    const search = searchParams.toString()
+    navigate(`${location.pathname}${search ? `?${search}` : ''}`, {
+      replace: nextStep !== 'review',
+    })
+  }
 
   React.useEffect(() => () => {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
   }, [])
-
-  React.useEffect(() => {
-    if (!visibilityOpen) return undefined
-
-    function handlePointerDown(event) {
-      if (!visibilityRef.current?.contains(event.target)) {
-        setVisibilityOpen(false)
-      }
-    }
-
-    function handleKeyDown(event) {
-      if (event.key === 'Escape') setVisibilityOpen(false)
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [visibilityOpen])
 
   function handleVideoSelection(event) {
     const file = event.target.files?.[0]
@@ -80,19 +64,14 @@ function CreateVideoForm() {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
     previewUrlRef.current = null
     setVideoFile(null)
+    navigateToStep('compose')
   }
 
-  async function handleShare(event) {
-    event.preventDefault()
+  async function handleShare() {
     setError('')
 
     if (!videoFile) {
       setError('Please add a video before sharing.')
-      return
-    }
-
-    if (!title.trim()) {
-      setError('Please enter a title.')
       return
     }
 
@@ -110,9 +89,7 @@ function CreateVideoForm() {
     try {
       const body = new FormData()
       body.append('video', videoFile.file)
-      body.append('title', title.trim())
       body.append('caption', caption.trim())
-      body.append('visibility', visibility)
 
       const response = await fetch(API_URL, { method: 'POST', headers, body })
 
@@ -130,108 +107,127 @@ function CreateVideoForm() {
   }
 
   return (
-    <div className="create-container">
-      {videoFile && (
-        <div className="left-els left-els-video">
-          <video className="video-preview-player" src={videoFile.previewUrl} controls playsInline />
+    <main className="text-post-composer video-post-composer" data-step={step}>
+      <form className="text-post-compose-form video-post-compose-form" onSubmit={(event) => event.preventDefault()}>
+        <header className="text-post-create-header">
+          <button className="text-post-back" type="button" aria-label="Go back" onClick={() => navigate(-1)}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+          </button>
+          <img className="text-post-author-avatar" src={getProfileAvatar(user)} alt="" />
+          <strong className="text-post-author-name">{user?.username || 'Your account'}</strong>
+          <div className="text-post-header-actions">
+            <span className="text-post-header-select video-post-type-label">Video</span>
+          </div>
+        </header>
+
+        <div className="text-post-prompt-row">
+          <strong>Add a caption</strong>
         </div>
-      )}
+        <textarea
+          className="text-post-compose-input video-post-caption"
+          value={caption}
+          onChange={(event) => setCaption(event.target.value)}
+          maxLength={1000}
+          placeholder="Describe your video..."
+          aria-label="Write a video caption"
+          disabled={isSubmitting}
+        />
+        <div className="text-post-compose-count" aria-live="polite">{caption.length} / 1000</div>
 
-      <div className="right-els">
-        <div className="form-container">
-          <form className="post-form" onSubmit={handleShare}>
-            {videoFile && (
-              <div className="video-preview-mobile">
-                <video className="video-preview-player" src={videoFile.previewUrl} controls playsInline />
-              </div>
-            )}
-            <h2>Create video</h2>
+        <input
+          ref={videoInputRef}
+          className="text-post-image-input"
+          type="file"
+          accept="video/*"
+          aria-label="Select a video"
+          onChange={handleVideoSelection}
+        />
+        <button className="text-post-add-photo video-post-add-video" type="button" onClick={() => videoInputRef.current?.click()} disabled={isSubmitting}>
+          <img src={ICONS.addPhoto} alt="" />
+          {videoFile ? 'Replace video' : 'Add video'}
+        </button>
+        {videoFile && (
+          <div className="video-post-file">
+            <span title={videoFile.file.name}>{videoFile.file.name}</span>
+            <button type="button" onClick={removeVideo} aria-label="Remove video" disabled={isSubmitting}>×</button>
+          </div>
+        )}
 
-            <div className="title-container">
-              <p className="option-text">Title</p>
-              <input type="text" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={100} placeholder="Add title here..." required/>
-              <p className="value-length">{title.length} / 100</p>
+        <div className="text-post-compose-actions video-post-compose-actions">
+          <button
+            className="text-post-next-button video-post-next-button"
+            type="button"
+            onClick={() => navigateToStep('review')}
+            disabled={isSubmitting || !videoFile}
+          >
+            Next
+          </button>
+          <button
+            className="text-post-next-button video-post-desktop-share"
+            type="button"
+            onClick={handleShare}
+            disabled={isSubmitting || !videoFile}
+          >
+            {isSubmitting ? 'Sharing…' : 'Share video'}
+          </button>
+        </div>
+        {error && <p className="text-post-error" role="alert">{error}</p>}
+      </form>
+
+      <aside className={`video-post-preview${videoFile ? ' has-video' : ''}`} aria-label="Video preview">
+        <header className="video-post-review-header">
+          <button className="text-post-back" type="button" aria-label="Back to compose" onClick={() => navigateToStep('compose')}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+          </button>
+          <h1>Preview</h1>
+          <button
+            className="text-post-publish-button"
+            type="button"
+            onClick={handleShare}
+            disabled={isSubmitting || !videoFile}
+          >
+            {isSubmitting ? 'Sharing…' : 'Share'}
+          </button>
+        </header>
+        {step === 'review' && error && <p className="video-post-preview-error" role="alert">{error}</p>}
+        <div className="video-post-preview-media">
+          {videoFile ? (
+            <video className="video-preview-player" src={videoFile.previewUrl} controls playsInline />
+          ) : (
+            <div className="video-post-preview-empty">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h7A2.5 2.5 0 0 1 16 5.5v13a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 4 18.5v-13Z" />
+                <path d="m16 9 4.2-2.1a1.2 1.2 0 0 1 1.8 1.1v7.9a1.2 1.2 0 0 1-1.8 1.1L16 15" />
+              </svg>
+              <strong>Your video preview</strong>
+              <span>Select a video to preview it here</span>
             </div>
-
-            <div className="description-container">
-              <p className="option-text">Caption</p>
-              <textarea
-                cols={30}
-                rows={4}
-                value={caption}
-                onChange={(event) => setCaption(event.target.value)}
-                maxLength={1000}
-                placeholder="Describe your video..."
-                style={{ resize: 'none' }}
-              />
-              <p className="value-length">{caption.length} / 1000</p>
+          )}
+          <div className="video-post-preview-engagements" aria-hidden="true">
+            <div className="video-post-preview-engagement">
+              <span className="video-post-preview-engagement-icon"><img src={ICONS.like} alt="" /></span>
+              <span className="video-post-preview-engagement-count">0</span>
             </div>
-
-            <input
-              ref={videoInputRef}
-              type="file"
-              accept="video/*"
-              id="upload-button"
-              aria-required="true"
-              onChange={handleVideoSelection}
-            />
-            <button className="upload-button-area" type="button" onClick={() => videoInputRef.current?.click()}>
-              <span className="upload-label">Add video <span className="required-indicator">Required</span></span>
-              <img src={ICONS.addPhoto} alt="" />
-              {videoFile && <span>1 attached</span>}
-            </button>
-            {videoFile && (
-              <ul className="attached-image-list">
-                <li>
-                  <span>{videoFile.file.name}</span>
-                  <button type="button" onClick={removeVideo} aria-label="Remove video">Remove</button>
-                </li>
-              </ul>
-            )}
-
-            <div className="visibility" ref={visibilityRef}>
-              <button className="upper" type="button" aria-expanded={visibilityOpen} aria-haspopup="listbox" onClick={() => setVisibilityOpen((open) => !open)}>
-                <p className="option-text">Visibility</p>
-                <img className={visibilityOpen ? 'visibility-arrow open' : 'visibility-arrow'} src={ICONS.arrowDown} alt=""/>
-              </button>
-              <div className="lower">
-                <p className="option-value">
-                  {VISIBILITY_OPTIONS.find((option) => option.value === visibility).label}
-                </p>
-                <img src={VISIBILITY_OPTIONS.find((option) => option.value === visibility).icon} alt=""/>
-              </div>
-              {visibilityOpen && (
-                <div className="visibility-options" role="listbox" aria-label="Video visibility">
-                  {VISIBILITY_OPTIONS.map((option) => (
-                    <button key={option.value} className="visibility-option" type="button" role="option" aria-selected={visibility === option.value} onClick={() => {
-                        setVisibility(option.value); setVisibilityOpen(false)}}>
-                      <img src={option.icon} alt="" />
-                      <span>{option.label}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
+            <div className="video-post-preview-engagement">
+              <span className="video-post-preview-engagement-icon"><img src={ICONS.comment} alt="" /></span>
+              <span className="video-post-preview-engagement-count">0</span>
             </div>
-
-            <div className="tag-people">
-              <p className="option-text">People</p>
-              <p className="option-value">You have not tagged anyone yet!</p>
+            <div className="video-post-preview-engagement">
+              <span className="video-post-preview-engagement-icon"><img src={ICONS.share} alt="" /></span>
+              <span className="video-post-preview-engagement-count">0</span>
             </div>
-
-            <div className="settings">
+            <div className="video-post-preview-engagement">
+              <span className="video-post-preview-engagement-icon"><img src={ICONS.save} alt="" /></span>
+              <span className="video-post-preview-engagement-count">0</span>
+            </div>
+            <span className="video-post-preview-engagement-icon">
               <img src={ICONS.more} alt="" />
-              <p className="option-text">More settings</p>
-            </div>
-
-            {error && <p role="alert">{error}</p>}
-
-            <button className="share-btn" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Sharing…' : 'Share'}
-            </button>
-          </form>
+            </span>
+          </div>
         </div>
-      </div>
-    </div>
+        {caption.trim() && <p className="video-post-preview-caption">{caption.trim()}</p>}
+      </aside>
+    </main>
   )
 }
 
