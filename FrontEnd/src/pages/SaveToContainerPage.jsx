@@ -5,7 +5,7 @@ import '../styles/pages/save-to-container-page.css'
 
 const API_ORIGIN = 'http://localhost:5000'
 
-// Full-screen "save item" page. Matches the no-container design:
+// Save-item modal. Matches the no-container design:
 // back header, "Save {author}'s post/video" line, and either the list of
 // containers or the centered "No container" empty state.
 function SaveToContainerPage() {
@@ -143,11 +143,11 @@ function SaveToContainerPage() {
   }, [location.state, itemType, itemId, authorName, isSaved, navigate, location.pathname])
 
   return (
-    <div className="save-container-page">
+    <div className="save-container-page" role="dialog" aria-modal="true" aria-labelledby="save-container-title">
       <div className="save-container-card">
         <header className="save-container-header">
           <button className="save-container-back" type="button" onClick={goBack} aria-label="Go back">‹</button>
-          <h1>Save {itemType === 'video' ? 'Video' : 'Post'}</h1>
+          <h1 id="save-container-title">Save {itemType === 'video' ? 'Video' : 'Post'}</h1>
         </header>
 
         <p className="save-container-subtitle">

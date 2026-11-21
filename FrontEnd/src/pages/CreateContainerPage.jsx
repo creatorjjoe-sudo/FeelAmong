@@ -5,7 +5,7 @@ import '../styles/pages/create-container-page.css'
 
 const API_ORIGIN = 'http://localhost:5000'
 
-// Full "Create Container" page (see screenshots/container-creation-page.png):
+// Create-container modal:
 // back header, name field, Public/Private type pills, and a Create button
 // that stays disabled until the form is valid.
 function CreateContainerPage() {
@@ -67,11 +67,11 @@ function CreateContainerPage() {
   }
 
   return (
-    <div className="create-container-page">
+    <div className="create-container-page" role="dialog" aria-modal="true" aria-labelledby="create-container-title">
       <div className="create-container-card">
         <header className="create-container-header">
           <button className="create-container-back" type="button" onClick={goBack} aria-label="Go back">‹</button>
-          <h1>Create Container</h1>
+          <h1 id="create-container-title">Create Container</h1>
         </header>
 
         <form className="create-container-form" onSubmit={createContainer}>

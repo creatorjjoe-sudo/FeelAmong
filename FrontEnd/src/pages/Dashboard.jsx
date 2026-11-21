@@ -26,7 +26,10 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
   )
   const isVideosView = location.pathname.endsWith('/videos')
   const isSavePage = location.pathname.endsWith('/save')
-    || location.pathname.endsWith('/create-container')
+  const isCreateContainerPage = location.pathname.endsWith('/create-container')
+  const isDashboardModalPage = isSavePage || isCreateContainerPage
+  const isForYouHome = /^\/for-you\/?$/.test(location.pathname)
+  const shouldRenderPosts = isForYouHome || isDashboardModalPage
   const [activeView, setActiveView] = React.useState('for-you')
   const [unreadMessageCount, setUnreadMessageCount] = React.useState(0)
   const [unreadNotificationCount, setUnreadNotificationCount] = React.useState(0)
@@ -209,30 +212,33 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
   }, [location.pathname, location.search])
 
   return (
-    <div className={`dashboard-container${isVideosView ? ' videos-active' : ''}${isChromeLoading ? ' is-loading' : ''}`}>
+    <div className={`dashboard-container${isVideosView ? ' videos-active' : ''}${isChromeLoading && !isDashboardModalPage ? ' is-loading' : ''}`}>
       <title>Feelamong | Dashboard</title>
-      {!isSavePage && <MobileHeader />}
-      {!isSavePage && (
-        <Navbar
-          activeView={activeView}
-          switchActive={switchActive}
-          unreadMessageCount={unreadMessageCount}
-          isOwnProfileRoute={isOwnProfileRoute}
-          unreadNotificationCount={unreadNotificationCount}
-        />
+      {shouldRenderPosts && (
+        <div
+          className={`dashboard-posts-layer${isDashboardModalPage ? ' is-modal-underlay' : ''}`}
+          aria-hidden={isDashboardModalPage}
+          inert={isDashboardModalPage}
+        >
+          <Posts />
+        </div>
       )}
-
-      {!isSavePage && (
-        <MobileFooter
-          activeView={activeView}
-          switchActive={switchActive}
-          unreadMessageCount={unreadMessageCount}
-          unreadNotificationCount={unreadNotificationCount}
-          isOwnProfileRoute={isOwnProfileRoute}
-        />
-      )}
+      <MobileHeader />
+      <Navbar
+        activeView={activeView}
+        switchActive={switchActive}
+        unreadMessageCount={unreadMessageCount}
+        isOwnProfileRoute={isOwnProfileRoute}
+        unreadNotificationCount={unreadNotificationCount}
+      />
+      <MobileFooter
+        activeView={activeView}
+        switchActive={switchActive}
+        unreadMessageCount={unreadMessageCount}
+        unreadNotificationCount={unreadNotificationCount}
+        isOwnProfileRoute={isOwnProfileRoute}
+      />
       <Routes>
-        <Route index element={<Posts />} />
         <Route path="messages" element={<Messages />} />
         <Route path="videos" element={<Videos />} />
         <Route
