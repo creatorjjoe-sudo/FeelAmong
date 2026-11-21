@@ -22,6 +22,7 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
   const { user } = React.useContext(AuthContext)
   const location = useLocation()
   const profilePath = location.pathname.match(/^\/for-you\/profile(?:\/([^/]+))?\/?$/)
+  const isProfilePage = Boolean(profilePath)
   const isOwnProfileRoute = Boolean(
     profilePath && (!profilePath[1] || profilePath[1] === String(user?._id))
   )
@@ -226,7 +227,7 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
   }, [location.pathname, location.search])
 
   return (
-    <div className={`dashboard-container${isVideosView ? ' videos-active' : ''}${isUpdatesPage ? ' is-updates-page' : ''}${isChromeLoading && !isDashboardModalPage ? ' is-loading' : ''}`}>
+    <div className={`dashboard-container${isVideosView ? ' videos-active' : ''}${isUpdatesPage ? ' is-updates-page' : ''}${isProfilePage ? ' is-profile-page' : ''}${isChromeLoading && !isDashboardModalPage ? ' is-loading' : ''}`}>
       <title>Feelamong | Dashboard</title>
       {shouldRenderPosts && (
         <div

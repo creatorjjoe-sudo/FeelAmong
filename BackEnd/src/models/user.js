@@ -25,6 +25,7 @@ const userSchema = new mongoose.Schema(
     sex: { type: String, default: '' },
     status: { type: String, default: 'Single' },
     from: { type: String, default: '' },
+    location: { type: String, default: '' },
     bio: { type: String, default: '' },
     avatar: { type: String, default: '' },
     isCompany: { type: Boolean, default: false },

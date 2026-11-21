@@ -80,7 +80,7 @@ const getPublicProfile = async (req, res) => {
       return res.status(400).json({ message: 'Invalid user ID' });
     }
     const profile = await User.findById(req.params.id)
-      .select('username firstName lastName avatar sex bio from status friends lastSeen isCompany');
+      .select('username firstName lastName avatar sex bio from location status friends lastSeen isCompany');
     if (!profile) return res.status(404).json({ message: 'User not found' });
 
     res.json({
@@ -92,11 +92,17 @@ const getPublicProfile = async (req, res) => {
       sex: profile.sex,
       bio: profile.bio,
       from: profile.from,
+      location: profile.location,
       status: profile.status,
       lastSeen: profile.lastSeen,
       isCompany: profile.isCompany,
       companyDescription: profile.isCompany ? profile.bio : '',
-      friendsCount: profile.friends.length
+      friendsCount: profile.friends.length,
+      commonFriendsCount: req.user && String(req.user._id) !== String(profile._id)
+        ? profile.friends.filter((friendId) => (req.user.friends || []).some(
+          (viewerFriendId) => String(viewerFriendId) === String(friendId)
+        )).length
+        : null
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -112,7 +118,7 @@ const updateProfile = async (req, res) => {
       return res.status(403).json({ message: 'You can only edit your own profile' });
     }
 
-    const fields = ['firstName', 'lastName', 'bio', 'from', 'status'];
+    const fields = ['firstName', 'lastName', 'bio', 'from', 'location', 'status'];
     const updates = {};
     for (const field of fields) {
       if (typeof req.body[field] === 'string') updates[field] = req.body[field].trim();
@@ -124,6 +130,10 @@ const updateProfile = async (req, res) => {
     if ((updates.bio || '').length > 500) {
       await removeUploadedAvatar(req.file);
       return res.status(400).json({ message: 'Bio must be 500 characters or fewer' });
+    }
+    if ((updates.location || '').length > 120) {
+      await removeUploadedAvatar(req.file);
+      return res.status(400).json({ message: 'Location must be 120 characters or fewer' });
     }
     if (req.file) updates.avatar = `/uploads/avatars/${req.file.filename}`;
 

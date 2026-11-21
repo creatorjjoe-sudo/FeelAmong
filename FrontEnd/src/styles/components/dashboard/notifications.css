@@ -729,15 +729,10 @@
 }
 
 @media (max-width: 799px) {
-  .dashboard-container.is-updates-page .header-wrapper,
-  .dashboard-container.is-updates-page .footer-wrapper {
-    display: none;
-  }
-
   .notifications-page.updates-page {
     width: 100%;
     min-height: 100dvh;
-    padding: 16px 14px 36px;
+    padding: 76px 14px 70px;
   }
 
   .updates-header {

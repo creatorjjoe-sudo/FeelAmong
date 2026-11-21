@@ -487,14 +487,15 @@ function Posts() {
   React.useEffect(() => {
     if (!previewPostId || routedModal) return
     const previewUrl = `${location.pathname}${location.search}${location.hash}`
+    const previewReturn = location.state?.postPreviewReturn || { url: '/for-you', state: null }
     navigate('/for-you', { replace: true })
     navigate(previewUrl, {
       state: {
         routedModal: 'post-preview',
-        routedModalReturn: { url: '/for-you', state: null },
+        routedModalReturn: previewReturn,
       },
     })
-  }, [location.hash, location.pathname, location.search, navigate, previewPostId, routedModal])
+  }, [location.hash, location.pathname, location.search, location.state?.postPreviewReturn, navigate, previewPostId, routedModal])
 
   React.useEffect(() => {
     if (!isPostPreviewOpen || routedModal !== 'post-preview') return undefined

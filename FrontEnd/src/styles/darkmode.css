@@ -222,6 +222,37 @@ html[data-theme="dark"] .welcome-container {
  background-color: #121614;
 }
 
+html[data-theme="dark"] .dashboard-container.is-profile-page,
+html[data-theme="dark"] .dashboard-container.is-profile-page .navbar-wrapper,
+html[data-theme="dark"] .dashboard-container.is-profile-page .header-wrapper,
+html[data-theme="dark"] .dashboard-container.is-profile-page .footer-wrapper {
+ background-color: #121614;
+}
+
+html[data-theme="dark"] .profile-stats > span,
+html[data-theme="dark"] .profile-stats strong,
+html[data-theme="dark"] .profile-details dt,
+html[data-theme="dark"] .profile-details dd,
+html[data-theme="dark"] .profile-more-info,
+html[data-theme="dark"] .profile-about-more {
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .profile-details svg,
+html[data-theme="dark"] .profile-more-info > svg,
+html[data-theme="dark"] .profile-stats-chevron {
+ stroke: #c4cec7;
+}
+
+html[data-theme="dark"] .profile-friend-button.is-friend,
+html[data-theme="dark"] .profile-more-button,
+html[data-theme="dark"] .profile-more-info-icon,
+html[data-theme="dark"] .profile-stats-chevron {
+ border-color: #303a33;
+ background-color: #1b211e;
+ color: #e5ebe6;
+}
+
 html[data-theme="dark"] .form-wrapper,
 html[data-theme="dark"] .profile-details-panel,
 html[data-theme="dark"] .title-container,

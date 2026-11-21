@@ -3,6 +3,7 @@ import { useContext } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AuthContext } from '../api/context/AuthContext'
 import LoginRequiredModal from '../components/dashboard/LoginRequiredModal'
+import PostImageGrid from '../components/createpost/PostImageGrid'
 import '../styles/pages/profile.css'
 import { getProfileAvatar } from '../utils/profileAvatar'
 import { getTextPostColor } from '../utils/textPostColors'
@@ -42,6 +43,7 @@ function ProfilePage() {
   const avatarImageRef = React.useRef(null)
   const avatarPreviewImageRef = React.useRef(null)
   const [isMoreOpen, setIsMoreOpen] = React.useState(false)
+  const [isAboutExpanded, setIsAboutExpanded] = React.useState(false)
   const [reportReason, setReportReason] = React.useState('')
   const [reportDetails, setReportDetails] = React.useState('')
 
@@ -77,7 +79,9 @@ function ProfilePage() {
             ? fetch(`${API_ORIGIN}/api/auth/profile`, {
               headers: { Authorization: `Bearer ${token}` },
             })
-            : fetch(`${API_ORIGIN}/api/users/${userId || user?._id}`),
+            : fetch(`${API_ORIGIN}/api/users/${userId || user?._id}`, {
+              headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            }),
           !isOwnProfile && user && token
             ? fetch(`${API_ORIGIN}/api/auth/profile`, {
               headers: { Authorization: `Bearer ${token}` },
@@ -104,6 +108,7 @@ function ProfilePage() {
           lastName: currentProfile.lastName || '',
           bio: currentProfile.bio || '',
           from: currentProfile.from || '',
+          location: currentProfile.location || '',
           status: currentProfile.status || '',
         })
         setIsFriend(Boolean(viewerProfile?.friends?.some(
@@ -127,6 +132,7 @@ function ProfilePage() {
   }, [isOwnProfile, user, userId])
 
   const fullName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ')
+  const profileName = fullName || profile?.username || 'Your profile'
   const avatar = getProfileAvatar(profile)
   const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
 
@@ -175,6 +181,13 @@ function ProfilePage() {
 
   function handleCreatePost() {
     if (requireLogin()) navigate('/post-create-one')
+  }
+
+  function openProfilePost(postId) {
+    const returnUrl = `${location.pathname}${location.search}${location.hash}`
+    navigate(`/for-you?post=${encodeURIComponent(String(postId))}`, {
+      state: { postPreviewReturn: { url: returnUrl, state: null } }
+    })
   }
 
   async function handleAccountLogin() {
@@ -313,14 +326,14 @@ function ProfilePage() {
       )}
       <div className="profile-page-inner">
         <section className="profile-card" aria-labelledby="profile-name">
-          <div className="profile-cover" aria-hidden="true" />
-          <div className="profile-identity">
+          <div className="profile-cover">
             <button className="profile-avatar-trigger" type="button" onClick={openAvatarPreview} aria-label="View profile picture">
               <img ref={avatarImageRef} className="profile-avatar" src={avatar} alt="" />
             </button>
+          </div>
+          <div className="profile-identity">
             <div className="profile-heading">
-              <h1 id="profile-name">{fullName || profile?.username || 'Your profile'}</h1>
-              {profile?.username && fullName && <p className="profile-username">@{profile.username}</p>}
+              <h1 id="profile-name">{profileName}</h1>
             </div>
             <div className="profile-actions">
               {isOwnProfile ? (
@@ -332,25 +345,27 @@ function ProfilePage() {
                     </button>
                   )
               ) : (
-                <>
-                  <button className="profile-action-button profile-friend-button" type="button" onClick={toggleFriend}>
-                    {isFriend ? 'Unfriend' : 'Add friend'}
-                  </button>
-                  <button className="profile-action-button profile-chat-button" type="button" onClick={openChat}>
-                    Chat
-                  </button>
-                </>
+                <button className={`profile-action-button profile-friend-button${isFriend ? ' is-friend' : ''}`} type="button" onClick={toggleFriend}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M15.5 20.5v-1.6a4.4 4.4 0 0 0-4.4-4.4H6.9a4.4 4.4 0 0 0-4.4 4.4v1.6" />
+                    <circle cx="9" cy="7" r="4" />
+                    {isFriend && <path d="m15.5 9.5 2 2 4-4" />}
+                    {!isFriend && <path d="M17.5 14v5m-2.5-2.5h5" />}
+                  </svg>
+                  <span>{isFriend ? 'Your friend' : 'Add friend'}</span>
+                </button>
               )}
               {!isOwnProfile && (
                 <div className="profile-more">
                   <button
                     className="profile-action-button profile-more-button"
                     type="button"
+                    aria-label={`More options for ${profileName}`}
                     aria-expanded={isMoreOpen}
                     aria-haspopup="menu"
                     onClick={() => setIsMoreOpen((open) => !open)}
                   >
-                    More
+                    <span aria-hidden="true">•••</span>
                   </button>
                   {isMoreOpen && (
                     <div className="profile-more-menu" role="menu">
@@ -369,16 +384,72 @@ function ProfilePage() {
               )}
             </div>
           </div>
-          {profile?.bio && <p className="profile-bio">{profile.bio}</p>}
-          <div className="profile-stats" aria-label="Profile statistics">
-            <div><strong>{posts.length}</strong><span>Posts</span></div>
-            <div><strong>{profile?.friendsCount ?? profile?.friends?.length ?? 0}</strong><span>Friends</span></div>
+          <div className="profile-stats" aria-label="Friend counts">
+            <span><strong>{profile?.friendsCount ?? profile?.friends?.length ?? 0}</strong> friends</span>
+            {!isOwnProfile && Number.isFinite(profile?.commonFriendsCount) && (
+              <>
+                <span className="profile-stats-separator" aria-hidden="true">—</span>
+                <span><strong>{profile.commonFriendsCount}</strong> common friends</span>
+                <svg className="profile-stats-chevron" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m7 10 5 5 5-5" />
+                </svg>
+              </>
+            )}
           </div>
           <dl className="profile-details">
-            {isOwnProfile && profile?.email && <div><dt>Email</dt><dd>{profile.email}</dd></div>}
-            {profile?.from && <div><dt>From</dt><dd>{profile.from}</dd></div>}
-            {profile?.status && <div><dt>Status</dt><dd>{profile.status}</dd></div>}
+            {isOwnProfile && profile?.email && (
+              <div>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>
+                <dt>Email</dt><dd>{profile.email}</dd>
+              </div>
+            )}
+            {profile?.sex && (
+              <div>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4.5 21a7.5 7.5 0 0 1 15 0" /></svg>
+                <dt>Profile</dt><dd className="profile-sex">{profile.sex}</dd>
+              </div>
+            )}
+            {profile?.from && (
+              <div>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z" /></svg>
+                <dt>From</dt><dd>{profile.from}</dd>
+              </div>
+            )}
+            {profile?.location && (
+              <div>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>
+                <dt>Lives in</dt><dd>{profile.location}</dd>
+              </div>
+            )}
           </dl>
+          <button
+            className="profile-more-info"
+            type="button"
+            aria-expanded={isAboutExpanded}
+            onClick={() => setIsAboutExpanded((expanded) => !expanded)}
+          >
+            <span className="profile-more-info-icon" aria-hidden="true">•••</span>
+            <span>More of {profileName}</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
+          </button>
+          {isAboutExpanded && (
+            <div className="profile-about-more">
+              {profile?.bio && <p>{profile.bio}</p>}
+              {profile?.status && <p>Status: {profile.status}</p>}
+              {!profile?.bio && !profile?.status && <p>No additional profile information yet.</p>}
+            </div>
+          )}
+          {!isOwnProfile && (
+            <div className="profile-contact-actions">
+              <button className="profile-action-button profile-chat-button" type="button" onClick={openChat}>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-5.2A7.5 7.5 0 1 1 20 11.5Z" />
+                  <path d="M8 11h.01M12 11h.01M16 11h.01" />
+                </svg>
+                Talk
+              </button>
+            </div>
+          )}
         </section>
 
         {isAvatarPreviewOpen && (
@@ -454,6 +525,10 @@ function ProfilePage() {
                   <input value={editDraft.from || ''} onChange={(event) => setEditDraft({ ...editDraft, from: event.target.value })} maxLength={120} />
                 </label>
                 <label>
+                  Lives in
+                  <input value={editDraft.location || ''} onChange={(event) => setEditDraft({ ...editDraft, location: event.target.value })} maxLength={120} />
+                </label>
+                <label>
                   Status
                   <input value={editDraft.status || ''} onChange={(event) => setEditDraft({ ...editDraft, status: event.target.value })} maxLength={80} />
                 </label>
@@ -520,9 +595,34 @@ function ProfilePage() {
             <div className="profile-post-grid">
               {posts.map((post) => {
                 const displayedPost = post.sharedPost || post
-                const firstImage = Array.isArray(displayedPost.images) ? resolveImageUrl(displayedPost.images[0]) : ''
+                const postImages = Array.isArray(displayedPost.images)
+                  ? displayedPost.images
+                    .filter((image) => typeof image === 'string')
+                    .map((image, index) => ({
+                      src: resolveImageUrl(image),
+                      alt: `Post image ${index + 1}`
+                    }))
+                  : []
+                const firstImage = postImages[0]?.src || ''
                 return (
-                  <article className="profile-post-card" key={post._id}>
+                  <article
+                    className="profile-post-card"
+                    key={post._id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Open post by ${profile?.username || 'user'}`}
+                    onClick={() => openProfilePost(post._id)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        openProfilePost(post._id)
+                      }
+                    }}
+                  >
+                    <div className="profile-post-author">
+                      <img className="profile-post-author-avatar" src={avatar} alt="" />
+                      <span>{fullName || profile?.username || 'User'}</span>
+                    </div>
                     {displayedPost.postType === 'text' ? (
                       <div
                         className="profile-text-post"
@@ -534,8 +634,8 @@ function ProfilePage() {
                         <p>{displayedPost.description}</p>
                         {firstImage && <img className="profile-text-post-photo" src={firstImage} alt="" />}
                       </div>
-                    ) : firstImage ? (
-                      <img className="profile-post-image" src={firstImage} alt={displayedPost.title || 'Post'} />
+                    ) : postImages.length ? (
+                      <PostImageGrid images={postImages} className="post-image-grid-feed" />
                     ) : (
                       <div className="profile-post-placeholder">{displayedPost.title || 'Post'}</div>
                     )}
