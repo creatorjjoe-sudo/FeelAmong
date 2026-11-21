@@ -363,6 +363,9 @@ function Posts() {
   const [error, setError] = React.useState(null)
   const [openPostMenuId, setOpenPostMenuId] = React.useState(null)
   const postMenuRefs = React.useRef(new Map())
+  const postContainerRef = React.useRef(null)
+  const feedScrollPositionRef = React.useRef(0)
+  const hadPostPreviewRef = React.useRef(false)
   const [friendIds, setFriendIds] = React.useState(() => new Set(
     (user?.friends || []).map((friend) => String(typeof friend === 'object' ? friend._id : friend))
   ))
@@ -394,6 +397,20 @@ function Posts() {
     textarea.style.height = `${Math.min(contentHeight, maxHeight)}px`
     textarea.style.overflowY = contentHeight > maxHeight ? 'auto' : 'hidden'
   }, [activeDialog, commentDraft])
+
+  React.useLayoutEffect(() => {
+    if (isPostPreviewOpen) {
+      hadPostPreviewRef.current = true
+      return
+    }
+
+    if (!hadPostPreviewRef.current) return
+    if (postContainerRef.current) {
+      postContainerRef.current.scrollTop = feedScrollPositionRef.current
+    }
+    hadPostPreviewRef.current = false
+  }, [isPostPreviewOpen])
+
   const visiblePosts = isPostPreviewOpen
     ? posts.filter((post) => String(post._id) === previewPostId)
     : posts
@@ -472,12 +489,6 @@ function Posts() {
       },
     })
   }, [location.hash, location.pathname, location.search, navigate, previewPostId, routedModal])
-
-  React.useEffect(() => {
-    const postId = new URLSearchParams(location.search).get('post')
-    if (!postId || isPostPreviewOpen || posts.length === 0) return
-    document.getElementById(`post-${postId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [isPostPreviewOpen, location.search, posts])
 
   React.useEffect(() => {
     if (!isPostPreviewOpen || routedModal !== 'post-preview') return undefined
@@ -1032,7 +1043,15 @@ function Posts() {
         </div>
       )}
 
-      <div className={`post-container${isPostPreviewOpen ? ' post-preview-container' : ''}${isLoading ? ' is-loading' : ''}`}>
+      <div
+        ref={postContainerRef}
+        className={`post-container${isPostPreviewOpen ? ' post-preview-container' : ''}${isLoading ? ' is-loading' : ''}`}
+        onScroll={(event) => {
+          if (!isPostPreviewOpen) {
+            feedScrollPositionRef.current = event.currentTarget.scrollTop
+          }
+        }}
+      >
         {isLoading && !isPostPreviewOpen && (
           <PostSkeleton />
         )}
