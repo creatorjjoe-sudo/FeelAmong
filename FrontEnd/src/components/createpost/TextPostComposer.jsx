@@ -16,7 +16,8 @@ import {
 import '../../styles/components/dashboard/posts.css'
 import '../../styles/components/createpost/textpostcomposer.css'
 
-const API_URL = 'http://localhost:5000/api/posts'
+import { API_ORIGIN } from '../../api/config'
+const API_URL = `${API_ORIGIN}/api/posts`
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024
 const MAX_IMAGE_COUNT = 25
 const VISIBILITY_OPTIONS = [
@@ -264,7 +265,7 @@ function TextPostComposer({ editPostId }) {
         setHasUploadedImage(false)
         setImages((result.images || []).map((imagePath) => ({
           file: null,
-          previewUrl: imagePath.startsWith('/') ? `http://localhost:5000${imagePath}` : imagePath,
+          previewUrl: imagePath.startsWith('/') ? `${API_ORIGIN}${imagePath}` : imagePath,
           existingPath: imagePath,
         })))
       } catch (loadError) {

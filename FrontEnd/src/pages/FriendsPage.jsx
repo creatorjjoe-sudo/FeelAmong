@@ -4,7 +4,7 @@ import { AuthContext } from '../api/context/AuthContext'
 import { getProfileAvatar } from '../utils/profileAvatar'
 import '../styles/pages/friends-page.css'
 
-const API_ORIGIN = 'http://localhost:5000'
+import { API_ORIGIN } from '../api/config'
 
 function getDisplayName(person) {
   return [person?.firstName, person?.lastName].filter(Boolean).join(' ')

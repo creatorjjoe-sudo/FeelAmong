@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../api/context/AuthContext'
 import '../styles/pages/save-to-container-page.css'
 
-const API_ORIGIN = 'http://localhost:5000'
+import { API_ORIGIN } from '../api/config'
 
 // Save-item modal. Matches the no-container design:
 // back header, "Save {author}'s post/video" line, and either the list of

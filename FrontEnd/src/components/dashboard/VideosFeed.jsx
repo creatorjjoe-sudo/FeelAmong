@@ -9,8 +9,7 @@ import { ICONS } from '../../assets/icons'
 import '../../styles/components/dashboard/posts.css'
 import '../../styles/components/dashboard/videosfeed.css'
 import '../../styles/pages/profile.css'
-
-const API_ORIGIN = 'http://localhost:5000'
+import { API_ORIGIN } from '../../api/config'
 const VISIBILITY_ICONS = {
   public: ICONS.publicIcon,
   private: ICONS.lock,

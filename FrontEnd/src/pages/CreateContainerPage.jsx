@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../api/context/AuthContext'
 import '../styles/pages/create-container-page.css'
 
-const API_ORIGIN = 'http://localhost:5000'
+import { API_ORIGIN } from '../api/config'
 
 // Create-container modal:
 // back header, name field, Public/Private type pills, and a Create button

@@ -9,7 +9,7 @@ import { replaceWithRoutedModal } from '../../utils/routedModal'
 import { getTextPostColor } from '../../utils/textPostColors'
 
 const RECENT_SEARCHES_KEY = 'recentSearchItems'
-const API_ORIGIN = 'http://localhost:5000'
+import { API_ORIGIN } from '../../api/config'
 
 function getRecentSearchesKey(userId) {
   return userId ? `${RECENT_SEARCHES_KEY}:${userId}` : `${RECENT_SEARCHES_KEY}:guest`

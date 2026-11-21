@@ -7,8 +7,8 @@ import PostImageGrid from './PostImageGrid'
 import { DEFAULT_TEXT_POST_BACKGROUND, getTextPostColor, isNoneTextPostBackground, NONE_TEXT_POST_BACKGROUND, TEXT_POST_BACKGROUNDS } from '../../utils/textPostColors'
 import '../../styles/components/createpost/formbody.css'
 
-const API_URL = 'http://localhost:5000/api/posts'
-const API_ORIGIN = 'http://localhost:5000'
+import { API_ORIGIN } from '../../api/config'
+const API_URL = `${API_ORIGIN}/api/posts`
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024
 const MAX_IMAGE_COUNT = 25
 const VISIBILITY_OPTIONS = [

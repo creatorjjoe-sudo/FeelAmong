@@ -6,7 +6,7 @@ import '../../styles/components/dashboard/message.css'
 import { AuthContext } from '../../api/context/AuthContext'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 
-const API_ORIGIN = 'http://localhost:5000'
+import { API_ORIGIN } from '../../api/config'
 
 // Messages from the same sender sent less than this apart render as one
 // bubble group: the corners where bubbles touch are squared off.
@@ -582,7 +582,7 @@ function Messages() {
       <div className="main-screen">
 
         <div className={leftClassName}>
-          <h1>Chats</h1>
+          <h1>Talks</h1>
           {conversations.map((conversation) => (
             <button
               className={`chat-conversation-row${requestedUserId === String(conversation._id) ? ' is-selected' : ''}${conversation.unreadCount > 0 ? ' is-unread' : ''}`} key={conversation._id} type="button" onClick={() => handleSelect(String(conversation._id))}

@@ -6,6 +6,7 @@ import SearchModal from './SearchModal'
 import ProfileMenuModal from './ProfileMenuModal'
 import LoginRequiredModal from './LoginRequiredModal'
 import NotificationBell from './NotificationBell'
+import FriendsNavIcon from './FriendsNavIcon'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import '../../styles/components/dashboard/navbar.css'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
@@ -95,11 +96,7 @@ function Navbar({
       >
         <div className="nav-title friends">
           <div className="icon-wrapper friends-nav-icon">
-            <svg viewBox="0 0 24 24" className={activeView === 'friends' ? 'is-active' : undefined} aria-hidden="true">
-              <circle cx="9" cy="8" r="3.5" />
-              <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
-              <path d="M16 5.2a3.3 3.3 0 0 1 0 6.3M17 14a5.7 5.7 0 0 1 4.5 5.5" />
-            </svg>
+            <FriendsNavIcon active={activeView === 'friends'} />
             {pendingFriendRequestCount > 0 && (
               <p className="notif-length friend">
                 {pendingFriendRequestCount > 99 ? '99+' : pendingFriendRequestCount}

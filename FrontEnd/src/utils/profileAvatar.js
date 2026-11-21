@@ -1,6 +1,5 @@
 import { ICONS } from '../assets/icons'
-
-const API_ORIGIN = 'http://localhost:5000'
+import { API_ORIGIN } from '../api/config'
 
 export function getProfileAvatar(user) {
   const avatar = user?.avatar

@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../api/context/AuthContext'
 import '../styles/pages/create-company.css'
+import { API_ORIGIN } from '../api/config'
 
 function CreateCompanyPage() {
   const { user, personalUser, switchToCompany } = useContext(AuthContext)
@@ -25,7 +26,7 @@ function CreateCompanyPage() {
     setIsSubmitting(true)
 
     try {
-      const response = await fetch('http://localhost:5000/api/companies', {
+      const response = await fetch(`${API_ORIGIN}/api/companies`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${personalUser.token}` },
         body: new FormData(event.currentTarget),

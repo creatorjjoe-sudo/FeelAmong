@@ -10,7 +10,7 @@ import { getTextPostColor } from '../utils/textPostColors'
 import { closeRoutedModal, pushRoutedModal } from '../utils/routedModal'
 import { animatePreviewElement } from '../utils/animatePreviewElement'
 
-const API_ORIGIN = 'http://localhost:5000'
+import { API_ORIGIN } from '../api/config'
 
 function resolveImageUrl(image) {
   if (typeof image !== 'string' || !image) return ''

@@ -74,18 +74,19 @@
 }
 
 .friends-nav-icon {
+ position: relative;
  display: flex;
- flex: 0 0 25px;
- width: 25px;
- height: 25px;
+ flex: 0 0 30px;
+ width: 30px;
+ height: 30px;
  align-items: center;
  justify-content: center;
 }
 
 .friends-nav-icon svg {
  display: block;
- width: 25px;
- height: 25px;
+ width: 30px;
+ height: 30px;
  fill: none;
  stroke: #828582;
  stroke-linecap: round;
@@ -94,7 +95,22 @@
 }
 
 .friends-nav-icon svg.is-active {
+ fill: #00ba00;
  stroke: #00ba00;
+ stroke-width: 0;
+}
+
+@media screen and (max-width: 880px) {
+ .friends-nav-icon {
+  flex-basis: 25px;
+  width: 25px;
+  height: 25px;
+ }
+
+ .friends-nav-icon svg {
+  width: 25px;
+  height: 25px;
+ }
 }
 
 /* Notifications nav icon — matches the other nav icons */

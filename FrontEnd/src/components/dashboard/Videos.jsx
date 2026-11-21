@@ -10,8 +10,7 @@ import { MediaPlayer, MediaProvider, Poster } from '@vidstack/react/player'
 import { defaultLayoutIcons } from '@vidstack/react/player/layouts/default'
 import { DefaultLayout } from '@vidstack/react/player/layouts/default'
 import '../../styles/components/dashboard/videos.css'
-
-const API_ORIGIN = 'http://localhost:5000'
+import { API_ORIGIN } from '../../api/config'
 
 function Videos() {
   const { user, logout } = React.useContext(AuthContext)

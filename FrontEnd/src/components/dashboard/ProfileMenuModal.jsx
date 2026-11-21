@@ -6,6 +6,7 @@ import { AuthContext } from '../../api/context/AuthContext'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { replaceWithRoutedModal } from '../../utils/routedModal'
 import '../../styles/components/dashboard/profile-menu.css'
+import { API_ORIGIN } from '../../api/config'
 
 function ProfileMenuModal({ open, onClose, anchorRef }) {
   const [anchorStyle, setAnchorStyle] = React.useState({})
@@ -30,7 +31,7 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
       setIsCompanyLoading(true)
       setCompanyError('')
       try {
-        const response = await fetch('http://localhost:5000/api/companies', {
+        const response = await fetch(`${API_ORIGIN}/api/companies`, {
           headers: { Authorization: `Bearer ${personalUser.token}` },
           signal: controller.signal,
         })

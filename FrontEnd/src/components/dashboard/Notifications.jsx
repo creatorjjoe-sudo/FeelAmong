@@ -1,10 +1,10 @@
 import React, { useContext } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../api/context/AuthContext'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import '../../styles/components/dashboard/notifications.css'
 
-const API_ORIGIN = 'http://localhost:5000'
+import { API_ORIGIN } from '../../api/config'
 
 function formatTimeAgo(createdAt) {
   if (!createdAt) return ''
@@ -168,6 +168,7 @@ function ActorAvatar({ actor }) {
 function Notifications({ unreadCount, onUnreadCountChanged }) {
   const { user } = useContext(AuthContext)
   const navigate = useNavigate()
+  const location = useLocation()
   const [notifications, setNotifications] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [hasMore, setHasMore] = React.useState(false)
@@ -320,7 +321,14 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
     }
     if (targetModel === 'Post') {
       if (targetId) {
-        navigate(`/for-you?post=${encodeURIComponent(String(targetId))}`)
+        navigate(`/for-you?post=${encodeURIComponent(String(targetId))}`, {
+          state: {
+            postPreviewReturn: {
+              url: `${location.pathname}${location.search}${location.hash}`,
+              state: location.state || null,
+            },
+          },
+        })
         return
       }
       navigate('/for-you')

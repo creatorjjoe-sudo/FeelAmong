@@ -12,7 +12,7 @@ import { motion } from 'framer-motion'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 
-const API_ORIGIN = 'http://localhost:5000'
+import { API_ORIGIN } from '../../api/config'
 function formatTimeAgo(createdAt) {
   if (!createdAt) return ''
 
@@ -355,7 +355,7 @@ function PostSkeleton() {
 }
 
 function Posts() {
-  const baseURL = 'http://localhost:5000/api/posts'
+  const baseURL = `${API_ORIGIN}/api/posts`
   const location = useLocation()
   const navigate = useNavigate()
   const { user, personalUser, switchToPersonal, logout } = useContext(AuthContext)
@@ -459,8 +459,8 @@ function Posts() {
       if (user && token) {
         const headers = { Authorization: ['Bearer', token].join(' ') }
         const [profileResponse, savedItemsResponse] = await Promise.all([
-          fetch('http://localhost:5000/api/auth/profile', { headers }),
-          fetch('http://localhost:5000/api/saves', { headers }),
+          fetch(`${API_ORIGIN}/api/auth/profile`, { headers }),
+          fetch(`${API_ORIGIN}/api/saves`, { headers }),
         ])
         const [profile, savedItems] = await Promise.all([
           profileResponse.json(),
@@ -665,7 +665,7 @@ function Posts() {
 
     const isFriend = friendIds.has(String(postUserId))
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${postUserId}/friend`, {
+      const response = await fetch(`${API_ORIGIN}/api/users/${postUserId}/friend`, {
         method: isFriend ? 'DELETE' : 'PUT',
         headers: getAuthHeaders(),
       })

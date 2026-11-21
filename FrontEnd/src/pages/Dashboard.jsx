@@ -17,6 +17,7 @@ import CreateContainerPage from './CreateContainerPage'
 import SettingsPage from './SettingsPage'
 import CreateCompanyPage from './CreateCompanyPage'
 import { AuthContext } from '../api/context/AuthContext'
+import { API_ORIGIN } from '../api/config'
 
 function Dashboard({ isDarkMode, setIsDarkMode }) {
   const { user } = React.useContext(AuthContext)
@@ -47,8 +48,6 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
     setActiveView(value)
   }, [])
   const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
-  const API_ORIGIN = 'http://localhost:5000'
-
   const refreshUnreadMessageCount = useCallback(async () => {
     if (!user?._id || !token || user.isAnonymous) {
       setUnreadMessageCount(0)

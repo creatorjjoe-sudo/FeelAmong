@@ -8,7 +8,8 @@ import { getProfileAvatar } from '../../utils/profileAvatar'
 import '../../styles/components/createpost/textpostcomposer.css'
 import '../../styles/components/createpost/createvideo.css'
 
-const API_URL = 'http://localhost:5000/api/videos'
+import { API_ORIGIN } from '../../api/config'
+const API_URL = `${API_ORIGIN}/api/videos`
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024
 
 function CreateVideoForm() {
@@ -72,7 +73,7 @@ function CreateVideoForm() {
       setIsCompanyLoading(true)
       setAccountError('')
       try {
-        const response = await fetch('http://localhost:5000/api/companies', {
+        const response = await fetch(`${API_ORIGIN}/api/companies`, {
           headers: { Authorization: `Bearer ${personalUser.token}` },
           signal: controller.signal,
         })

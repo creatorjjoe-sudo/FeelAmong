@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../api/context/AuthContext'
 import '../styles/components/dashboard/profile-menu.css'
 
-const API_ORIGIN = 'http://localhost:5000'
+import { API_ORIGIN } from '../api/config'
 
 function SavedItemsPage() {
   const { user } = React.useContext(AuthContext)

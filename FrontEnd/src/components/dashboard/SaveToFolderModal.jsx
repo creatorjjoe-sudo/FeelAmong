@@ -2,7 +2,7 @@ import React from 'react'
 import { AuthContext } from '../../api/context/AuthContext'
 import '../../styles/components/dashboard/save-to-folder-modal.css'
 
-const API_ORIGIN = 'http://localhost:5000'
+import { API_ORIGIN } from '../../api/config'
 
 function SaveToFolderModal({ itemType, itemId, currentFolderId, isSaved, onClose, onSaved }) {
   const { user } = React.useContext(AuthContext)

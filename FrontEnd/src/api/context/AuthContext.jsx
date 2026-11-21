@@ -1,13 +1,12 @@
 import { createContext, useState, useEffect } from 'react';
 import InitialLoadingScreen from '../../components/InitialLoadingScreen'
+import { API_ORIGIN } from '../config'
 export const AuthContext = createContext();
 const INACTIVITY_LIMIT_MS = 24 * 60 * 60 * 1000;
 const INITIAL_LOADING_DURATION_MS = 2000;
 const DEVICE_ACCOUNTS_KEY = 'feelamong-device-accounts';
 const PERSONAL_ACCOUNT_KEY = 'feelamong-personal-account';
 const ACCOUNT_ACTIVITY_KEY = 'feelamong-account-activity';
-const API_ORIGIN = 'http://localhost:5000';
-
 function rememberActiveIdentity(ownerId, accountId) {
  if (!ownerId || !accountId) return;
 
