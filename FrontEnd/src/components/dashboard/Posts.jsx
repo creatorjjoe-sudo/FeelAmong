@@ -475,9 +475,9 @@ function Posts() {
 
   React.useEffect(() => {
     const postId = new URLSearchParams(location.search).get('post')
-    if (!postId || posts.length === 0) return
+    if (!postId || isPostPreviewOpen || posts.length === 0) return
     document.getElementById(`post-${postId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [location.search, posts])
+  }, [isPostPreviewOpen, location.search, posts])
 
   React.useEffect(() => {
     if (!isPostPreviewOpen || routedModal !== 'post-preview') return undefined

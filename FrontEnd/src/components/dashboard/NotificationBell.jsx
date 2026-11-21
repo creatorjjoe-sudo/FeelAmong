@@ -178,6 +178,7 @@ function NotificationBell({ unreadCount, onUnreadCountChanged }) {
     setOpen(false)
     markSingleRead(notification)
     const { type, targetModel, actor } = notification
+    const targetId = notification.target?._id || notification.target
     if (type === 'friend_request' || type === 'friend_accept') {
       if (actor?._id) navigate(`/for-you/profile/${actor._id}`)
       return
@@ -187,6 +188,10 @@ function NotificationBell({ unreadCount, onUnreadCountChanged }) {
       return
     }
     if (targetModel === 'Post') {
+      if (targetId) {
+        navigate(`/for-you?post=${encodeURIComponent(String(targetId))}`)
+        return
+      }
       navigate('/for-you')
     }
   }
