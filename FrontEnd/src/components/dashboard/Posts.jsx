@@ -8,7 +8,7 @@ import LoginRequiredModal from './LoginRequiredModal'
 import PostImageGrid from '../createpost/PostImageGrid'
 import ImagePreviewModal from './ImagePreviewModal'
 import { DEFAULT_TEXT_POST_BACKGROUND, getTextPostColor, isNoneTextPostBackground, isValidTextPostBackground } from '../../utils/textPostColors'
-import { animate, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 
@@ -139,31 +139,24 @@ function TextPostContent({ text, backgroundColor, onClick, contentRef, maxFontSi
   )
 }
 
-const TEXT_FLY_IN_EASE = [0.2, 0.75, 0.25, 1]
-// Matches the backdrop fade duration: the dark backdrop must be fully up
-// before the clone flight begins, so it covers everything behind it.
-const BACKDROP_FADE_DURATION = 0.22
-
-function wait(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
+const TEXT_FLY_IN_DURATION = 420
+const TEXT_FLY_IN_EASE = 'cubic-bezier(0.2, 0.75, 0.25, 1)'
 
 function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
 // Shared-element fly-in: clones the clicked text card and animates it from its
-// post position into the modal's card slot with framer-motion.
-async function flyInFromRect(sourceElement, targetElement, originRect) {
-  if (!sourceElement || !targetElement || !originRect) return
-  if (prefersReducedMotion()) return
-
-  await wait(BACKDROP_FADE_DURATION * 1000)
+// post position into the modal's card slot.
+async function flyInFromRect(sourceElement, targetElement, originRect, signal) {
+  if (!sourceElement || !targetElement || !originRect || prefersReducedMotion()) return true
+  if (signal.aborted) return false
 
   const targetRect = targetElement.getBoundingClientRect()
-  if (!targetRect.width || !targetRect.height) return
+  if (!targetRect.width || !targetRect.height) return true
 
   const clone = sourceElement.cloneNode(true)
+  const initialTransform = `translate3d(${originRect.left - targetRect.left}px, ${originRect.top - targetRect.top}px, 0) scale(${originRect.width / targetRect.width}, ${originRect.height / targetRect.height})`
   clone.setAttribute('aria-hidden', 'true')
   clone.removeAttribute('role')
   clone.removeAttribute('tabindex')
@@ -178,21 +171,29 @@ async function flyInFromRect(sourceElement, targetElement, originRect) {
     zIndex: '1300',
     pointerEvents: 'none',
     transformOrigin: 'top left',
+    transform: initialTransform,
   })
   document.body.appendChild(clone)
 
+  const flight = clone.animate(
+    [
+      { transform: initialTransform },
+      { transform: 'translate3d(0, 0, 0) scale(1, 1)' },
+    ],
+    { duration: TEXT_FLY_IN_DURATION, easing: TEXT_FLY_IN_EASE, fill: 'forwards' },
+  )
+  const cancelFlight = () => flight.cancel()
+  signal.addEventListener('abort', cancelFlight, { once: true })
+
   try {
-    await animate(
-      clone,
-      {
-        transform: [
-          `translate3d(${originRect.left - targetRect.left}px, ${originRect.top - targetRect.top}px, 0) scale(${originRect.width / targetRect.width}, ${originRect.height / targetRect.height})`,
-          'translate3d(0, 0, 0) scale(1, 1)',
-        ],
-      },
-      { duration: 0.42, ease: TEXT_FLY_IN_EASE },
-    )
+    await flight.finished
+    return !signal.aborted
+  } catch (error) {
+    if (error.name === 'AbortError') return false
+    throw error
   } finally {
+    signal.removeEventListener('abort', cancelFlight)
+    flight.cancel()
     clone.remove()
   }
 }
@@ -220,15 +221,20 @@ function TextPostPreviewModal({ text, backgroundColor, originRect, onClose }) {
   }, [isClosing])
 
   React.useLayoutEffect(() => {
-    let cancelled = false
+    const controller = new AbortController()
     // The flying clone carries the text card into place first; only once it
     // lands does the real modal content reveal, so the two never overlap.
-    flyInFromRect(originRect?.sourceElement, contentRef.current, originRect).then(() => {
-      if (!cancelled) setIsCloneFlying(false)
-    })
-    return () => {
-      cancelled = true
-    }
+    flyInFromRect(originRect?.sourceElement, contentRef.current, originRect, controller.signal)
+      .then((completed) => {
+        if (completed && !controller.signal.aborted) setIsCloneFlying(false)
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          console.error('Text post preview fly-in failed:', error)
+          setIsCloneFlying(false)
+        }
+      })
+    return () => controller.abort()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

@@ -1,77 +1,117 @@
 import React from 'react'
-import { AnimatePresence, animate, motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import '../../styles/components/dashboard/imagepreviewmodal.css'
 
 const FLY_IN_DURATION = 0.42
-const FLY_IN_EASE = [0.2, 0.75, 0.25, 1]
-// Matches the backdrop fade duration: the dark backdrop must be fully up
-// before the clone flight / panel entrance begins, so it covers everything.
-const BACKDROP_FADE_DURATION = 0.22
-
-function wait(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
+const FLY_IN_EASE = 'cubic-bezier(0.2, 0.75, 0.25, 1)'
 
 function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
 // Shared-element fly-in: clones the source image and animates it from the
-// clicked thumbnail's rect into the modal's main image slot with framer-motion.
-async function flyInFromRect(sourceElement, targetElement, originRect) {
-  if (!sourceElement || !targetElement || !originRect) return
-  if (prefersReducedMotion()) return
-
-  await wait(BACKDROP_FADE_DURATION * 1000)
+// clicked thumbnail's rect into the modal's main image slot.
+async function flyInFromRect(sourceElement, targetElement, originRect, signal) {
+  if (!sourceElement || !targetElement || !originRect || prefersReducedMotion()) return true
+  if (signal.aborted) return false
 
   if (targetElement instanceof HTMLImageElement && !targetElement.complete) {
     await new Promise((resolve) => {
-      targetElement.addEventListener('load', resolve, { once: true })
-      targetElement.addEventListener('error', resolve, { once: true })
+      const finish = () => {
+        targetElement.removeEventListener('load', finish)
+        targetElement.removeEventListener('error', finish)
+        signal.removeEventListener('abort', finish)
+        resolve()
+      }
+      targetElement.addEventListener('load', finish, { once: true })
+      targetElement.addEventListener('error', finish, { once: true })
+      signal.addEventListener('abort', finish, { once: true })
     })
   }
-
-  const targetRect = targetElement.getBoundingClientRect()
-  if (!targetRect.width || !targetRect.height) return
+  if (signal.aborted) return false
 
   const sourceImage = sourceElement instanceof HTMLImageElement ? sourceElement : null
+  const targetRect = targetElement.getBoundingClientRect()
+  if (!targetRect.width || !targetRect.height) return true
+
+  const targetStyle = window.getComputedStyle(targetElement)
+  let destinationRect = targetRect
+  if (
+    targetElement instanceof HTMLImageElement
+    && targetStyle.objectFit === 'contain'
+    && targetElement.naturalWidth
+    && targetElement.naturalHeight
+  ) {
+    const scale = Math.min(
+      targetRect.width / targetElement.naturalWidth,
+      targetRect.height / targetElement.naturalHeight,
+    )
+    const width = targetElement.naturalWidth * scale
+    const height = targetElement.naturalHeight * scale
+    destinationRect = {
+      top: targetRect.top + (targetRect.height - height) / 2,
+      left: targetRect.left + (targetRect.width - width) / 2,
+      width,
+      height,
+    }
+  }
+
   const clone = sourceImage ? sourceImage.cloneNode(false) : sourceElement.cloneNode(true)
+  const sourceStyle = window.getComputedStyle(sourceElement)
   clone.setAttribute('aria-hidden', 'true')
   clone.removeAttribute('role')
   clone.removeAttribute('tabindex')
   Object.assign(clone.style, {
     position: 'fixed',
-    top: `${targetRect.top}px`,
-    left: `${targetRect.left}px`,
-    width: `${targetRect.width}px`,
-    height: `${targetRect.height}px`,
+    top: `${originRect.top}px`,
+    left: `${originRect.left}px`,
+    width: `${originRect.width}px`,
+    height: `${originRect.height}px`,
     boxSizing: 'border-box',
     margin: '0',
     zIndex: '1300',
     pointerEvents: 'none',
-    transformOrigin: 'top left',
   })
   if (sourceImage) {
-    const targetStyle = window.getComputedStyle(targetElement)
     clone.src = sourceImage.currentSrc || sourceImage.src
-    clone.style.objectFit = targetStyle.objectFit
-    clone.style.objectPosition = targetStyle.objectPosition
-    clone.style.borderRadius = targetStyle.borderRadius
+    clone.style.objectFit = sourceStyle.objectFit
+    clone.style.objectPosition = sourceStyle.objectPosition
+    clone.style.borderRadius = sourceStyle.borderRadius
   }
   document.body.appendChild(clone)
 
-  try {
-    await animate(
-      clone,
+  const flight = clone.animate(
+    [
       {
-        transform: [
-          `translate3d(${originRect.left - targetRect.left}px, ${originRect.top - targetRect.top}px, 0) scale(${originRect.width / targetRect.width}, ${originRect.height / targetRect.height})`,
-          'translate3d(0, 0, 0) scale(1, 1)',
-        ],
+        top: `${originRect.top}px`,
+        left: `${originRect.left}px`,
+        width: `${originRect.width}px`,
+        height: `${originRect.height}px`,
       },
-      { duration: FLY_IN_DURATION, ease: FLY_IN_EASE },
-    )
+      {
+        top: `${destinationRect.top}px`,
+        left: `${destinationRect.left}px`,
+        width: `${destinationRect.width}px`,
+        height: `${destinationRect.height}px`,
+      },
+    ],
+    { duration: FLY_IN_DURATION * 1000, easing: FLY_IN_EASE, fill: 'forwards' },
+  )
+  const cancelFlight = () => flight.cancel()
+  signal.addEventListener('abort', cancelFlight, { once: true })
+
+  try {
+    await flight.finished
+    if (signal.aborted) return false
+    clone.style.objectFit = targetStyle.objectFit
+    clone.style.objectPosition = targetStyle.objectPosition
+    return true
+  } catch (error) {
+    if (error.name === 'AbortError') return false
+    throw error
   } finally {
+    signal.removeEventListener('abort', cancelFlight)
+    flight.cancel()
     clone.remove()
   }
 }
@@ -111,16 +151,22 @@ function ImagePreviewModal({ images, initialIndex, originRect, onClose }) {
   }, [images.length, isClosing])
 
   React.useLayoutEffect(() => {
-    let cancelled = false
-    flyInFromRect(originRect?.sourceElement, mainImageRef.current, originRect).then(() => {
-      if (!cancelled) {
-        setIsTransitioning(false)
-        setInstantReveal(true)
-      }
-    })
-    return () => {
-      cancelled = true
-    }
+    const controller = new AbortController()
+    flyInFromRect(originRect?.sourceElement, mainImageRef.current, originRect, controller.signal)
+      .then((completed) => {
+        if (completed && !controller.signal.aborted) {
+          setIsTransitioning(false)
+          setInstantReveal(true)
+        }
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          console.error('Image preview fly-in failed:', error)
+          setIsTransitioning(false)
+          setInstantReveal(true)
+        }
+      })
+    return () => controller.abort()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -195,9 +241,9 @@ function ImagePreviewModal({ images, initialIndex, originRect, onClose }) {
             <motion.img
               key={selectedImage.src}
               ref={mainImageRef}
-              initial={{ opacity: 0, scale: 0.985 }}
+              initial={{ opacity: 0, scale: 1 }}
               animate={isTransitioning
-                ? { opacity: 0, scale: 0.985 }
+                ? { opacity: 0, scale: 1 }
                 : { opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.985 }}
               transition={instantReveal
