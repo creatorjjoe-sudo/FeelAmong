@@ -3,6 +3,7 @@ import '../../styles/pages/login.css';
 import { ICONS } from '../../assets/icons';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../../src/api/context/AuthContext';
+import { API_ORIGIN } from '../../api/config'
 
 function SignupForm({ switchView }) {
   // Signup uses six slider panels, with first and last name collected separately.
@@ -63,7 +64,7 @@ function SignupForm({ switchView }) {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/signup', {
+      const response = await fetch(`${API_ORIGIN}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

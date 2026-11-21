@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { ICONS } from '../assets/icons'
 import '../styles/pages/login.css'
 import '../styles/pages/resetpassword.css'
+import { API_ORIGIN } from '../api/config'
 
 const EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i
 
@@ -55,7 +56,7 @@ function ResetPasswordPage() {
     setLoading(true)
     setServerError('')
     try {
-      const response = await fetch('/api/auth/forgot-password', {
+      const response = await fetch(`${API_ORIGIN}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: normalizedEmail }),
@@ -80,7 +81,7 @@ function ResetPasswordPage() {
     setLoading(true)
     setServerError('')
     try {
-      const response = await fetch('/api/auth/verify-reset-code', {
+      const response = await fetch(`${API_ORIGIN}/api/auth/verify-reset-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase(), code: code.trim() }),
@@ -114,7 +115,7 @@ function ResetPasswordPage() {
     setLoading(true)
     setServerError('')
     try {
-      const response = await fetch('/api/auth/reset-password', {
+      const response = await fetch(`${API_ORIGIN}/api/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../../src/api/context/AuthContext'; // Hooked global context
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
+import { API_ORIGIN } from '../../api/config'
 
 function LoginForm({ view, switchView, selectedAccount, onCancelAccount, onRemoveDeviceAccount }) {
   const location = useLocation();
@@ -108,7 +109,7 @@ function LoginForm({ view, switchView, selectedAccount, onCancelAccount, onRemov
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login-preview', {
+      const response = await fetch(`${API_ORIGIN}/api/auth/login-preview`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: normalizedEmail }),
@@ -156,7 +157,7 @@ function LoginForm({ view, switchView, selectedAccount, onCancelAccount, onRemov
 
     try {
       // Maps to your customized /api/auth/login endpoint
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(`${API_ORIGIN}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -218,7 +219,7 @@ function LoginForm({ view, switchView, selectedAccount, onCancelAccount, onRemov
     setRemoveAccountError('');
     setIsRemovingAccount(true);
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(`${API_ORIGIN}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

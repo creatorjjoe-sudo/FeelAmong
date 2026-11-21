@@ -130,7 +130,7 @@ function SearchModal({ open, onClose, anchorRef, modalKey }) {
     const controller = new AbortController()
     const timer = window.setTimeout(async () => {
       try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(searchTerm)}`, {
+        const response = await fetch(`${API_ORIGIN}/api/search?q=${encodeURIComponent(searchTerm)}`, {
           signal: controller.signal
         })
         const data = await response.json()

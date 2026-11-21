@@ -426,7 +426,7 @@ function Messages() {
     setMessages((prev) => [...prev, pendingMessage]); setDraft(''); setSending(true); setError('')
 
     try {
-      const res = await fetch('/api/chats/send', {
+      const res = await fetch(`${API_ORIGIN}/api/chats/send`, {
         method: 'POST', headers: {'Content-Type': 'application/json', Authorization: `Bearer ${user.token}`
         },
         body: JSON.stringify({ recipientId: activeContact._id, text: trimmedMessage, replyTo: replyToMessage?._id || null })
