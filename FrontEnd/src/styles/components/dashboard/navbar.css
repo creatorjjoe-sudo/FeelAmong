@@ -73,6 +73,30 @@
  stroke-width: 1.8;
 }
 
+.friends-nav-icon {
+ display: flex;
+ flex: 0 0 25px;
+ width: 25px;
+ height: 25px;
+ align-items: center;
+ justify-content: center;
+}
+
+.friends-nav-icon svg {
+ display: block;
+ width: 25px;
+ height: 25px;
+ fill: none;
+ stroke: #828582;
+ stroke-linecap: round;
+ stroke-linejoin: round;
+ stroke-width: 1.8;
+}
+
+.friends-nav-icon svg.is-active {
+ stroke: #00ba00;
+}
+
 /* Notifications nav icon — matches the other nav icons */
 .notifications-nav-icon svg {
  display: block;

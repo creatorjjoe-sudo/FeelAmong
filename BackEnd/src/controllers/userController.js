@@ -7,6 +7,49 @@ const { uploadDirectory } = require('../middleware/profileAvatarUpload');
 
 const REPORT_REASONS = ['Spam', 'Harassment', 'Inappropriate content', 'False information', 'Other'];
 
+const getFriendSuggestions = async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.user._id).select('friends').lean();
+    if (!currentUser) return res.status(404).json({ message: 'User not found' });
+
+    const friends = currentUser.friends || [];
+    const suggestions = await User.aggregate([
+      {
+        $match: {
+          _id: { $nin: [currentUser._id, ...friends] },
+          isAnonymous: { $ne: true },
+          isCompany: { $ne: true }
+        }
+      },
+      {
+        $addFields: {
+          commonFriendsCount: {
+            $size: {
+              $setIntersection: [{ $ifNull: ['$friends', []] }, friends]
+            }
+          }
+        }
+      },
+      { $sort: { commonFriendsCount: -1, createdAt: -1 } },
+      { $limit: 20 },
+      {
+        $project: {
+          username: 1,
+          firstName: 1,
+          lastName: 1,
+          avatar: 1,
+          sex: 1,
+          commonFriendsCount: 1
+        }
+      }
+    ]);
+
+    res.json({ suggestions });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 async function removeUploadedAvatar(file) {
   if (!file) return;
   try {
@@ -182,4 +225,4 @@ const updateFriendship = async (req, res) => {
   }
 };
 
-module.exports = { getPublicProfile, updateProfile, reportUser, updateFriendship };
+module.exports = { getPublicProfile, getFriendSuggestions, updateProfile, reportUser, updateFriendship };

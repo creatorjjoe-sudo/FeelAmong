@@ -18,6 +18,7 @@ function MobileFooter({ activeView, switchActive, unreadMessageCount = 0, unread
   React.useEffect(() => {
     if (location.pathname.includes('/profile')) switchActive(isOwnProfileRoute ? 'profile' : '')
     else if (location.pathname.includes('/notifications')) switchActive('notifications')
+    else if (location.pathname.includes('/friends')) switchActive('friends')
     else if (location.pathname.includes('/messages')) switchActive('messages')
     else if (location.pathname.includes('/videos')) switchActive('videos')
     else if (location.pathname.includes('/for-you')) switchActive('for-you')
@@ -35,7 +36,7 @@ function MobileFooter({ activeView, switchActive, unreadMessageCount = 0, unread
       const rect = iconEl.getBoundingClientRect()
       const wrapperRect = wrapperEl.getBoundingClientRect()
       // Wider than the icon itself, still centered on it
-      const width = Math.min(rect.width + 40, wrapperRect.width / 4)
+      const width = Math.min(rect.width + 40, wrapperRect.width / 5)
       setIndicator({
         left: rect.left - wrapperRect.left + rect.width / 2 - width / 2,
         width
@@ -76,6 +77,22 @@ function MobileFooter({ activeView, switchActive, unreadMessageCount = 0, unread
         </div>
       </Link>
 
+      <Link className='dash-link' to={'/for-you/friends'} aria-label='Friends'>
+        <div className="nave-title friends">
+          <div className="icon-wrapper friends-nav-icon" ref={(el) => { iconRefs.current['friends'] = el }}>
+            <svg
+              viewBox="0 0 24 24"
+              className={activeView === 'friends' ? 'is-active' : undefined}
+              aria-hidden="true"
+            >
+              <circle cx="9" cy="8" r="3.5" />
+              <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+              <path d="M16 5.2a3.3 3.3 0 0 1 0 6.3M17 14a5.7 5.7 0 0 1 4.5 5.5" />
+            </svg>
+          </div>
+        </div>
+      </Link>
+
       <Link className='dash-link' to={'/for-you/videos'}>
         <div className="nave-title videos">
           <div className="icon-wrapper video" ref={(el) => { iconRefs.current['videos'] = el }}>
@@ -85,7 +102,7 @@ function MobileFooter({ activeView, switchActive, unreadMessageCount = 0, unread
         </div>
       </Link>
 
-      <Link className='dash-link' to={'/for-you/notifications'}>
+      <Link className='dash-link' to={'/for-you/notifications'} aria-label='Updates'>
         <div className="nave-title notifications">
           <div className="icon-wrapper notifications-nav-icon" ref={(el) => { iconRefs.current['notifications'] = el }}>
             <svg

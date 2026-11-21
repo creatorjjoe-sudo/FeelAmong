@@ -542,6 +542,7 @@ const getPosts = async (req, res) => {
                 $add: [
                   { $size: { $ifNull: ['$likes', []] } },
                   { $size: { $ifNull: ['$comments', []] } },
+                  { $size: { $ifNull: ['$saves', []] } },
                   { $ifNull: ['$sharesCount', 0] }
                 ]
               }
@@ -557,6 +558,7 @@ const getPosts = async (req, res) => {
     const getPostEngagement = (post) => (
       (post.likes?.length || 0)
       + (post.comments?.length || 0)
+      + (post.saves?.length || 0)
       + (post.sharesCount || 0)
     );
 

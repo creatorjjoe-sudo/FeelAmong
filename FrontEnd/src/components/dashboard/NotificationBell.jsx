@@ -207,7 +207,7 @@ function NotificationBell({ unreadCount, onUnreadCountChanged }) {
         ref={buttonRef}
         className="notification-bell-button"
         type="button"
-        aria-label="Notifications"
+        aria-label="Updates"
         aria-expanded={open}
         onClick={toggleOpen}
       >
@@ -219,9 +219,9 @@ function NotificationBell({ unreadCount, onUnreadCountChanged }) {
       </button>
 
       {open && (
-        <div className="notification-panel" ref={panelRef} role="dialog" aria-label="Notifications">
+        <div className="notification-panel" ref={panelRef} role="dialog" aria-label="Updates">
           <div className="notification-panel-header">
-            <h3>Notifications</h3>
+            <h3>Updates</h3>
             {unreadCount > 0 && (
               <button className="notification-mark-all" type="button" onClick={markAllAsRead}>
                 Mark all as read
@@ -234,7 +234,7 @@ function NotificationBell({ unreadCount, onUnreadCountChanged }) {
               <p className="notification-empty">Loading…</p>
             )}
             {!isLoading && notifications.length === 0 && (
-              <p className="notification-empty">No notifications yet</p>
+              <p className="notification-empty">No updates yet</p>
             )}
 
             {shown.map((notification) => {

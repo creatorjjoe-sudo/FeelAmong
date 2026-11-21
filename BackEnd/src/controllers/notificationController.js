@@ -11,7 +11,8 @@ const listNotifications = async (req, res) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate('actor', 'username firstName lastName avatar'),
+        .populate('actor', 'username firstName lastName avatar')
+        .populate('target', 'title description caption shareCaption postType'),
       Notification.countDocuments({ recipient: req.user._id, isRead: false }),
       Notification.countDocuments({ recipient: req.user._id })
     ]);

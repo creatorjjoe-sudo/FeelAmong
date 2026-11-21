@@ -30,6 +30,7 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
   React.useEffect(() => {
     if (location.pathname.includes('/profile')) switchActive(isOwnProfileRoute ? 'profile' : '')
     else if (location.pathname.includes('/notifications')) switchActive('notifications')
+    else if (location.pathname.includes('/friends')) switchActive('friends')
     else if (location.pathname.includes('/for-you')) switchActive('for-you')
     else if (location.pathname.includes('/messages')) switchActive('messages')
     else if (location.pathname.includes('/videos')) switchActive('videos')
@@ -78,6 +79,19 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
         </div>
       </Link>
 
+      <Link className="dash-link" to="/for-you/friends" aria-label="Friends">
+        <div className="nav-title friends">
+          <div className="icon-wrapper friends-nav-icon">
+            <svg viewBox="0 0 24 24" className={activeView === 'friends' ? 'is-active' : undefined} aria-hidden="true">
+              <circle cx="9" cy="8" r="3.5" />
+              <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+              <path d="M16 5.2a3.3 3.3 0 0 1 0 6.3M17 14a5.7 5.7 0 0 1 4.5 5.5" />
+            </svg>
+          </div>
+          <h2 className={`title ${activeView === 'friends' ? 'active' : ''}`}>Friends</h2>
+        </div>
+      </Link>
+
       <Link className="dash-link" to="/for-you/videos">
         <div className="nav-title videos">
           <div className="icon-wrapper video">
@@ -103,7 +117,7 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
               <p className="notif-length notification">{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}</p>
             )}
           </div>
-          <h2 className={`title ${activeView === 'notifications' ? 'active' : ''}`}>Notifications</h2>
+          <h2 className={`title ${activeView === 'notifications' ? 'active' : ''}`}>Updates</h2>
         </div>
       </Link>
 

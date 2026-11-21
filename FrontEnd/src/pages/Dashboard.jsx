@@ -9,6 +9,7 @@ import MobileFooter from '../components/dashboard/MobileFooter'
 import Videos from '../components/dashboard/VideosFeed'
 import Messages from '../components/dashboard/Messages'
 import Notifications from '../components/dashboard/Notifications'
+import FriendsPage from './FriendsPage'
 import ProfilePage from './ProfilePage'
 import SavedItemsPage from './SavedItemsPage'
 import SaveToContainerPage from './SaveToContainerPage'
@@ -27,7 +28,9 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
   const isVideosView = location.pathname.endsWith('/videos')
   const isSavePage = location.pathname.endsWith('/save')
   const isCreateContainerPage = location.pathname.endsWith('/create-container')
-  const isDashboardModalPage = isSavePage || isCreateContainerPage
+  const isFriendsPage = location.pathname.endsWith('/friends')
+  const isUpdatesPage = location.pathname.endsWith('/notifications')
+  const isDashboardModalPage = isSavePage || isCreateContainerPage || isFriendsPage
   const isForYouHome = /^\/for-you\/?$/.test(location.pathname)
   const shouldRenderPosts = isForYouHome || isDashboardModalPage
   const [activeView, setActiveView] = React.useState('for-you')
@@ -212,7 +215,7 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
   }, [location.pathname, location.search])
 
   return (
-    <div className={`dashboard-container${isVideosView ? ' videos-active' : ''}${isChromeLoading && !isDashboardModalPage ? ' is-loading' : ''}`}>
+    <div className={`dashboard-container${isVideosView ? ' videos-active' : ''}${isUpdatesPage ? ' is-updates-page' : ''}${isChromeLoading && !isDashboardModalPage ? ' is-loading' : ''}`}>
       <title>Feelamong | Dashboard</title>
       {shouldRenderPosts && (
         <div
@@ -250,6 +253,7 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
             />
           }
         />
+        <Route path="friends" element={<FriendsPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="profile/:userId" element={<ProfilePage />} />
         <Route path="company-create" element={<CreateCompanyPage />} />
