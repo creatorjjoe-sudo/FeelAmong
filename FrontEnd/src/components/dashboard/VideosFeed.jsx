@@ -453,6 +453,20 @@ function Videos() {
   const shareSourceVideo = activeVideoShareData?.sharedVideo || activeVideoShareData
 
   React.useEffect(() => {
+    if (!isVideoShareOpen) return undefined
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape' && !isSubmittingShare) {
+        setActiveVideoShareData(null)
+        closeRoutedDialog()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [closeRoutedDialog, isSubmittingShare, isVideoShareOpen])
+
+  React.useEffect(() => {
     if (!isCompanySharePromptOpen || !personalUser?.token) return undefined
 
     const controller = new AbortController()
@@ -760,30 +774,111 @@ function Videos() {
     }
   }
 
-  async function shareVideoLink(video) {
+  function shareVideoLink(video) {
     if (!user || user.isAnonymous || !token) {
       pushRoutedModal(navigate, location, 'video-feed-login-required')
       return
     }
-    const url = `${API_ORIGIN}${video.videoUrl}`
+
+    if (!user.isCompany) {
+      setIsCompanySharePromptOpen(true)
+      setCompanyShareError('')
+      setMoreMenuVideoId(null)
+      return
+    }
+
+    setActiveVideoShareData(video)
+    setShareDescription('')
+    setShareVisibility('public')
+    setShareError('')
+    setShareLinkCopied(false)
+    setMoreMenuVideoId(null)
+    pushRoutedModal(navigate, location, 'video-feed-share')
+  }
+
+  async function submitSharedVideo(event) {
+    event.preventDefault()
+    if (!requireLoginForVideoAction() || !activeVideoShareData || isSubmittingShare) return
+    if (!user?.isCompany) {
+      setIsCompanySharePromptOpen(true)
+      return
+    }
+
+    setIsSubmittingShare(true)
+    setShareError('')
     try {
-      if (navigator.share) {
-        await navigator.share({ title: 'FEEL-AMONG video', text: video.caption || '', url })
-      } else {
-        await navigator.clipboard.writeText(url)
-        setNotice('Link copied to clipboard.')
-      }
-      const response = await fetch(`${API_ORIGIN}/api/videos/${video._id}/share`, {
+      const response = await fetch(`${API_ORIGIN}/api/videos/${activeVideoShareData._id}/repost`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          description: shareDescription.trim(),
+          visibility: shareVisibility,
+        }),
       })
-      if (!response.ok) return
       const result = await response.json()
-      setVideos((current) => current.map((item) =>
-        String(item._id) === String(video._id) ? { ...item, sharesCount: result.sharesCount } : item
-      ))
-    } catch (shareError) {
-      if (shareError.name !== 'AbortError') setNotice(shareError.message)
+      if (!response.ok) throw new Error(result.message || 'Unable to share this video.')
+
+      setVideos((current) => [
+        result.video,
+        ...current.map((item) => (
+          String(item._id) === String(result.sourceVideoId)
+            ? { ...item, sharesCount: result.sharesCount }
+            : item
+        )),
+      ])
+      setActiveVideoShareData(null)
+      setShareDescription('')
+      closeRoutedDialog()
+      setNotice('Video shared.')
+      setActiveIndex(0)
+      scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch (shareSubmitError) {
+      setShareError(shareSubmitError.message || 'Unable to share this video.')
+    } finally {
+      setIsSubmittingShare(false)
+    }
+  }
+
+  function requireLoginForVideoAction() {
+    if (user && !user.isAnonymous && token) return true
+    pushRoutedModal(navigate, location, 'video-feed-login-required')
+    return false
+  }
+
+  async function copyVideoLink(video) {
+    const original = video.sharedVideo || video
+    const url = new URL(original.videoUrl, API_ORIGIN).toString()
+    if (!navigator.clipboard?.writeText) {
+      throw new Error('Copying links is not supported by this browser.')
+    }
+    await navigator.clipboard.writeText(url)
+    const response = await fetch(`${API_ORIGIN}/api/videos/${video._id}/share`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const result = await response.json()
+    if (!response.ok) throw new Error(result.message || 'Unable to record this share.')
+    setVideos((current) => current.map((item) =>
+      String(item._id) === String(video._id) ? { ...item, sharesCount: result.sharesCount } : item
+    ))
+    setShareLinkCopied(true)
+  }
+
+  async function switchToCompanyToShare() {
+    if (!selectedCompanyId) return
+    setIsSwitchingAccount(true)
+    setCompanyShareError('')
+    try {
+      await switchToCompany(selectedCompanyId)
+      setIsCompanySharePromptOpen(false)
+      setNotice('Switched to a company account. Select Share again to share this video.')
+    } catch (switchError) {
+      setCompanyShareError(switchError.message || 'Could not switch accounts. Please try again.')
+    } finally {
+      setIsSwitchingAccount(false)
     }
   }
 
@@ -1070,10 +1165,165 @@ function Videos() {
 
       {isLoginRequiredOpen && (
         <LoginRequiredModal
-          message="Please log in to save videos"
+          message="Please log in to interact with videos"
           onClose={closeRoutedDialog}
           onLogin={handleLogin}
         />
+      )}
+
+      {isVideoShareOpen && createPortal(
+        <div
+          className="post-action-dialog-backdrop is-post-share"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isSubmittingShare) {
+              setActiveVideoShareData(null)
+              closeRoutedDialog()
+            }
+          }}
+        >
+          <section className="post-action-dialog post-share-dialog" role="dialog" aria-modal="true" aria-label="Share video">
+            <button
+              className="post-action-dialog-close"
+              type="button"
+              aria-label="Close dialog"
+              onClick={() => {
+                setActiveVideoShareData(null)
+                closeRoutedDialog()
+              }}
+            >
+              ×
+            </button>
+            <header className="post-share-header">
+              <button
+                className="post-share-back"
+                type="button"
+                aria-label="Back to video"
+                onClick={() => {
+                  setActiveVideoShareData(null)
+                  closeRoutedDialog()
+                }}
+              >
+                <img src={ICONS.backArrow} alt="" />
+              </button>
+              <h2>Share Video</h2>
+            </header>
+            <div className="post-share-content">
+              <h3>Create video post</h3>
+              <form className="post-share-form" onSubmit={submitSharedVideo}>
+                {shareError && <p className="post-share-error" role="alert">{shareError}</p>}
+                <div className="post-share-identity">
+                  <img className="post-share-avatar" src={getProfileAvatar(user)} alt="" />
+                  <div className="post-share-user">
+                    <strong>{user?.username || 'Feelamonger'}</strong>
+                    <label className="post-share-visibility">
+                      <img src={VISIBILITY_ICONS[shareVisibility]} alt="" />
+                      <select
+                        aria-label="Video visibility"
+                        value={shareVisibility}
+                        onChange={(event) => setShareVisibility(event.target.value)}
+                        disabled={isSubmittingShare}
+                      >
+                        <option value="public">Public</option>
+                        <option value="friends">Friends</option>
+                        <option value="private">Only me</option>
+                      </select>
+                    </label>
+                  </div>
+                  <img className="post-share-original-avatar" src={getProfileAvatar(shareSourceVideo?.user)} alt="" />
+                  <button className="post-share-submit" type="submit" disabled={isSubmittingShare}>
+                    {isSubmittingShare ? 'Sharing...' : 'Share'}
+                  </button>
+                </div>
+                <textarea
+                  className="post-share-description"
+                  value={shareDescription}
+                  onChange={(event) => setShareDescription(event.target.value)}
+                  placeholder="Give a description to this video..."
+                  aria-label="Description for shared video"
+                  maxLength={1000}
+                  disabled={isSubmittingShare}
+                />
+                <button
+                  className="post-share-copy-link"
+                  type="button"
+                  onClick={() => copyVideoLink(activeVideoShareData)
+                    .then(() => setNotice('Video link copied.'))
+                    .catch((copyError) => setShareError(copyError.message))}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="8" y="8" width="13" height="13" rx="2" />
+                    <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+                  </svg>
+                  Copy link
+                </button>
+                {shareLinkCopied && <span className="post-share-link-copied" role="status">Link copied</span>}
+              </form>
+            </div>
+          </section>
+        </div>,
+        document.body
+      )}
+
+      {isCompanySharePromptOpen && createPortal(
+        <div
+          className="post-company-share-prompt-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isSwitchingAccount) {
+              setIsCompanySharePromptOpen(false)
+            }
+          }}
+        >
+          <section
+            className="post-company-share-prompt"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="video-company-share-title"
+            aria-describedby="video-company-share-description"
+          >
+            <h2 id="video-company-share-title">Switch to a company account?</h2>
+            <p id="video-company-share-description">Video posts can currently be shared from company accounts. Switch accounts to share this video.</p>
+            {isCompanyLoading ? (
+              <p role="status">Loading company accounts…</p>
+            ) : companies.length ? (
+              <label className="video-company-account-select">
+                Company account
+                <select
+                  value={selectedCompanyId}
+                  onChange={(event) => setSelectedCompanyId(event.target.value)}
+                  disabled={isSwitchingAccount}
+                >
+                  {companies.map((company) => (
+                    <option key={company._id} value={String(company._id)}>
+                      {company.username || company.name || 'Company account'}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              !companyShareError && <p>No company accounts are available to switch to.</p>
+            )}
+            {companyShareError && <p className="post-company-share-prompt-error" role="alert">{companyShareError}</p>}
+            <div className="post-company-share-prompt-actions">
+              <button
+                className="post-company-share-prompt-cancel"
+                type="button"
+                onClick={() => setIsCompanySharePromptOpen(false)}
+                disabled={isSwitchingAccount}
+              >
+                Cancel
+              </button>
+              <button
+                className="post-company-share-prompt-switch"
+                type="button"
+                onClick={switchToCompanyToShare}
+                disabled={isCompanyLoading || isSwitchingAccount || !selectedCompanyId}
+              >
+                {isSwitchingAccount ? 'Switching…' : 'Switch account'}
+              </button>
+            </div>
+          </section>
+        </div>,
+        document.body
       )}
 
       {activeVideoDialog?.type === 'comment' && (
