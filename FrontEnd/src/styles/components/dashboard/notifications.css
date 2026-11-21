@@ -413,11 +413,16 @@
   grid-template-columns: 66px minmax(0, 1fr);
   align-items: start;
   gap: 9px;
-  padding: 8px 0 22px;
+  padding: 10px;
 }
 
 .update-item + .update-item {
   margin-top: 6px;
+}
+
+.update-item.is-unread {
+  border-radius: 10px;
+  background: #f3f6f3;
 }
 
 .update-avatar {
@@ -481,13 +486,17 @@
   color: #b98500;
 }
 
-.update-collapse {
+.update-options-wrap {
+  position: relative;
+  margin-left: auto;
+}
+
+.update-options-trigger {
   display: grid;
   width: 32px;
   height: 32px;
   flex: 0 0 32px;
   place-items: center;
-  margin-left: auto;
   padding: 0;
   border: 0;
   border-radius: 6px;
@@ -496,7 +505,7 @@
   cursor: pointer;
 }
 
-.update-collapse svg {
+.update-options-trigger svg {
   width: 22px;
   height: 22px;
   fill: none;
@@ -504,11 +513,56 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2.5;
-  transition: transform .18s ease;
 }
 
-.update-collapse.is-collapsed svg {
-  transform: rotate(-90deg);
+.update-more-options {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  width: 190px;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 6px;
+  border: 1px solid #d7d9dd;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 14%);
+  list-style: none;
+  transform-origin: top right;
+  animation: post-more-menu-zoom-in .2s ease-out both;
+}
+
+.update-more-options li {
+  display: block;
+  padding: 0;
+}
+
+.update-more-option {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #5c6065;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.update-more-option:hover:not(:disabled),
+.update-more-option:focus-visible {
+  background: #e4efe4;
+}
+
+.update-more-option:disabled {
+  color: #a4a8a4;
+  cursor: default;
 }
 
 .update-details {
@@ -518,13 +572,8 @@
 .update-open {
   display: block;
   width: 100%;
-  padding: 0;
-  border: 0;
-  background: transparent;
   color: #000;
-  font: inherit;
   text-align: left;
-  cursor: pointer;
 }
 
 .update-message {
@@ -535,7 +584,7 @@
   overflow-wrap: anywhere;
 }
 
-.update-actor,
+.update-emphasis,
 .update-preview {
   font-weight: 700;
 }
@@ -552,8 +601,113 @@
   overflow-wrap: anywhere;
 }
 
+.update-actor-link,
+.update-action-link,
+.update-others-link,
+.update-preview-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+}
+
+.update-actor-link {
+  color: #000;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.update-action-link,
+.update-others-link {
+  color: #666;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.update-action-link,
+.update-action-copy {
+  margin-left: .25em;
+}
+
+.update-actor-link:hover,
+.update-action-link:hover,
+.update-others-link:hover,
+.update-preview-link:hover {
+  text-decoration: underline;
+}
+
+.update-preview-link {
+  display: inline;
+  color: #000;
+  cursor: pointer;
+}
+
+.update-others-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.update-participants-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 25;
+  width: min(230px, 70vw);
+  padding: 6px;
+  border: 1px solid #d7d9dd;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 14%);
+}
+
+.update-participants-popover ul {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.update-participants-popover li > button,
+.update-participants-popover li > span {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #222;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+}
+
+.update-participants-popover li > button {
+  cursor: pointer;
+}
+
+.update-participants-popover li > button:hover,
+.update-participants-popover li > button:focus-visible {
+  background: #e4efe4;
+}
+
+.update-participants-popover img {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .update-preview.is-comment {
   display: block;
+  color: #666;
+  font-weight: 400;
 }
 
 .update-time {
@@ -566,6 +720,12 @@
 
 .notification-request-actions {
   margin-top: 8px;
+}
+
+.updates-action-error {
+  margin: -12px 0 16px;
+  color: #b42318;
+  font-size: 14px;
 }
 
 @media (max-width: 799px) {
@@ -595,8 +755,56 @@ html[data-theme="dark"] .updates-header h1,
 html[data-theme="dark"] .update-open,
 html[data-theme="dark"] .update-message,
 html[data-theme="dark"] .update-preview,
-html[data-theme="dark"] .update-collapse {
+html[data-theme="dark"] .update-actor-link,
+html[data-theme="dark"] .update-preview-link,
+html[data-theme="dark"] .update-options-trigger {
   color: #f2f2f2;
+}
+
+html[data-theme="dark"] .update-action {
+  color: #b8beb8;
+}
+
+html[data-theme="dark"] .update-action-link,
+html[data-theme="dark"] .update-others-link {
+  color: #b8beb8;
+}
+
+html[data-theme="dark"] .update-preview.is-comment {
+  color: #b8beb8;
+}
+
+html[data-theme="dark"] .update-more-options {
+  border-color: #3a403a;
+  background: #202420;
+}
+
+html[data-theme="dark"] .update-more-option {
+  color: #f2f2f2;
+}
+
+html[data-theme="dark"] .update-more-option:hover:not(:disabled),
+html[data-theme="dark"] .update-more-option:focus-visible {
+  background: #2b302b;
+}
+
+html[data-theme="dark"] .update-participants-popover {
+  border-color: #3a403a;
+  background: #202420;
+}
+
+html[data-theme="dark"] .update-participants-popover li > button,
+html[data-theme="dark"] .update-participants-popover li > span {
+  color: #f2f2f2;
+}
+
+html[data-theme="dark"] .update-participants-popover li > button:hover,
+html[data-theme="dark"] .update-participants-popover li > button:focus-visible {
+  background: #2b302b;
+}
+
+html[data-theme="dark"] .updates-action-error {
+  color: #ff8f8f;
 }
 
 html[data-theme="dark"] .update-action {
@@ -623,6 +831,10 @@ html[data-theme="dark"] .updates-menu button:hover:not(:disabled) {
 
 html[data-theme="dark"] .update-avatar {
   background: #2c2c2c;
+}
+
+html[data-theme="dark"] .update-item.is-unread {
+  background: #273027;
 }
 
 html[data-theme="dark"] .update-category {

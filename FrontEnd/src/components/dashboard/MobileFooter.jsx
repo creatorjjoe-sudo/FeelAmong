@@ -4,7 +4,14 @@ import { ICONS } from '../../assets/icons'
 import '../../styles/components/dashboard/mobilefooter.css'
 import '../../styles/components/dashboard/navbar.css'
 
-function MobileFooter({ activeView, switchActive, unreadMessageCount = 0, unreadNotificationCount = 0, isOwnProfileRoute }) {
+function MobileFooter({
+  activeView,
+  switchActive,
+  unreadMessageCount = 0,
+  pendingFriendRequestCount = 0,
+  unreadNotificationCount = 0,
+  isOwnProfileRoute
+}) {
 
   const location = useLocation()
 
@@ -77,7 +84,13 @@ function MobileFooter({ activeView, switchActive, unreadMessageCount = 0, unread
         </div>
       </Link>
 
-      <Link className='dash-link' to={'/for-you/friends'} aria-label='Friends'>
+      <Link
+        className='dash-link'
+        to={'/for-you/friends'}
+        aria-label={pendingFriendRequestCount
+          ? `Friends, ${pendingFriendRequestCount} pending request${pendingFriendRequestCount === 1 ? '' : 's'}`
+          : 'Friends'}
+      >
         <div className="nave-title friends">
           <div className="icon-wrapper friends-nav-icon" ref={(el) => { iconRefs.current['friends'] = el }}>
             <svg
@@ -89,6 +102,11 @@ function MobileFooter({ activeView, switchActive, unreadMessageCount = 0, unread
               <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
               <path d="M16 5.2a3.3 3.3 0 0 1 0 6.3M17 14a5.7 5.7 0 0 1 4.5 5.5" />
             </svg>
+            {pendingFriendRequestCount > 0 && (
+              <p className='notif-length friend'>
+                {pendingFriendRequestCount > 99 ? '99+' : pendingFriendRequestCount}
+              </p>
+            )}
           </div>
         </div>
       </Link>

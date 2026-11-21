@@ -10,7 +10,14 @@ import { getProfileAvatar } from '../../utils/profileAvatar'
 import '../../styles/components/dashboard/navbar.css'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 
-function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfileRoute, unreadNotificationCount = 0 }) {
+function Navbar({
+  activeView,
+  switchActive,
+  unreadMessageCount = 0,
+  pendingFriendRequestCount = 0,
+  isOwnProfileRoute,
+  unreadNotificationCount = 0
+}) {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useContext(AuthContext)
@@ -79,7 +86,13 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
         </div>
       </Link>
 
-      <Link className="dash-link" to="/for-you/friends" aria-label="Friends">
+      <Link
+        className="dash-link"
+        to="/for-you/friends"
+        aria-label={pendingFriendRequestCount
+          ? `Friends, ${pendingFriendRequestCount} pending request${pendingFriendRequestCount === 1 ? '' : 's'}`
+          : 'Friends'}
+      >
         <div className="nav-title friends">
           <div className="icon-wrapper friends-nav-icon">
             <svg viewBox="0 0 24 24" className={activeView === 'friends' ? 'is-active' : undefined} aria-hidden="true">
@@ -87,6 +100,11 @@ function Navbar({ activeView, switchActive, unreadMessageCount = 0, isOwnProfile
               <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
               <path d="M16 5.2a3.3 3.3 0 0 1 0 6.3M17 14a5.7 5.7 0 0 1 4.5 5.5" />
             </svg>
+            {pendingFriendRequestCount > 0 && (
+              <p className="notif-length friend">
+                {pendingFriendRequestCount > 99 ? '99+' : pendingFriendRequestCount}
+              </p>
+            )}
           </div>
           <h2 className={`title ${activeView === 'friends' ? 'active' : ''}`}>Friends</h2>
         </div>

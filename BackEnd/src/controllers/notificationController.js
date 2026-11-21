@@ -32,11 +32,28 @@ const getUnreadCount = async (req, res) => {
   }
 };
 
+const getPendingFriendRequestCount = async (req, res) => {
+  try {
+    const count = await Notification.countDocuments({
+      recipient: req.user._id,
+      type: 'friend_request',
+      status: 'pending'
+    });
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 const markAsRead = async (req, res) => {
   try {
+    const requestedReadState = req.body?.isRead;
+    if (requestedReadState !== undefined && typeof requestedReadState !== 'boolean') {
+      return res.status(400).json({ message: 'isRead must be a boolean' });
+    }
     const notification = await Notification.findOneAndUpdate(
       { _id: req.params.id, recipient: req.user._id },
-      { isRead: true },
+      { isRead: requestedReadState ?? true },
       { new: true }
     );
     if (!notification) return res.status(404).json({ message: 'Notification not found' });
@@ -111,6 +128,7 @@ const respondToFriendRequest = async (req, res) => {
 module.exports = {
   listNotifications,
   getUnreadCount,
+  getPendingFriendRequestCount,
   markAsRead,
   markAllAsRead,
   deleteNotification,

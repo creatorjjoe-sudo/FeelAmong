@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   listNotifications,
   getUnreadCount,
+  getPendingFriendRequestCount,
   markAsRead,
   markAllAsRead,
   deleteNotification,
@@ -14,6 +15,7 @@ router.use(protect);
 
 router.route('/').get(listNotifications);
 router.get('/unread-count', getUnreadCount);
+router.get('/friend-requests/count', getPendingFriendRequestCount);
 router.put('/read-all', markAllAsRead);
 router.put('/:id/read', markAsRead);
 router.put('/:id/respond', respondToFriendRequest);

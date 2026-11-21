@@ -36,6 +36,7 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
   const [activeView, setActiveView] = React.useState('for-you')
   const [unreadMessageCount, setUnreadMessageCount] = React.useState(0)
   const [unreadNotificationCount, setUnreadNotificationCount] = React.useState(0)
+  const [pendingFriendRequestCount, setPendingFriendRequestCount] = React.useState(0)
   // While the chrome's own data (unread counts) is still loading, the
   // navbar / mobile header / mobile footer shimmer on their real elements.
   const [isChromeLoading, setIsChromeLoading] = React.useState(true)
@@ -64,15 +65,25 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
   const refreshUnreadNotificationCount = useCallback(async () => {
     if (!user?._id || !token || user.isAnonymous) {
       setUnreadNotificationCount(0)
+      setPendingFriendRequestCount(0)
       return
     }
     try {
-      const response = await fetch(`${API_ORIGIN}/api/notifications/unread-count`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.message || 'Could not load notification count.')
-      setUnreadNotificationCount(Number(result.unreadCount) || 0)
+      const headers = { Authorization: `Bearer ${token}` }
+      const [unreadResponse, friendRequestsResponse] = await Promise.all([
+        fetch(`${API_ORIGIN}/api/notifications/unread-count`, { headers }),
+        fetch(`${API_ORIGIN}/api/notifications/friend-requests/count`, { headers })
+      ])
+      const [unreadResult, friendRequestsResult] = await Promise.all([
+        unreadResponse.json(),
+        friendRequestsResponse.json()
+      ])
+      if (!unreadResponse.ok) throw new Error(unreadResult.message || 'Could not load notification count.')
+      if (!friendRequestsResponse.ok) {
+        throw new Error(friendRequestsResult.message || 'Could not load friend request count.')
+      }
+      setUnreadNotificationCount(Number(unreadResult.unreadCount) || 0)
+      setPendingFriendRequestCount(Number(friendRequestsResult.count) || 0)
     } catch (error) {
       console.error(error.message)
     }
@@ -231,6 +242,7 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
         activeView={activeView}
         switchActive={switchActive}
         unreadMessageCount={unreadMessageCount}
+        pendingFriendRequestCount={pendingFriendRequestCount}
         isOwnProfileRoute={isOwnProfileRoute}
         unreadNotificationCount={unreadNotificationCount}
       />
@@ -238,6 +250,7 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
         activeView={activeView}
         switchActive={switchActive}
         unreadMessageCount={unreadMessageCount}
+        pendingFriendRequestCount={pendingFriendRequestCount}
         unreadNotificationCount={unreadNotificationCount}
         isOwnProfileRoute={isOwnProfileRoute}
       />

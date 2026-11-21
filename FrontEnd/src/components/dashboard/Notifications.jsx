@@ -90,24 +90,55 @@ function getNotificationCopy(group) {
     })
     const uniqueActors = [...actors.values()]
     if (uniqueActors.length > 1) {
-      const names = uniqueActors.slice(0, 2).map((item) => item.actorName || buildActorName(item.actor))
-      const others = uniqueActors.length - names.length
-      return {
-        actorText: `${names.join(', ')}${others ? ` and ${others} other${others === 1 ? '' : 's'}` : ''}`,
-        actionText: notification.type === 'video_like' ? ' liked your video' : ' liked your post'
+      const displayedActors = uniqueActors.slice(0, 3)
+      const others = uniqueActors.length - displayedActors.length
+      const segments = []
+      displayedActors.forEach((item, index) => {
+        if (index > 0) {
+          segments.push({
+            text: others || index < displayedActors.length - 1 ? ', ' : ' and ',
+            type: 'separator'
+          })
+        }
+        segments.push({
+          text: item.actorName || buildActorName(item.actor),
+          type: 'actor',
+          userId: item.actor?._id || (typeof item.actor === 'string' ? item.actor : '')
+        })
+      })
+      if (others) {
+        segments.push({ text: ' and ', type: 'separator' })
+        segments.push({
+          count: others,
+          type: 'others',
+          participants: uniqueActors.slice(3).map((item) => ({
+            actor: item.actor,
+            name: item.actorName || buildActorName(item.actor),
+            userId: item.actor?._id || (typeof item.actor === 'string' ? item.actor : '')
+          }))
+        })
       }
+      segments.push({
+        text: notification.type === 'video_like' ? 'liked your video' : 'liked your post',
+        type: 'action'
+      })
+      return segments
     }
   }
 
   const actorName = notification.actorName || buildActorName(notification.actor)
   const message = notification.message || buildMessage(notification.type, actorName)
   if (message.toLowerCase().startsWith(actorName.toLowerCase())) {
-    return {
-      actorText: message.slice(0, actorName.length),
-      actionText: message.slice(actorName.length)
-    }
+    return [
+      {
+        text: message.slice(0, actorName.length),
+        type: 'actor',
+        userId: notification.actor?._id || (typeof notification.actor === 'string' ? notification.actor : '')
+      },
+      { text: message.slice(actorName.length).trimStart(), type: 'action' }
+    ]
   }
-  return { message }
+  return [{ text: message, type: 'action' }]
 }
 
 function getNotificationPreview(notification) {
@@ -141,8 +172,12 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
   const [isLoading, setIsLoading] = React.useState(true)
   const [hasMore, setHasMore] = React.useState(false)
   const [visibleCount, setVisibleCount] = React.useState(10)
-  const [collapsedGroups, setCollapsedGroups] = React.useState(() => new Set())
   const [isMenuOpen, setIsMenuOpen] = React.useState(false)
+  const [openUpdateMenuId, setOpenUpdateMenuId] = React.useState(null)
+  const [openParticipantsGroupId, setOpenParticipantsGroupId] = React.useState(null)
+  const [actionError, setActionError] = React.useState('')
+  const updateMenuRefs = React.useRef(new Map())
+  const participantsListRefs = React.useRef(new Map())
   const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
 
   function getAuthHeaders() {
@@ -186,6 +221,47 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
     return () => window.removeEventListener('notification-received', handleLiveNotification)
   }, [onUnreadCountChanged])
 
+  React.useEffect(() => {
+    if (!openUpdateMenuId) return undefined
+
+    function handlePointerDown(event) {
+      if (!updateMenuRefs.current.get(openUpdateMenuId)?.contains(event.target)) {
+        setOpenUpdateMenuId(null)
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setOpenUpdateMenuId(null)
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [openUpdateMenuId])
+
+  React.useEffect(() => {
+    if (!openParticipantsGroupId) return undefined
+
+    function handlePointerDown(event) {
+      if (!participantsListRefs.current.get(openParticipantsGroupId)?.contains(event.target)) {
+        setOpenParticipantsGroupId(null)
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setOpenParticipantsGroupId(null)
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [openParticipantsGroupId])
   async function markAllAsRead() {
     try {
       await fetch(`${API_ORIGIN}/api/notifications/read-all`, { method: 'PUT', headers: getAuthHeaders() })
@@ -251,13 +327,63 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
     }
   }
 
-  function toggleGroup(groupId) {
-    setCollapsedGroups((current) => {
-      const next = new Set(current)
-      if (next.has(groupId)) next.delete(groupId)
-      else next.add(groupId)
-      return next
-    })
+  async function markUpdateUnread(group) {
+    setActionError('')
+    setOpenUpdateMenuId(null)
+    const results = await Promise.all(group.notifications.map(async (notification) => {
+      try {
+        const response = await fetch(`${API_ORIGIN}/api/notifications/${notification._id}/read`, {
+          method: 'PUT',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isRead: false })
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.message || 'Could not mark the update as unread')
+        return { id: notification._id, error: '' }
+      } catch (error) {
+        return { id: notification._id, error: error.message }
+      }
+    }))
+    const updatedIds = new Set(results.filter((result) => !result.error).map((result) => result.id))
+    setNotifications((current) => current.map((notification) => (
+      updatedIds.has(notification._id) ? { ...notification, isRead: false } : notification
+    )))
+    if (updatedIds.size) onUnreadCountChanged?.()
+    const failure = results.find((result) => result.error)
+    if (failure) setActionError(failure.error)
+  }
+
+  function updateReadState(group) {
+    const markAsUnread = group.notifications.every((notification) => notification.isRead)
+    if (markAsUnread) {
+      markUpdateUnread(group)
+    } else {
+      group.notifications.forEach(markSingleRead)
+      setOpenUpdateMenuId(null)
+    }
+  }
+
+  async function deleteUpdate(group) {
+    setActionError('')
+    const results = await Promise.all(group.notifications.map(async (notification) => {
+      try {
+        const response = await fetch(`${API_ORIGIN}/api/notifications/${notification._id}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.message || 'Could not delete the update')
+        return { id: notification._id, error: '' }
+      } catch (error) {
+        return { id: notification._id, error: error.message }
+      }
+    }))
+    const deletedIds = new Set(results.filter((result) => !result.error).map((result) => result.id))
+    setNotifications((current) => current.filter((notification) => !deletedIds.has(notification._id)))
+    if (deletedIds.size) onUnreadCountChanged?.()
+    const failures = results.filter((result) => result.error)
+    if (failures.length) setActionError(failures[0].error)
+    setOpenUpdateMenuId(null)
   }
 
   // The page isn't shown to anonymous/logged-out users
@@ -303,6 +429,8 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
           </div>
         </header>
 
+        {actionError && <p className="updates-action-error" role="alert">{actionError}</p>}
+
         <div className="updates-list">
           {isLoading && notifications.length === 0 && <p className="notification-empty">Loading updates…</p>}
           {!isLoading && notifications.length === 0 && <p className="notification-empty">No updates yet</p>}
@@ -314,8 +442,8 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
             const preview = getNotificationPreview(notification)
             const isFriendRequest = notification.type === 'friend_request'
             const pending = isFriendRequest && notification.status === 'pending'
-            const isCollapsed = collapsedGroups.has(group.id)
             const isUnread = group.notifications.some((item) => !item.isRead)
+            const hasContentTarget = notification.targetModel === 'Post' || notification.targetModel === 'Video'
             return (
               <article
                 key={group.id}
@@ -340,38 +468,163 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
                       </svg>
                       {category}
                     </span>
-                    <button
-                      className={`update-collapse${isCollapsed ? ' is-collapsed' : ''}`}
-                      type="button"
-                      aria-label={isCollapsed ? 'Expand update' : 'Collapse update'}
-                      aria-expanded={!isCollapsed}
-                      onClick={() => toggleGroup(group.id)}
+                    <div
+                      className="update-options-wrap"
+                      ref={(element) => {
+                        if (element) updateMenuRefs.current.set(group.id, element)
+                        else updateMenuRefs.current.delete(group.id)
+                      }}
                     >
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="m5 9 7 7 7-7" />
-                      </svg>
-                    </button>
+                      <button
+                        className="update-options-trigger"
+                        type="button"
+                        aria-label="Update options"
+                        aria-expanded={openUpdateMenuId === group.id}
+                        aria-haspopup="menu"
+                        onClick={() => setOpenUpdateMenuId((current) => current === group.id ? null : group.id)}
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="m5 9 7 7 7-7" />
+                        </svg>
+                      </button>
+                      {openUpdateMenuId === group.id && (
+                        <ul className="update-more-options" role="menu" aria-label="Update options">
+                          <li role="none">
+                            <button
+                              className="update-more-option"
+                              type="button"
+                              role="menuitem"
+                              onClick={() => updateReadState(group)}
+                            >
+                              {isUnread ? 'Mark update as read' : 'Mark as unread'}
+                            </button>
+                          </li>
+                          <li role="none">
+                            <button
+                              className="update-more-option"
+                              type="button"
+                              role="menuitem"
+                              onClick={() => deleteUpdate(group)}
+                            >
+                              Delete update
+                            </button>
+                          </li>
+                        </ul>
+                      )}
+                    </div>
                   </div>
 
-                  {!isCollapsed && (
-                    <div className="update-details">
-                      <button
-                        className="update-open"
-                        type="button"
-                        onClick={() => navigateToNotification(notification, group.notifications)}
-                      >
-                        <span className="update-message">
-                          {copy.actorText && <strong className="update-actor">{copy.actorText}</strong>}
-                          {copy.actionText && <span className="update-action">{copy.actionText}</span>}
-                          {copy.message && <span className="update-action">{copy.message}</span>}
-                        </span>
-                        {preview.text && (
+                  <div className="update-details">
+                    <div className="update-open">
+                      <div className="update-message">
+                        {copy.map((segment, index) => {
+                          if (segment.type === 'actor' && segment.userId) {
+                            return (
+                              <button
+                                className="update-actor-link"
+                                type="button"
+                                key={`${group.id}-text-${index}`}
+                                onClick={() => {
+                                  setOpenParticipantsGroupId(null)
+                                  navigate(`/for-you/profile/${segment.userId}`)
+                                }}
+                              >
+                                {segment.text}
+                              </button>
+                            )
+                          }
+                          if (segment.type === 'others') {
+                            return (
+                              <div
+                                className="update-others-wrap"
+                                key={`${group.id}-text-${index}`}
+                                ref={(element) => {
+                                  if (element) participantsListRefs.current.set(group.id, element)
+                                  else participantsListRefs.current.delete(group.id)
+                                }}
+                              >
+                                <button
+                                  className="update-others-link"
+                                  type="button"
+                                  aria-haspopup="dialog"
+                                  aria-expanded={openParticipantsGroupId === group.id}
+                                  onClick={() => setOpenParticipantsGroupId(
+                                    (current) => current === group.id ? null : group.id
+                                  )}
+                                >
+                                  <strong className="update-emphasis">{segment.count}</strong>
+                                  {segment.count === 1 ? ' other' : ' others'}
+                                </button>
+                                {openParticipantsGroupId === group.id && (
+                                  <div className="update-participants-popover" role="dialog" aria-label="Other participants">
+                                    <ul>
+                                      {segment.participants.map((participant) => (
+                                        <li key={participant.userId || participant.name}>
+                                          {participant.userId ? (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setOpenParticipantsGroupId(null)
+                                                navigate(`/for-you/profile/${participant.userId}`)
+                                              }}
+                                            >
+                                              <img src={getProfileAvatar(participant.actor)} alt="" />
+                                              <span>{participant.name}</span>
+                                            </button>
+                                          ) : (
+                                            <span>{participant.name}</span>
+                                          )}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          }
+                          if (segment.type === 'action' && hasContentTarget) {
+                            return (
+                              <button
+                                className="update-action-link"
+                                type="button"
+                                key={`${group.id}-text-${index}`}
+                                onClick={() => navigateToNotification(notification, group.notifications)}
+                              >
+                                {segment.text}
+                              </button>
+                            )
+                          }
+                          return (
+                            <span
+                              className={segment.type === 'actor'
+                                ? 'update-emphasis'
+                                : segment.type === 'action'
+                                  ? 'update-action update-action-copy'
+                                  : 'update-action'}
+                              key={`${group.id}-text-${index}`}
+                            >
+                              {segment.text}
+                            </span>
+                          )
+                        })}
+                      </div>
+                      {preview.text && (hasContentTarget && !preview.isComment ? (
+                        <button
+                          className="update-preview-link"
+                          type="button"
+                          onClick={() => navigateToNotification(notification, group.notifications)}
+                        >
                           <span className={`update-preview${preview.isComment ? ' is-comment' : ''}`}>
                             {preview.isComment ? `“${preview.text}”` : `: ${preview.text}`}
                           </span>
-                        )}
-                        <span className="update-time">{formatTimeAgo(notification.createdAt)}</span>
-                      </button>
+                        </button>
+                      ) : (
+                        <span className={`update-preview${preview.isComment ? ' is-comment' : ''}`}>
+                          {preview.isComment ? `“${preview.text}”` : `: ${preview.text}`}
+                        </span>
+                      ))}
+                      <span className="update-time">{formatTimeAgo(notification.createdAt)}</span>
+                    </div>
                       {pending && (
                         <div className="notification-request-actions">
                           <button
@@ -394,7 +647,6 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
                         <span className="notification-request-done">Friends ✓</span>
                       )}
                     </div>
-                  )}
                 </div>
               </article>
             )
