@@ -116,9 +116,11 @@ function ProfilePage() {
             location: currentProfile.location || '',
             status: currentProfile.status || '',
           })
-        setIsFriend(Boolean(viewerProfile?.friends?.some(
-          (friend) => String(typeof friend === 'object' ? friend._id : friend) === String(currentProfile?._id)
-        )))
+        setIsFriend(currentProfile.isCompany
+          ? Boolean(currentProfile.isFollowing)
+          : Boolean(viewerProfile?.friends?.some(
+            (friend) => String(typeof friend === 'object' ? friend._id : friend) === String(currentProfile?._id)
+          )))
         setPosts(allPosts.filter((post) => {
           const belongsToProfile = String(post.user?._id || post.user) === String(currentProfile?._id)
           return belongsToProfile && (isOwnProfile || post.visibility === 'public')
@@ -284,18 +286,31 @@ function ProfilePage() {
     setError('')
     setNotice('')
     try {
-      const response = await fetch(`${API_ORIGIN}/api/users/${profile._id}/friend`, {
+      const endpoint = profile.isCompany
+        ? `${API_ORIGIN}/api/companies/${profile._id}/follow`
+        : `${API_ORIGIN}/api/users/${profile._id}/friend`
+      const response = await fetch(endpoint, {
         method: isFriend ? 'DELETE' : 'PUT',
         headers: { Authorization: `Bearer ${token}` },
       })
       const result = await response.json()
-      if (!response.ok) throw new Error(result.message || 'Could not update friendship.')
-      setIsFriend(result.isFriend)
-      setProfile((current) => ({
-        ...current,
-        friendsCount: Math.max(0, (current?.friendsCount || 0) + (result.isFriend ? 1 : -1)),
-      }))
-      setNotice(result.isFriend ? 'Friend added.' : 'Friend removed.')
+      if (!response.ok) throw new Error(result.message || `Could not ${profile.isCompany ? 'update follow' : 'update friendship'}.`)
+      const isConnected = profile.isCompany ? result.isFollowing : result.isFriend
+      setIsFriend(isConnected)
+      if (profile.isCompany) {
+        setProfile((current) => ({
+          ...current,
+          followersCount: Math.max(0, (current?.followersCount || 0) + (isConnected ? 1 : -1)),
+        }))
+      } else {
+        setProfile((current) => ({
+          ...current,
+          friendsCount: Math.max(0, (current?.friendsCount || 0) + (isConnected ? 1 : -1)),
+        }))
+      }
+      setNotice(profile.isCompany
+        ? (isConnected ? 'You are now following this company.' : 'You unfollowed this company.')
+        : (isConnected ? 'Friend added.' : 'Friend removed.'))
     } catch (actionError) {
       setError(actionError.message)
     }
@@ -377,13 +392,21 @@ function ProfilePage() {
               ) : (
                 <button className={`profile-action-button profile-friend-button${isFriend ? ' is-friend' : ''}`} type="button" onClick={toggleFriend}>
                   <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M15.5 20.5v-1.6a4.4 4.4 0 0 0-4.4-4.4H6.9a4.4 4.4 0 0 0-4.4 4.4v1.6" />
-                    <circle cx="9" cy="7" r="4" />
-                    {isFriend && <path d="m15.5 9.5 2 2 4-4" />}
-                    {!isFriend && <path d="M17.5 14v5m-2.5-2.5h5" />}
+                    {profile?.isCompany ? (
+                      isFriend
+                        ? <path d="m5 12 4 4L19 6" />
+                        : <path d="M12 5v14M5 12h14" />
+                    ) : (
+                      <>
+                        <path d="M15.5 20.5v-1.6a4.4 4.4 0 0 0-4.4-4.4H6.9a4.4 4.4 0 0 0-4.4 4.4v1.6" />
+                        <circle cx="9" cy="7" r="4" />
+                        {isFriend && <path d="m15.5 9.5 2 2 4-4" />}
+                        {!isFriend && <path d="M17.5 14v5m-2.5-2.5h5" />}
+                      </>
+                    )}
                   </svg>
                   <span>{profile?.isCompany
-                    ? (isFriend ? 'Connected' : 'Connect')
+                    ? (isFriend ? 'Following' : 'Follow')
                     : (isFriend ? 'Your friend' : 'Add friend')}</span>
                 </button>
               )}
@@ -416,15 +439,25 @@ function ProfilePage() {
               )}
             </div>
           </div>
-          <div className="profile-stats" aria-label="Friend counts">
-            <span><strong>{profile?.friendsCount ?? profile?.friends?.length ?? 0}</strong> friends</span>
-            {!isOwnProfile && Number.isFinite(profile?.commonFriendsCount) && (
+          <div className="profile-stats" aria-label={profile?.isCompany ? 'Company follow counts' : 'Friend counts'}>
+            {profile?.isCompany ? (
               <>
+                <span><strong>{profile.followersCount ?? 0}</strong> followers</span>
                 <span className="profile-stats-separator" aria-hidden="true">—</span>
-                <span><strong>{profile.commonFriendsCount}</strong> common friends</span>
-                <svg className="profile-stats-chevron" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="m7 10 5 5 5-5" />
-                </svg>
+                <span><strong>{profile.followingCount ?? 0}</strong> following</span>
+              </>
+            ) : (
+              <>
+                <span><strong>{profile?.friendsCount ?? profile?.friends?.length ?? 0}</strong> friends</span>
+                {!isOwnProfile && Number.isFinite(profile?.commonFriendsCount) && (
+                  <>
+                    <span className="profile-stats-separator" aria-hidden="true">—</span>
+                    <span><strong>{profile.commonFriendsCount}</strong> common friends</span>
+                    <svg className="profile-stats-chevron" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m7 10 5 5 5-5" />
+                    </svg>
+                  </>
+                )}
               </>
             )}
           </div>

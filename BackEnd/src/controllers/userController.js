@@ -66,8 +66,11 @@ const getPublicProfile = async (req, res) => {
       return res.status(400).json({ message: 'Invalid user ID' });
     }
     const profile = await User.findById(req.params.id)
-      .select('username firstName lastName avatar sex bio from location status friends lastSeen isCompany');
+      .select('username firstName lastName avatar sex bio from location status friends followingCompanies lastSeen isCompany');
     if (!profile) return res.status(404).json({ message: 'User not found' });
+    const followersCount = profile.isCompany
+      ? await User.countDocuments({ followingCompanies: profile._id })
+      : null;
 
     res.json({
       _id: profile._id,
@@ -82,9 +85,19 @@ const getPublicProfile = async (req, res) => {
       status: profile.status,
       lastSeen: profile.lastSeen,
       isCompany: profile.isCompany,
+      isFollowing: Boolean(
+        profile.isCompany
+        && req.user
+        && String(req.user._id) !== String(profile._id)
+        && (req.user.followingCompanies || []).some(
+          (companyId) => String(companyId) === String(profile._id)
+        )
+      ),
       companyDescription: profile.isCompany ? profile.bio : '',
       friendsCount: profile.friends.length,
-      commonFriendsCount: req.user && String(req.user._id) !== String(profile._id)
+      followersCount,
+      followingCount: profile.isCompany ? profile.followingCompanies.length : null,
+      commonFriendsCount: !profile.isCompany && req.user && String(req.user._id) !== String(profile._id)
         ? profile.friends.filter((friendId) => (req.user.friends || []).some(
           (viewerFriendId) => String(viewerFriendId) === String(friendId)
         )).length

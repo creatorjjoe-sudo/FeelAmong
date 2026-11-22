@@ -5,6 +5,7 @@ import '../../styles/components/dashboard/posts.css'
 import { ICONS } from '../../assets/icons'
 import { AuthContext } from '../../api/context/AuthContext'
 import LoginRequiredModal from './LoginRequiredModal'
+import CompanySuggestions from './CompanySuggestions'
 import PostImageGrid from '../createpost/PostImageGrid'
 import ImagePreviewModal from './ImagePreviewModal'
 import { DEFAULT_TEXT_POST_BACKGROUND, getTextPostColor, isNoneTextPostBackground, isValidTextPostBackground } from '../../utils/textPostColors'
@@ -1065,7 +1066,7 @@ function Posts() {
         {isPostPreviewOpen && !isLoading && !visiblePosts.length && (
           <p className="post-preview-state">This post is unavailable.</p>
         )}
-        {visiblePosts.map((post) => {
+        {visiblePosts.map((post, index) => {
           const postLikes = Array.isArray(post.likes) ? post.likes : []
           const likedByCurrentUser = Boolean(user && postLikes.some((like) => getLikeUserId(like) === String(user._id)))
           const likeCount = typeof post.likesCount === 'number' ? post.likesCount : (Array.isArray(post.likes) ? post.likes.length : 0)
@@ -1098,9 +1099,9 @@ function Posts() {
             : []
 
           return (
+            <React.Fragment key={post._id}>
             <div
               id={`post-${post._id}`}
-              key={post._id}
               className={`post-wrapper${isPostPreviewOpen ? ' post-preview-item' : ''}`}
             >
               <div className="left-items">
@@ -1361,6 +1362,8 @@ function Posts() {
                 </div>
               </div>
             </div>
+            {index === 2 && !isPostPreviewOpen && <CompanySuggestions />}
+            </React.Fragment>
           )
         })}
       </div>

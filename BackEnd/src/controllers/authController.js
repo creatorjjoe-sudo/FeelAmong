@@ -274,6 +274,14 @@ const getLoginPreview = async (req, res) => {
 const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
+    if (user?.isCompany) {
+      const followersCount = await User.countDocuments({ followingCompanies: user._id });
+      return res.json({
+        ...user.toObject(),
+        followersCount,
+        followingCount: user.followingCompanies.length
+      });
+    }
     res.json(user);
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -32,6 +32,8 @@ const userSchema = new mongoose.Schema(
     companyOwner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     lastSeen: { type: Date, default: null },
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    followingCompanies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    dismissedCompanySuggestions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     isAnonymous: { type: Boolean, default: false },
     resetPasswordToken: { type: String, default: null },
     resetPasswordTokenExpiresAt: { type: Date, default: null },

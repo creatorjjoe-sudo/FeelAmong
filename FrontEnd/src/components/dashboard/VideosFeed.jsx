@@ -5,6 +5,7 @@ import { AuthContext } from '../../api/context/AuthContext'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 import LoginRequiredModal from './LoginRequiredModal'
+import CompanySuggestions from './CompanySuggestions'
 import { ICONS } from '../../assets/icons'
 import '../../styles/components/dashboard/posts.css'
 import '../../styles/components/dashboard/videosfeed.css'
@@ -587,7 +588,7 @@ function Videos() {
     if (!container) return undefined
 
     function scrollToIndex(index) {
-      const slide = container.querySelectorAll('.video-slide')[index]
+      const slide = container.querySelector(`.video-slide[data-slide-index="${index}"]`)
       if (slide) slide.scrollIntoView({ behavior: 'smooth' })
     }
 
@@ -1128,36 +1129,38 @@ function Videos() {
       {videos.length > 0 && (
         <div className="videos-scroll" ref={scrollRef}>
           {videos.map((video, index) => (
-            <VideoFeedItem
-              key={video._id}
-              video={video}
-              isActive={index === activeIndex}
-              index={index}
-              registryRef={videoRegistryRef}
-              isSaved={isVideoSaved(video)}
-              onSave={openSaveModal}
-              onLike={toggleLike}
-              onComment={openComments}
-              onShare={shareVideoLink}
-              onMore={openMoreMenu}
-              isLikedByMe={Boolean(user && (video.likes || []).some((id) => String(typeof id === 'object' ? id?._id : id) === String(user._id)))}
-              isMoreOpen={moreMenuVideoId === video._id}
-              moreAnchorsRef={moreAnchorsRef}
-              moreActions={{
-                onLike: (item) => { toggleLike(item) },
-                onComment: (item) => { setMoreMenuVideoId(null); openComments(item) },
-                onShare: (item) => { setMoreMenuVideoId(null); shareVideoLink(item) },
-                onSave: (item) => { openSaveModal(item) },
-                onReport: (item) => {
-                  setMoreMenuVideoId(null)
-                  setReportReason('')
-                  setReportDetails('')
-                  setReportVideoItemData(item)
-                  pushRoutedModal(navigate, location, 'video-feed-report')
-                },
-                onNotInterested: (item) => { setMoreMenuVideoId(null); markNotInterested(item) },
-              }}
-            />
+            <React.Fragment key={video._id}>
+              <VideoFeedItem
+                video={video}
+                isActive={index === activeIndex}
+                index={index}
+                registryRef={videoRegistryRef}
+                isSaved={isVideoSaved(video)}
+                onSave={openSaveModal}
+                onLike={toggleLike}
+                onComment={openComments}
+                onShare={shareVideoLink}
+                onMore={openMoreMenu}
+                isLikedByMe={Boolean(user && (video.likes || []).some((id) => String(typeof id === 'object' ? id?._id : id) === String(user._id)))}
+                isMoreOpen={moreMenuVideoId === video._id}
+                moreAnchorsRef={moreAnchorsRef}
+                moreActions={{
+                  onLike: (item) => { toggleLike(item) },
+                  onComment: (item) => { setMoreMenuVideoId(null); openComments(item) },
+                  onShare: (item) => { setMoreMenuVideoId(null); shareVideoLink(item) },
+                  onSave: (item) => { openSaveModal(item) },
+                  onReport: (item) => {
+                    setMoreMenuVideoId(null)
+                    setReportReason('')
+                    setReportDetails('')
+                    setReportVideoItemData(item)
+                    pushRoutedModal(navigate, location, 'video-feed-report')
+                  },
+                  onNotInterested: (item) => { setMoreMenuVideoId(null); markNotInterested(item) },
+                }}
+              />
+              {index === 2 && <CompanySuggestions videoSlide />}
+            </React.Fragment>
           ))}
         </div>
       )}
