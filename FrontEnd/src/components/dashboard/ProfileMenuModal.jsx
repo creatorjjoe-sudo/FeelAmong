@@ -22,6 +22,8 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
   const [selectedAccount, setSelectedAccount] = React.useState(null)
   const [isSwitchingAccount, setIsSwitchingAccount] = React.useState(false)
   const [switchingFromAccount, setSwitchingFromAccount] = React.useState(null)
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = React.useState(false)
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false)
 
   React.useEffect(() => {
     if (!open || !personalUser?.token) return undefined
@@ -95,6 +97,10 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
 
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
+        if (isLogoutConfirmOpen && !isLoggingOut) {
+          setIsLogoutConfirmOpen(false)
+          return
+        }
         if (isSwitchingAccount) return
         if (selectedAccount) setSelectedAccount(null)
         else onClose()
@@ -102,7 +108,7 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isSwitchingAccount, onClose, open, selectedAccount])
+  }, [isLoggingOut, isLogoutConfirmOpen, isSwitchingAccount, onClose, open, selectedAccount])
 
   if (!open) return null
 
@@ -111,6 +117,17 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
   }
 
   const handleAccountAction = async () => {
+    if (!isAnonymous) {
+      setIsLogoutConfirmOpen(true)
+      return
+    }
+    await logout()
+    navigate('/', { replace: true })
+  }
+
+  const confirmLogout = async () => {
+    if (isLoggingOut) return
+    setIsLoggingOut(true)
     await logout()
     navigate('/', { replace: true })
   }
@@ -353,6 +370,54 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
                 </div>
               </>
             )}
+          </section>
+        </div>
+      )}
+      {isLogoutConfirmOpen && (
+        <div
+          className="profile-menu-logout-confirm-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isLoggingOut) setIsLogoutConfirmOpen(false)
+          }}
+        >
+          <section
+            className="profile-menu-logout-confirm"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="profile-menu-logout-confirm-title"
+            aria-describedby="profile-menu-logout-confirm-message"
+            aria-busy={isLoggingOut}
+          >
+            <h2 id="profile-menu-logout-confirm-title">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 17l5-5-5-5" />
+                <path d="M15 12H3" />
+                <path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" />
+              </svg>
+              {isLoggingOut ? 'Logging out…' : 'Confirm'}
+            </h2>
+            <p id="profile-menu-logout-confirm-message">
+              <span className="profile-menu-logout-info" aria-hidden="true">i</span>
+              Are you sure you want to logout?
+            </p>
+            <div className="profile-menu-logout-confirm-actions">
+              <button
+                type="button"
+                className="profile-menu-logout-cancel"
+                onClick={() => setIsLogoutConfirmOpen(false)}
+                disabled={isLoggingOut}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="profile-menu-logout-submit"
+                onClick={confirmLogout}
+                disabled={isLoggingOut}
+              >
+                Logout
+              </button>
+            </div>
           </section>
         </div>
       )}
