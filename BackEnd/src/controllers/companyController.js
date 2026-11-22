@@ -1,17 +1,10 @@
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const User = require('../models/User');
-const fs = require('fs');
+const { deleteUploadedFiles } = require('../services/mediaStorage');
 
 const removeUploadedAvatar = async (file) => {
-  if (!file) return;
-  try {
-    await fs.promises.unlink(file.path);
-  } catch (error) {
-    if (error.code !== 'ENOENT') {
-      console.error('Could not remove an uploaded company picture:', error.message);
-    }
-  }
+  if (file) await deleteUploadedFiles([file]);
 };
 
 const listCompanies = async (req, res) => {
@@ -65,7 +58,7 @@ const createCompany = async (req, res) => {
       username,
       firstName: name,
       bio: description,
-      avatar: req.file ? `/uploads/avatars/${req.file.filename}` : '',
+      avatar: req.file ? req.file.cloudinaryAsset.url : '',
       isCompany: true,
       companyOwner: req.user._id,
       isAnonymous: false

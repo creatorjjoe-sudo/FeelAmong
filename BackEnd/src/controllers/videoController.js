@@ -1,6 +1,7 @@
 const Video = require('../models/Video');
 const VideoReport = require('../models/VideoReport');
 const User = require('../models/User');
+const { deleteUploadedFiles } = require('../services/mediaStorage');
 const VIDEO_VISIBILITIES = ['public', 'private', 'friends'];
 
 const REPORT_REASONS = ['Spam', 'Harassment', 'Inappropriate content', 'False information', 'Other'];
@@ -31,17 +32,22 @@ const getVideos = async (req, res) => {
 };
 
 const createVideo = async (req, res) => {
+  let video;
   try {
     if (!req.user.isCompany) {
+      await deleteUploadedFiles(req.file ? [req.file] : []);
       return res.status(403).json({ message: 'Switch to a company account to create videos' });
     }
 
     // Accept either a file upload (multer puts it in req.file) or a raw videoUrl.
-    const videoUrl = req.file ? `/uploads/videos/${req.file.filename}` : req.body.videoUrl;
+    const videoUrl = req.file ? req.file.cloudinaryAsset.url : req.body.videoUrl;
     const { caption, title, visibility } = req.body;
-    if (!videoUrl) return res.status(400).json({ message: 'Video URL required' });
+    if (!videoUrl) {
+      await deleteUploadedFiles(req.file ? [req.file] : []);
+      return res.status(400).json({ message: 'Video URL required' });
+    }
 
-    const video = await Video.create({
+    video = await Video.create({
       user: req.user._id,
       videoUrl,
       title: typeof title === 'string' ? title.trim() : '',
@@ -51,6 +57,9 @@ const createVideo = async (req, res) => {
 
     res.status(201).json(video);
   } catch (error) {
+    if (!video) {
+      await deleteUploadedFiles(req.file ? [req.file] : []);
+    }
     res.status(500).json({ message: error.message });
   }
 };

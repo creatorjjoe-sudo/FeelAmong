@@ -1,9 +1,7 @@
 const User = require('../models/User');
 const mongoose = require('mongoose');
 const UserReport = require('../models/UserReport');
-const fs = require('fs');
-const path = require('path');
-const { uploadDirectory } = require('../middleware/profileAvatarUpload');
+const { deleteUploadedFiles, deleteStoredMedia } = require('../services/mediaStorage');
 
 const REPORT_REASONS = ['Spam', 'Harassment', 'Inappropriate content', 'False information', 'Other'];
 
@@ -51,26 +49,14 @@ const getFriendSuggestions = async (req, res) => {
 };
 
 async function removeUploadedAvatar(file) {
-  if (!file) return;
-  try {
-    await fs.promises.unlink(file.path);
-  } catch (error) {
-    if (error.code !== 'ENOENT') {
-      console.error('Could not remove an uploaded profile picture:', error.message);
-    }
-  }
+  if (file) await deleteUploadedFiles([file]);
 }
 
 async function removeStoredAvatar(avatar) {
-  if (typeof avatar !== 'string' || !avatar.startsWith('/uploads/avatars/')) return;
-  const filePath = path.resolve(uploadDirectory, path.basename(avatar));
-  if (path.dirname(filePath) !== uploadDirectory) return;
   try {
-    await fs.promises.unlink(filePath);
+    await deleteStoredMedia(avatar, 'image');
   } catch (error) {
-    if (error.code !== 'ENOENT') {
-      console.error('Could not remove a replaced profile picture:', error.message);
-    }
+    console.error('Could not remove a replaced profile picture:', error.message);
   }
 }
 
@@ -135,7 +121,7 @@ const updateProfile = async (req, res) => {
       await removeUploadedAvatar(req.file);
       return res.status(400).json({ message: 'Location must be 120 characters or fewer' });
     }
-    if (req.file) updates.avatar = `/uploads/avatars/${req.file.filename}`;
+    if (req.file) updates.avatar = req.file.cloudinaryAsset.url;
 
     if (req.file) {
       const currentProfile = await User.findById(req.user._id).select('avatar');

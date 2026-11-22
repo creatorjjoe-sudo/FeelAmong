@@ -3,8 +3,7 @@ const User = require('../models/User');
 const PostReport = require('../models/PostReport');
 const SavedItem = require('../models/SavedItem');
 const { getIO } = require('../config/socket');
-const fs = require('fs');
-const path = require('path');
+const { deleteUploadedFiles, deleteStoredMedia } = require('../services/mediaStorage');
 const POST_VISIBILITIES = ['public', 'private', 'friends'];
 const POST_TYPES = ['text', 'image'];
 const REPORT_REASONS = ['Spam', 'Harassment', 'Inappropriate content', 'False information', 'Other'];
@@ -23,26 +22,16 @@ const TEXT_POST_BACKGROUNDS = new Set([
 ]);
 
 async function removeUploadedFiles(files) {
-  const cleanupResults = await Promise.allSettled(
-    files.map((file) => fs.promises.unlink(file.path))
-  );
-
-  cleanupResults.forEach((result) => {
-    if (result.status === 'rejected' && result.reason.code !== 'ENOENT') {
-      console.error('Could not remove an uploaded image:', result.reason.message);
-    }
-  });
+  await deleteUploadedFiles(files);
 }
 
 async function removePostImagePaths(imagePaths) {
-  const uploadDirectory = path.resolve(__dirname, '../../uploads/posts');
-  const removals = imagePaths
-    .filter((imagePath) => typeof imagePath === 'string' && imagePath.startsWith('/uploads/posts/'))
-    .map((imagePath) => path.resolve(uploadDirectory, path.basename(imagePath)));
-  const cleanupResults = await Promise.allSettled(removals.map((filePath) => fs.promises.unlink(filePath)));
+  const cleanupResults = await Promise.allSettled(
+    imagePaths.map((imagePath) => deleteStoredMedia(imagePath, 'image'))
+  );
 
   cleanupResults.forEach((result) => {
-    if (result.status === 'rejected' && result.reason.code !== 'ENOENT') {
+    if (result.status === 'rejected') {
       console.error('Could not remove a post image:', result.reason.message);
     }
   });
@@ -85,7 +74,7 @@ const createPost = async (req, res) => {
       return res.status(400).json({ message: 'Select a valid text post background' });
     }
     const imagePaths = uploadedFiles.length > 0
-      ? uploadedFiles.map((file) => `/uploads/posts/${file.filename}`)
+      ? uploadedFiles.map((file) => file.cloudinaryAsset.url)
       : (Array.isArray(images) ? images : []);
 
     if (postType === 'image' && imagePaths.length === 0) {
@@ -184,7 +173,7 @@ const updatePost = async (req, res) => {
       await removeUploadedFiles(uploadedFiles);
       return res.status(400).json({ message: 'Select a valid text post background' });
     }
-    const nextImages = [...retainedImages, ...uploadedFiles.map((file) => `/uploads/posts/${file.filename}`)];
+    const nextImages = [...retainedImages, ...uploadedFiles.map((file) => file.cloudinaryAsset.url)];
     if (postType === 'image' && nextImages.length === 0) {
       await removeUploadedFiles(uploadedFiles);
       return res.status(400).json({ message: 'At least one image is required for image posts' });
