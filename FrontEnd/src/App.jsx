@@ -26,6 +26,33 @@ function AppRoutes() {
   const isAuthenticatedUser = Boolean(user) && !user.isAnonymous
 
   useEffect(() => {
+    let pageTitle = 'Login'
+    const path = location.pathname
+    const params = new URLSearchParams(location.search)
+
+    if (path === '/' || path === '') pageTitle = 'Login'
+    else if (path === '/reset-password') pageTitle = 'Reset password'
+    else if (path === '/post-create-one') {
+      pageTitle = params.get('edit') ? 'Edit post' : 'Create post'
+    } else if (path === '/video-create-one') pageTitle = 'Create video'
+    else if (path.startsWith('/for-you')) {
+      if (path === '/for-you' || path === '/for-you/') pageTitle = 'Dashboard'
+      else if (path.includes('/messages')) pageTitle = 'Messages'
+      else if (path.includes('/videos')) pageTitle = 'Videos'
+      else if (path.includes('/notifications')) pageTitle = 'Updates'
+      else if (path.includes('/friends')) pageTitle = 'Friends'
+      else if (path.includes('/profile')) pageTitle = 'Profile'
+      else if (path.includes('/company-create')) pageTitle = 'Create company'
+      else if (path.includes('/saved')) pageTitle = 'Saved'
+      else if (path.includes('/save/create-container')) pageTitle = 'Create container'
+      else if (path.includes('/save')) pageTitle = 'Save post'
+      else if (path.includes('/settings')) pageTitle = 'Settings'
+    }
+
+    document.title = `Feelamong | ${pageTitle}`
+  }, [location.pathname, location.search])
+
+  useEffect(() => {
     const theme = isDarkMode ? 'dark' : 'light'
     document.documentElement.dataset.theme = theme
     localStorage.setItem('feelamong-theme', theme)

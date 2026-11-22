@@ -6,7 +6,6 @@ import '../../styles/components/createpost/createpostheader.css'
 function CreatePostHeader({ title = 'Create post' }) {
  return (
   <>
-   <title>Create post</title>
    <div className='create-post-header-container'>
     <div className="right-icons">
      <Link to={-1}><img src={ICONS.backArrowLong} alt="back" title='back'/></Link>

@@ -152,7 +152,6 @@ function ResetPasswordPage() {
 
   return (
     <div className="reset-password-container">
-      <title>Feelamong | Reset password</title>
       <div className="reset-card">
         <div className="reset-top-group">
           <p onClick={goBack} className="reset-go-back">Go back</p>

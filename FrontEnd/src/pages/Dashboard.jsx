@@ -227,7 +227,6 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
 
   return (
     <div className={`dashboard-container${isVideosView ? ' videos-active' : ''}${isUpdatesPage ? ' is-updates-page' : ''}${isProfilePage ? ' is-profile-page' : ''}${isChromeLoading && !isDashboardModalPage ? ' is-loading' : ''}`}>
-      <title>Feelamong | Dashboard</title>
       {shouldRenderPosts && (
         <div
           className={`dashboard-posts-layer${isDashboardModalPage ? ' is-modal-underlay' : ''}`}

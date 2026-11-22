@@ -31,13 +31,6 @@ function SaveToContainerPage() {
   }, [navigate])
 
   React.useEffect(() => {
-    document.title = 'Save Post • FeelAmong'
-    return () => {
-      document.title = ''
-    }
-  }, [])
-
-  React.useEffect(() => {
     let isActive = true
 
     async function loadFolders() {

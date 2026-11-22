@@ -52,6 +52,12 @@ function WelcomePage() {
     return () => mediaQuery.removeEventListener('change', handleChange)
   }, [])
 
+  React.useEffect(() => {
+    document.title = view === 'login'
+      ? 'Feelamong | Login'
+      : 'Feelamong | Signup'
+  }, [view])
+
   function switchView (value) {
     setView(value)
     if (value !== 'login') {
@@ -92,7 +98,6 @@ function WelcomePage() {
 
   return (
     <div className={`welcome-container${showDeviceAccounts ? ' is-mobile-device-accounts' : ''}`}>
-      <title>{view === 'login' ? 'Feelamong | Login' : 'Feelamong | Signup'}</title>
       <div className="wrapper left-container">
         <h1>feelamong</h1>
         <p>Makes connection with both emmediate or new people easier</p>
