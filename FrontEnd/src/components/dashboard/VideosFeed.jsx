@@ -48,7 +48,7 @@ function formatThreadTime(createdAt) {
   return `${value}${shortUnit}`
 }
 
-function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, onLike, onComment, onShare, onMore, isLikedByMe, likedUsers, isMoreOpen, moreActions, moreAnchorsRef, isLoading = false }) {
+function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, onLike, onComment, onShare, onMore, onCompanyFollow, currentUserId, isCompanyFollowBusy, isLikedByMe, likedUsers, isMoreOpen, moreActions, moreAnchorsRef, isLoading = false }) {
   const videoRef = React.useRef(null)
   const rowRef = React.useRef(null)
   const [isPaused, setIsPaused] = React.useState(false)
@@ -240,7 +240,24 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
                   </>
                 ) : (
                   <>
-                    <strong>{video.user?.username || 'Unknown creator'}</strong>
+                    <div className="video-overlay-creator-name-row">
+                      <strong>{video.user?.username || 'Unknown creator'}</strong>
+                      {video.user?.isCompany
+                        && String(video.user?._id) !== String(currentUserId)
+                        && (
+                          <button
+                            className="video-creator-follow-button"
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              onCompanyFollow(video.user)
+                            }}
+                            disabled={isCompanyFollowBusy}
+                          >
+                            {isCompanyFollowBusy ? 'Please wait…' : video.user.isFollowing ? 'Following' : 'Follow'}
+                          </button>
+                        )}
+                    </div>
                     {video.sharedVideo && <span className="video-shared-byline">shared a video</span>}
                     {(video.shareCaption || video.caption) && <p>{video.shareCaption || video.caption}</p>}
                     {video.sharedVideo && (
@@ -285,7 +302,7 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
               aria-label={isLikedByMe ? 'Unlike' : 'Like'}
             >
               <span className="icon-disc"><img src={isLikedByMe ? ICONS.liked : ICONS.like} alt="" /></span>
-              <span>{likeCount}</span>
+              <span className="video-action-count">{likeCount}</span>
             </button>
 
             <button
@@ -298,7 +315,7 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
               aria-label="Comments"
             >
               <span className="icon-disc"><img src={ICONS.comment} alt="" /></span>
-              <span>{commentCount}</span>
+              <span className="video-action-count">{commentCount}</span>
             </button>
 
             <button
@@ -311,7 +328,7 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
               aria-label="Share"
             >
               <span className="icon-disc"><img src={ICONS.share} alt="" /></span>
-              <span>{shareCount}</span>
+              <span className="video-action-count">{shareCount}</span>
             </button>
 
             <button
@@ -323,7 +340,7 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
               }}
             >
               <span className="icon-disc"><img src={isSaved ? ICONS.saved : ICONS.save} alt="" /></span>
-              <span>{video.saves?.length || 0}</span>
+              <span className="video-action-count">{video.saves?.length || 0}</span>
             </button>
 
             <div
@@ -431,6 +448,7 @@ function Videos() {
   const [isCompanyLoading, setIsCompanyLoading] = React.useState(false)
   const [isSwitchingAccount, setIsSwitchingAccount] = React.useState(false)
   const [companyShareError, setCompanyShareError] = React.useState('')
+  const [companyFollowBusyId, setCompanyFollowBusyId] = React.useState('')
   const scrollRef = React.useRef(null)
   const saveModalOpen = location.state?.routedModal === 'save-folder'
   // Every mounted <video> element registers itself here so the parent can
@@ -508,7 +526,9 @@ function Videos() {
 
     async function loadVideos() {
       try {
-        const response = await fetch(`${API_ORIGIN}/api/videos`)
+        const response = await fetch(`${API_ORIGIN}/api/videos`, {
+          headers: user && token ? { Authorization: `Bearer ${token}` } : undefined,
+        })
         const result = await response.json()
         if (!response.ok) throw new Error(result.message || 'Could not load videos.')
         if (isActive) setVideos(Array.isArray(result) ? result : [])
@@ -620,6 +640,35 @@ function Videos() {
         isSaved: isVideoSaved(video),
       },
     })
+  }
+
+  async function toggleCompanyFollow(company) {
+    if (!user || user.isAnonymous || !token) {
+      pushRoutedModal(navigate, location, 'video-feed-login-required')
+      return
+    }
+    if (companyFollowBusyId) return
+
+    setCompanyFollowBusyId(String(company._id))
+    try {
+      const response = await fetch(`${API_ORIGIN}/api/companies/${company._id}/follow`, {
+        method: company.isFollowing ? 'DELETE' : 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.message || 'Could not update company follow.')
+
+      setVideos((current) => current.map((video) => (
+        String(video.user?._id) === String(company._id)
+          ? { ...video, user: { ...video.user, isFollowing: result.isFollowing } }
+          : video
+      )))
+      showNotice(result.isFollowing ? `Following ${company.username}.` : `Unfollowed ${company.username}.`)
+    } catch (followError) {
+      showNotice(followError.message)
+    } finally {
+      setCompanyFollowBusyId('')
+    }
   }
 
   async function toggleLike(video) {
@@ -1136,6 +1185,9 @@ function Videos() {
                 index={index}
                 registryRef={videoRegistryRef}
                 isSaved={isVideoSaved(video)}
+                onCompanyFollow={toggleCompanyFollow}
+                currentUserId={user?._id}
+                isCompanyFollowBusy={companyFollowBusyId === String(video.user?._id)}
                 onSave={openSaveModal}
                 onLike={toggleLike}
                 onComment={openComments}

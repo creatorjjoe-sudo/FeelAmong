@@ -9,7 +9,7 @@ const REPORT_REASONS = ['Spam', 'Harassment', 'Inappropriate content', 'False in
 const getVideos = async (req, res) => {
   try {
     const videos = await Video.find()
-      .populate('user', 'username avatar sex')
+      .populate('user', 'username avatar sex isCompany')
       .populate('comments.likes', 'username avatar sex')
       .populate('comments.user', 'username avatar sex')
       .populate('comments.replies.user', 'username avatar sex')
@@ -18,14 +18,26 @@ const getVideos = async (req, res) => {
       .populate('comments.replies.replies.likes', 'username avatar sex')
       .populate({
         path: 'sharedVideo',
-        populate: { path: 'user', select: 'username avatar sex' }
+        populate: { path: 'user', select: 'username avatar sex isCompany' }
       })
       .sort({ createdAt: -1 });
     // Hide videos the caller marked as not interested.
     const visibleVideos = req.user && req.user._id
       ? videos.filter((video) => !video.notInterestedBy?.some((id) => String(id) === String(req.user._id)))
       : videos;
-    res.json(visibleVideos);
+    const followingCompanyIds = new Set(
+      (req.user?.followingCompanies || []).map((companyId) => String(companyId))
+    );
+    const responseVideos = visibleVideos.map((video) => {
+      const videoData = video.toObject();
+      [videoData.user, videoData.sharedVideo?.user].forEach((creator) => {
+        if (creator?.isCompany) {
+          creator.isFollowing = followingCompanyIds.has(String(creator._id));
+        }
+      });
+      return videoData;
+    });
+    res.json(responseVideos);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -12,7 +12,7 @@ const {
   reportVideo,
   toggleNotInterested
 } = require('../controllers/videoController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, optionalProtect } = require('../middleware/authMiddleware');
 const { uploadVideo } = require('../middleware/videoUpload');
 
 const requireCompanyAccount = (req, res, next) => {
@@ -22,7 +22,7 @@ const requireCompanyAccount = (req, res, next) => {
   next();
 };
 
-router.route('/').get(getVideos).post(protect, requireCompanyAccount, uploadVideo, createVideo);
+router.route('/').get(optionalProtect, getVideos).post(protect, requireCompanyAccount, uploadVideo, createVideo);
 router.put('/:id/like', protect, toggleVideoLike);
 router.post('/:id/comments', protect, addVideoComment);
 router.post('/:id/comments/:commentId/replies', protect, addVideoCommentReply);
