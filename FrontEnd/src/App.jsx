@@ -100,6 +100,7 @@ function CreatePostRoute() {
 function CreateVideoRoute() {
   const { user, sessionExpired } = useContext(AuthContext)
   if (!user || user.isAnonymous || sessionExpired) return <Navigate to="/" replace />
+  if (!user.isCompany) return <Navigate to="/for-you" replace />
   return <CreateVideo />
 }
 

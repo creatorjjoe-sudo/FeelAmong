@@ -20,6 +20,11 @@
   box-shadow: 0 14px 38px rgba(20, 31, 24, 0.2);
 }
 
+.profile-menu-backdrop.is-account-action-confirming .profile-menu-panel {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .profile-menu-heading {
   display: flex;
   align-items: center;
@@ -382,7 +387,12 @@
 }
 
 .profile-menu-logout-submit {
-  color: #00a956;
+  color: #00ba00;
+}
+
+.profile-menu-logout-submit:hover,
+.profile-menu-logout-submit:focus-visible {
+  color: #009900;
 }
 
 .profile-menu-logout-confirm-actions button:disabled {

@@ -99,10 +99,14 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
       if (event.key === 'Escape') {
         if (isLogoutConfirmOpen && !isLoggingOut) {
           setIsLogoutConfirmOpen(false)
+          onClose()
           return
         }
         if (isSwitchingAccount) return
-        if (selectedAccount) setSelectedAccount(null)
+        if (selectedAccount) {
+          setSelectedAccount(null)
+          onClose()
+        }
         else onClose()
       }
     }
@@ -130,6 +134,18 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
     setIsLoggingOut(true)
     await logout()
     navigate('/', { replace: true })
+  }
+
+  const cancelLogout = () => {
+    if (isLoggingOut) return
+    setIsLogoutConfirmOpen(false)
+    onClose()
+  }
+
+  const cancelIdentitySwitch = () => {
+    if (isSwitchingAccount) return
+    setSelectedAccount(null)
+    onClose()
   }
 
   async function handleIdentitySwitch(companyId) {
@@ -179,7 +195,7 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
 
   return createPortal(
     <div
-      className="profile-menu-backdrop"
+      className={`profile-menu-backdrop${selectedAccount || isLogoutConfirmOpen ? ' is-account-action-confirming' : ''}`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose()
       }}
@@ -321,7 +337,7 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
         <div
           className="profile-menu-switch-confirm-backdrop"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !isSwitchingAccount) setSelectedAccount(null)
+            if (event.target === event.currentTarget) cancelIdentitySwitch()
           }}
         >
           <section
@@ -356,7 +372,7 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
                   <button
                     type="button"
                     className="profile-menu-switch-cancel"
-                    onClick={() => setSelectedAccount(null)}
+                    onClick={cancelIdentitySwitch}
                   >
                     Cancel
                   </button>
@@ -377,7 +393,7 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
         <div
           className="profile-menu-logout-confirm-backdrop"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !isLoggingOut) setIsLogoutConfirmOpen(false)
+            if (event.target === event.currentTarget) cancelLogout()
           }}
         >
           <section
@@ -404,7 +420,7 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
               <button
                 type="button"
                 className="profile-menu-logout-cancel"
-                onClick={() => setIsLogoutConfirmOpen(false)}
+                onClick={cancelLogout}
                 disabled={isLoggingOut}
               >
                 Cancel

@@ -1100,7 +1100,7 @@ function Videos() {
   return (
     <main className="videos-page">
       <h1 className="sr-only">Videos</h1>
-      {user && !user.isAnonymous && (
+      {user?.isCompany && (
         <button
           className="videos-create-button"
           type="button"
