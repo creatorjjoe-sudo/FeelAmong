@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const User = require('../models/User');
-const { deleteUploadedFiles } = require('../services/mediaStorage');
+const { deleteUploadedFiles, deleteStoredMedia } = require('../services/mediaStorage');
 
 const removeUploadedAvatar = async (file) => {
   if (file) await deleteUploadedFiles([file]);
@@ -107,4 +107,74 @@ const switchToCompany = async (req, res) => {
   }
 };
 
-module.exports = { listCompanies, createCompany, switchToCompany };
+const updateCompany = async (req, res) => {
+  let previousAvatar = '';
+  try {
+    if (req.user.isAnonymous) {
+      await removeUploadedAvatar(req.file);
+      return res.status(403).json({ message: 'Sign in to your personal account to edit a company' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      await removeUploadedAvatar(req.file);
+      return res.status(400).json({ message: 'Invalid company account' });
+    }
+
+    const company = await User.findOne({
+      _id: req.params.id,
+      companyOwner: req.user._id,
+      isCompany: true
+    });
+    if (!company) {
+      await removeUploadedAvatar(req.file);
+      return res.status(404).json({ message: 'Company account not found' });
+    }
+
+    const name = typeof req.body.name === 'string' ? req.body.name.trim().replace(/\s+/g, ' ') : '';
+    const description = typeof req.body.description === 'string' ? req.body.description.trim() : '';
+    if (name.length < 2 || name.length > 80) {
+      await removeUploadedAvatar(req.file);
+      return res.status(400).json({ message: 'Company name must be between 2 and 80 characters' });
+    }
+    if (description.length > 500) {
+      await removeUploadedAvatar(req.file);
+      return res.status(400).json({ message: 'Company description must be 500 characters or fewer' });
+    }
+
+    if (name !== company.firstName) {
+      let username = name;
+      let suffix = 2;
+      while (await User.exists({ _id: { $ne: company._id }, username })) {
+        username = `${name} ${suffix}`;
+        suffix += 1;
+      }
+      company.username = username;
+    }
+    company.firstName = name;
+    company.bio = description;
+
+    if (req.file) {
+      previousAvatar = company.avatar;
+      company.avatar = req.file.cloudinaryAsset.url;
+    }
+    await company.save();
+
+    if (previousAvatar && previousAvatar !== company.avatar) {
+      await deleteStoredMedia(previousAvatar, 'image');
+    }
+
+    res.json({
+      _id: company._id,
+      username: company.username,
+      firstName: company.firstName,
+      lastName: '',
+      avatar: company.avatar,
+      bio: company.bio,
+      isCompany: true
+    });
+  } catch (error) {
+    await removeUploadedAvatar(req.file);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { listCompanies, createCompany, switchToCompany, updateCompany };

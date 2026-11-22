@@ -18,7 +18,7 @@ function resolveImageUrl(image) {
 }
 
 function ProfilePage() {
-  const { user, login, logout } = useContext(AuthContext)
+  const { user, personalUser, login, logout } = useContext(AuthContext)
   const { userId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
@@ -103,14 +103,19 @@ function ProfilePage() {
 
         if (!isActive) return
         setProfile(currentProfile)
-        setEditDraft({
-          firstName: currentProfile.firstName || '',
-          lastName: currentProfile.lastName || '',
-          bio: currentProfile.bio || '',
-          from: currentProfile.from || '',
-          location: currentProfile.location || '',
-          status: currentProfile.status || '',
-        })
+        setEditDraft(currentProfile.isCompany
+          ? {
+            name: currentProfile.firstName || currentProfile.username || '',
+            description: currentProfile.bio || '',
+          }
+          : {
+            firstName: currentProfile.firstName || '',
+            lastName: currentProfile.lastName || '',
+            bio: currentProfile.bio || '',
+            from: currentProfile.from || '',
+            location: currentProfile.location || '',
+            status: currentProfile.status || '',
+          })
         setIsFriend(Boolean(viewerProfile?.friends?.some(
           (friend) => String(typeof friend === 'object' ? friend._id : friend) === String(currentProfile?._id)
         )))
@@ -198,6 +203,10 @@ function ProfilePage() {
   async function saveProfile(event) {
     event.preventDefault()
     if (!requireLogin()) return
+    if (profile?.isCompany && !personalUser?.token) {
+      setEditError('Switch to your personal account to edit this company.')
+      return
+    }
     setIsSaving(true)
     setError('')
     setEditError('')
@@ -208,10 +217,13 @@ function ProfilePage() {
       Object.entries(editDraft).forEach(([field, value]) => formData.append(field, value || ''))
       if (avatarSelection) formData.append('avatar', avatarSelection.file)
 
-      const response = await fetch(`${API_ORIGIN}/api/users/${user._id}`, {
+      const endpoint = profile?.isCompany
+        ? `${API_ORIGIN}/api/companies/${profile._id}`
+        : `${API_ORIGIN}/api/users/${user._id}`
+      const response = await fetch(endpoint, {
         method: 'PATCH',
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${profile?.isCompany ? personalUser?.token : token}`,
         },
         body: formData,
       })
@@ -219,7 +231,9 @@ function ProfilePage() {
       if (!response.ok) throw new Error(result.message || 'Could not update your profile.')
 
       setProfile((current) => ({ ...current, ...result }))
-      login({ ...user, ...result, token }, { recordDeviceLogin: false })
+      if (!profile?.isCompany) {
+        login({ ...user, ...result, token }, { recordDeviceLogin: false })
+      }
       closeRoutedModal(navigate, location)
       setAvatarSelection(null)
       setNotice('Profile updated.')
@@ -233,6 +247,12 @@ function ProfilePage() {
   function openEditProfile() {
     setAvatarSelection(null)
     setEditError('')
+    if (profile?.isCompany) {
+      setEditDraft({
+        name: profile.firstName || profile.username || '',
+        description: profile.bio || '',
+      })
+    }
     pushRoutedModal(navigate, location, 'profile-edit')
   }
 
@@ -334,11 +354,21 @@ function ProfilePage() {
           <div className="profile-identity">
             <div className="profile-heading">
               <h1 id="profile-name">{profileName}</h1>
+              {profile?.isCompany && (
+                <span className="profile-company-badge">Company account</span>
+              )}
+              {profile?.isCompany && profile?.bio && (
+                <p className="profile-bio">{profile.bio}</p>
+              )}
             </div>
             <div className="profile-actions">
               {isOwnProfile ? (
                 profile?.isCompany
-                  ? <span className="profile-account-type">Company account</span>
+                  ? (
+                    <button className="profile-action-button profile-edit-button" type="button" onClick={openEditProfile}>
+                      Edit company
+                    </button>
+                  )
                   : (
                     <button className="profile-action-button profile-edit-button" type="button" onClick={openEditProfile}>
                       Edit profile
@@ -352,7 +382,9 @@ function ProfilePage() {
                     {isFriend && <path d="m15.5 9.5 2 2 4-4" />}
                     {!isFriend && <path d="M17.5 14v5m-2.5-2.5h5" />}
                   </svg>
-                  <span>{isFriend ? 'Your friend' : 'Add friend'}</span>
+                  <span>{profile?.isCompany
+                    ? (isFriend ? 'Connected' : 'Connect')
+                    : (isFriend ? 'Your friend' : 'Add friend')}</span>
                 </button>
               )}
               {!isOwnProfile && (
@@ -482,7 +514,7 @@ function ProfilePage() {
             if (event.target === event.currentTarget) closeEditProfile()
           }}>
             <section className="profile-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-profile-title">
-              <h2 id="edit-profile-title">Edit profile</h2>
+              <h2 id="edit-profile-title">{profile?.isCompany ? 'Edit company profile' : 'Edit profile'}</h2>
               <form onSubmit={saveProfile}>
                 <div className="profile-avatar-editor">
                   <img
@@ -508,30 +540,45 @@ function ProfilePage() {
                   </div>
                 </div>
                 {editError && <p className="profile-edit-error" role="alert">{editError}</p>}
-                <label>
-                  First name
-                  <input value={editDraft.firstName || ''} onChange={(event) => setEditDraft({ ...editDraft, firstName: event.target.value })} required maxLength={80} />
-                </label>
-                <label>
-                  Last name
-                  <input value={editDraft.lastName || ''} onChange={(event) => setEditDraft({ ...editDraft, lastName: event.target.value })} required maxLength={80} />
-                </label>
-                <label>
-                  Bio
-                  <textarea value={editDraft.bio || ''} onChange={(event) => setEditDraft({ ...editDraft, bio: event.target.value })} maxLength={500} rows={3} />
-                </label>
-                <label>
-                  From
-                  <input value={editDraft.from || ''} onChange={(event) => setEditDraft({ ...editDraft, from: event.target.value })} maxLength={120} />
-                </label>
-                <label>
-                  Lives in
-                  <input value={editDraft.location || ''} onChange={(event) => setEditDraft({ ...editDraft, location: event.target.value })} maxLength={120} />
-                </label>
-                <label>
-                  Status
-                  <input value={editDraft.status || ''} onChange={(event) => setEditDraft({ ...editDraft, status: event.target.value })} maxLength={80} />
-                </label>
+                {profile?.isCompany ? (
+                  <>
+                    <label>
+                      Company name
+                      <input value={editDraft.name || ''} onChange={(event) => setEditDraft({ ...editDraft, name: event.target.value })} required minLength={2} maxLength={80} />
+                    </label>
+                    <label>
+                      Description
+                      <textarea value={editDraft.description || ''} onChange={(event) => setEditDraft({ ...editDraft, description: event.target.value })} maxLength={500} rows={4} />
+                    </label>
+                  </>
+                ) : (
+                  <>
+                    <label>
+                      First name
+                      <input value={editDraft.firstName || ''} onChange={(event) => setEditDraft({ ...editDraft, firstName: event.target.value })} required maxLength={80} />
+                    </label>
+                    <label>
+                      Last name
+                      <input value={editDraft.lastName || ''} onChange={(event) => setEditDraft({ ...editDraft, lastName: event.target.value })} required maxLength={80} />
+                    </label>
+                    <label>
+                      Bio
+                      <textarea value={editDraft.bio || ''} onChange={(event) => setEditDraft({ ...editDraft, bio: event.target.value })} maxLength={500} rows={3} />
+                    </label>
+                    <label>
+                      From
+                      <input value={editDraft.from || ''} onChange={(event) => setEditDraft({ ...editDraft, from: event.target.value })} maxLength={120} />
+                    </label>
+                    <label>
+                      Lives in
+                      <input value={editDraft.location || ''} onChange={(event) => setEditDraft({ ...editDraft, location: event.target.value })} maxLength={120} />
+                    </label>
+                    <label>
+                      Status
+                      <input value={editDraft.status || ''} onChange={(event) => setEditDraft({ ...editDraft, status: event.target.value })} maxLength={80} />
+                    </label>
+                  </>
+                )}
                 <div className="profile-dialog-actions">
                   <button type="button" onClick={closeEditProfile} disabled={isSaving}>Cancel</button>
                   <button type="submit" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save changes'}</button>
@@ -574,7 +621,11 @@ function ProfilePage() {
 
         <section className="profile-posts" aria-labelledby="profile-posts-title">
           <div className="profile-posts-heading">
-            <h2 id="profile-posts-title">{isOwnProfile ? 'Your posts' : `${profile?.firstName || profile?.username || 'User'}’s posts`}</h2>
+            <h2 id="profile-posts-title">
+              {isOwnProfile
+                ? (profile?.isCompany ? 'Company posts' : 'Your posts')
+                : `${profile?.firstName || profile?.username || 'User'}’s posts`}
+            </h2>
             <span>{posts.length}</span>
           </div>
 
