@@ -300,13 +300,21 @@
   max-width: 100%;
 }
 
-.video-overlay-creator>img {
+.video-overlay-creator>img,
+.video-overlay-creator-avatar-link img {
   flex: 0 0 44px;
   width: 44px;
   height: 44px;
   border: 2px solid rgba(255, 255, 255, 0.85);
   border-radius: 50%;
   object-fit: cover;
+}
+
+.video-overlay-creator-avatar-link {
+  display: block;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
 }
 
 .video-overlay-creator-copy {
@@ -332,6 +340,23 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.video-overlay-creator-name-link {
+  min-width: 0;
+  overflow: hidden;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+}
+
+.video-overlay-creator-name-link:hover,
+.video-overlay-creator-name-link:focus-visible {
+  text-decoration: underline;
 }
 
 .video-creator-follow-button {

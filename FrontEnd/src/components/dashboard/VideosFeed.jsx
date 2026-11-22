@@ -230,7 +230,18 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
             <header className="video-overlay-creator">
               {isMediaLoading
                 ? <span className="video-loading-shape video-loading-avatar" />
-                : <img src={getProfileAvatar(video.user)} alt="" />}
+                : video.user?.isCompany && video.user?._id
+                  ? (
+                    <Link
+                      className="video-overlay-creator-avatar-link"
+                      to={`/for-you/profile/${video.user._id}`}
+                      aria-label={`View ${video.user.username || 'company'} profile`}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <img src={getProfileAvatar(video.user)} alt="" />
+                    </Link>
+                  )
+                  : <img src={getProfileAvatar(video.user)} alt="" />}
               <div className="video-overlay-creator-copy">
                 {isMediaLoading ? (
                   <>
@@ -241,7 +252,17 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
                 ) : (
                   <>
                     <div className="video-overlay-creator-name-row">
-                      <strong>{video.user?.username || 'Unknown creator'}</strong>
+                      {video.user?.isCompany && video.user?._id ? (
+                        <Link
+                          className="video-overlay-creator-name-link"
+                          to={`/for-you/profile/${video.user._id}`}
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          {video.user.username || 'Unknown creator'}
+                        </Link>
+                      ) : (
+                        <strong>{video.user?.username || 'Unknown creator'}</strong>
+                      )}
                       {video.user?.isCompany
                         && String(video.user?._id) !== String(currentUserId)
                         && (
