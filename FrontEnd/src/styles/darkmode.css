@@ -89,6 +89,15 @@ html[data-theme="dark"] .dashboard-container {
  color: #e5ebe6;
 }
 
+html[data-theme="dark"] .post-wrapper {
+ background: #121614;
+ border-color: #3a443d;
+}
+
+html[data-theme="dark"] .post-wrapper .engage-count {
+ color: #fff;
+}
+
 html[data-theme="dark"] .header-wrapper,
 html[data-theme="dark"] .footer-wrapper,
 html[data-theme="dark"] .profile-menu-panel,

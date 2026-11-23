@@ -66,6 +66,7 @@
    gap: 16px;
    border: 1px solid #e0e9e0;
    border-radius: 20px;
+   background: #fff;
    padding: 16px;
 }
 
@@ -217,7 +218,7 @@
 @media screen and (max-width: 799px) {
    .posts-wrapper:not(.post-preview-overlay) {
       position: fixed;
-      inset: var(--mobile-header-height, 55px) 0 var(--mobile-footer-height, 70px);
+      inset: calc(var(--mobile-header-height, 55px) + 10px) 0 var(--mobile-footer-height, 50px);
       width: auto;
    }
 

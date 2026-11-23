@@ -1,8 +1,9 @@
 .dashboard-container {
  display: flex; 
  height: 100%;
+ background: #f4f5f4;
  --mobile-header-height: 55px;
- --mobile-footer-height: 70px;
+ --mobile-footer-height: 50px;
 }
 
 /* Dashboard chrome loading shimmer.
