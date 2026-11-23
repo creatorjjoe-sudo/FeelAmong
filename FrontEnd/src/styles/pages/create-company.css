@@ -2,7 +2,7 @@
   box-sizing: border-box;
   width: 100%;
   min-height: 100vh;
-  padding: 36px 32px 48px 230px;
+  padding: 36px 32px 48px;
   overflow-y: auto;
   background: #f6f8f6;
   color: #202720;
@@ -147,14 +147,13 @@
 @media (max-width: 1000px) {
   .create-company-page {
     padding-right: 22px;
-    padding-left: 185px;
   }
 }
 
 @media (max-width: 800px) {
   .create-company-page {
     min-height: 100dvh;
-    padding: 82px 14px 90px;
+    padding: 22px 14px;
   }
 
   .create-company-card {

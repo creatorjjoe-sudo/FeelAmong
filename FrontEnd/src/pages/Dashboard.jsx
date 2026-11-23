@@ -20,9 +20,19 @@ import CompanySuggestions from '../components/dashboard/CompanySuggestions'
 import { AuthContext } from '../api/context/AuthContext'
 import { API_ORIGIN } from '../api/config'
 
+const DASHBOARD_NAVIGATION_ROUTES = new Set([
+  '/for-you',
+  '/for-you/messages',
+  '/for-you/friends',
+  '/for-you/videos',
+  '/for-you/notifications',
+])
+
 function Dashboard({ isDarkMode, setIsDarkMode }) {
   const { user } = React.useContext(AuthContext)
   const location = useLocation()
+  const normalizedPath = location.pathname.replace(/\/+$/, '') || '/'
+  const isFullscreenRoute = !DASHBOARD_NAVIGATION_ROUTES.has(normalizedPath)
   const profilePath = location.pathname.match(/^\/for-you\/profile(?:\/([^/]+))?\/?$/)
   const isProfilePage = Boolean(profilePath)
   const isOwnProfileRoute = Boolean(
@@ -227,7 +237,7 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
   }, [location.pathname, location.search])
 
   return (
-    <div className={`dashboard-container${isVideosView ? ' videos-active' : ''}${isUpdatesPage ? ' is-updates-page' : ''}${isProfilePage ? ' is-profile-page' : ''}${isChromeLoading && !isDashboardModalPage ? ' is-loading' : ''}`}>
+    <div className={`dashboard-container${isFullscreenRoute ? ' is-fullscreen-route' : ''}${isVideosView ? ' videos-active' : ''}${isUpdatesPage ? ' is-updates-page' : ''}${isProfilePage ? ' is-profile-page' : ''}${isChromeLoading && !isDashboardModalPage && !isFullscreenRoute ? ' is-loading' : ''}`}>
       <div
         className={`dashboard-posts-layer${isDashboardModalPage ? ' is-modal-underlay' : ''}${shouldShowPosts ? '' : ' is-hidden'}`}
         aria-hidden={!shouldShowPosts || isDashboardModalPage}

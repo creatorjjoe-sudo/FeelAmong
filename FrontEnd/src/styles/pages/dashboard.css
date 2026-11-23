@@ -6,6 +6,19 @@
  --mobile-footer-height: 50px;
 }
 
+.dashboard-container.is-fullscreen-route {
+ height: 100vh;
+ height: 100dvh;
+ --mobile-header-height: 0px;
+ --mobile-footer-height: 0px;
+}
+
+.dashboard-container.is-fullscreen-route > .header-wrapper,
+.dashboard-container.is-fullscreen-route > .footer-wrapper,
+.dashboard-container.is-fullscreen-route > .navbar-wrapper {
+ display: none;
+}
+
 /* Dashboard chrome loading shimmer.
 
    While the dashboard's own data (unread counts) is being fetched, the

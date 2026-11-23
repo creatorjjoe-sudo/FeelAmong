@@ -538,7 +538,7 @@
   width: 100%;
   min-height: 100vh;
   margin: 0;
-  padding: 36px 32px 48px 230px;
+  padding: 36px 32px 48px;
   color: #18231b;
 }
 
@@ -783,6 +783,7 @@
   .saved-items-page,
   .settings-placeholder {
     min-height: 100vh;
-    padding: 76px 16px 90px;
+    min-height: 100dvh;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
   }
 }

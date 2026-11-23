@@ -1845,15 +1845,6 @@
       margin-bottom: 4px;
    }
 
-   .signgle-image {
-      height: min(400px, max(80px, calc(100dvh - 330px)));
-   }
-
-   .post-image-grid-feed,
-   .text-post-content {
-      width: min(calc(100% - 20px), 400px, max(80px, calc(100dvh - 330px)));
-   }
-
    .post-comments-preview {
       gap: 6px;
    }
@@ -1868,10 +1859,16 @@
    }
 }
 
+@media (max-height: 550px) {
+   .post-comments-preview {
+      display: none;
+   }
+}
+
 @media (max-height: 480px) {
    .post-wrapper {
-      height: auto;
-      min-height: 100%;
+      height: 100%;
+      min-height: 0;
       gap: 6px;
       padding: 8px;
    }
@@ -1882,23 +1879,5 @@
 
    .post-main-container {
       margin-bottom: 0;
-   }
-
-   .post-comments-preview {
-      gap: 4px;
-   }
-
-   .post-comment-preview-avatar {
-      flex-basis: 20px;
-      width: 20px;
-      height: 20px;
-   }
-
-   .post-comment-preview-copy {
-      padding: 3px 6px;
-   }
-
-   .post-comment-preview-copy p {
-      -webkit-line-clamp: 1;
    }
 }
