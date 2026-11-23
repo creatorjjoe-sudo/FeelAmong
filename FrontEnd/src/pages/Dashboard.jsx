@@ -33,6 +33,8 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
   const location = useLocation()
   const normalizedPath = location.pathname.replace(/\/+$/, '') || '/'
   const isFullscreenRoute = !DASHBOARD_NAVIGATION_ROUTES.has(normalizedPath)
+  const isChatConversation = location.pathname.endsWith('/messages')
+    && Boolean(new URLSearchParams(location.search).get('user'))
   const profilePath = location.pathname.match(/^\/for-you\/profile(?:\/([^/]+))?\/?$/)
   const isProfilePage = Boolean(profilePath)
   const isOwnProfileRoute = Boolean(
@@ -237,7 +239,7 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
   }, [location.pathname, location.search])
 
   return (
-    <div className={`dashboard-container${isFullscreenRoute ? ' is-fullscreen-route' : ''}${isVideosView ? ' videos-active' : ''}${isUpdatesPage ? ' is-updates-page' : ''}${isProfilePage ? ' is-profile-page' : ''}${isChromeLoading && !isDashboardModalPage && !isFullscreenRoute ? ' is-loading' : ''}`}>
+    <div className={`dashboard-container${isFullscreenRoute ? ' is-fullscreen-route' : ''}${isChatConversation ? ' is-chat-conversation' : ''}${isVideosView ? ' videos-active' : ''}${isUpdatesPage ? ' is-updates-page' : ''}${isProfilePage ? ' is-profile-page' : ''}${isChromeLoading && !isDashboardModalPage && !isFullscreenRoute ? ' is-loading' : ''}`}>
       <div
         className={`dashboard-posts-layer${isDashboardModalPage ? ' is-modal-underlay' : ''}${shouldShowPosts ? '' : ' is-hidden'}`}
         aria-hidden={!shouldShowPosts || isDashboardModalPage}
