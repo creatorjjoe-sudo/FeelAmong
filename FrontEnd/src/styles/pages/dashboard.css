@@ -6,6 +6,14 @@
  --mobile-footer-height: 50px;
 }
 
+.dashboard-route-layer {
+ display: contents;
+}
+
+.dashboard-route-layer.is-hidden {
+ display: none;
+}
+
 .dashboard-container.is-fullscreen-route {
  height: 100vh;
  height: 100dvh;

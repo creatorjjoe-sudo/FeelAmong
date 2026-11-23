@@ -1,6 +1,6 @@
 import React from 'react'
 import { useContext } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../api/context/AuthContext'
 import LoginRequiredModal from '../components/dashboard/LoginRequiredModal'
 import PostImageGrid from '../components/createpost/PostImageGrid'
@@ -17,9 +17,8 @@ function resolveImageUrl(image) {
   return image.startsWith('/') ? `${API_ORIGIN}${image}` : image
 }
 
-function ProfilePage() {
+function ProfilePage({ userId }) {
   const { user, personalUser, login, logout } = useContext(AuthContext)
-  const { userId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
   const isAvatarPreviewOpen = location.state?.routedModal === 'profile-avatar-preview'

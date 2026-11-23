@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { io } from 'socket.io-client'
 import Navbar from '../components/dashboard/Navbar'
 import '../styles/pages/dashboard.css'
@@ -41,10 +41,15 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
     profilePath && (!profilePath[1] || profilePath[1] === String(user?._id))
   )
   const isVideosView = location.pathname.endsWith('/videos')
+  const isMessagesView = location.pathname.endsWith('/messages')
   const isSavePage = location.pathname.endsWith('/save')
   const isCreateContainerPage = location.pathname.endsWith('/create-container')
   const isFriendsPage = location.pathname.endsWith('/friends')
   const isUpdatesPage = location.pathname.endsWith('/notifications')
+  const isSavedPage = location.pathname.endsWith('/saved')
+  const isCompanyCreatePage = location.pathname.endsWith('/company-create')
+  const isCompaniesPage = location.pathname.endsWith('/companies')
+  const isSettingsPage = location.pathname.endsWith('/settings')
   const isDashboardModalPage = isSavePage || isCreateContainerPage || isFriendsPage
   const isForYouHome = /^\/for-you\/?$/.test(location.pathname)
   const shouldShowPosts = isForYouHome || isDashboardModalPage
@@ -247,6 +252,86 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
       >
         <Posts />
       </div>
+      <div
+        className={`dashboard-route-layer${isVideosView ? '' : ' is-hidden'}`}
+        aria-hidden={!isVideosView}
+        inert={!isVideosView}
+      >
+        <Videos />
+      </div>
+      <div
+        className={`dashboard-route-layer${isMessagesView ? '' : ' is-hidden'}`}
+        aria-hidden={!isMessagesView}
+        inert={!isMessagesView}
+      >
+        <Messages />
+      </div>
+      <div
+        className={`dashboard-route-layer${isUpdatesPage ? '' : ' is-hidden'}`}
+        aria-hidden={!isUpdatesPage}
+        inert={!isUpdatesPage}
+      >
+        <Notifications
+          unreadCount={unreadNotificationCount}
+          onUnreadCountChanged={refreshUnreadNotificationCount}
+        />
+      </div>
+      <div
+        className={`dashboard-route-layer${isFriendsPage ? '' : ' is-hidden'}`}
+        aria-hidden={!isFriendsPage}
+        inert={!isFriendsPage}
+      >
+        <FriendsPage />
+      </div>
+      <div
+        className={`dashboard-route-layer${isProfilePage ? '' : ' is-hidden'}`}
+        aria-hidden={!isProfilePage}
+        inert={!isProfilePage}
+      >
+        <ProfilePage userId={profilePath?.[1]} />
+      </div>
+      <div
+        className={`dashboard-route-layer${isSavedPage ? '' : ' is-hidden'}`}
+        aria-hidden={!isSavedPage}
+        inert={!isSavedPage}
+      >
+        <SavedItemsPage />
+      </div>
+      <div
+        className={`dashboard-route-layer${isSavePage && !isCreateContainerPage ? '' : ' is-hidden'}`}
+        aria-hidden={!isSavePage || isCreateContainerPage}
+        inert={!isSavePage || isCreateContainerPage}
+      >
+        <SaveToContainerPage />
+      </div>
+      <div
+        className={`dashboard-route-layer${isCreateContainerPage ? '' : ' is-hidden'}`}
+        aria-hidden={!isCreateContainerPage}
+        inert={!isCreateContainerPage}
+      >
+        <CreateContainerPage />
+      </div>
+      <div
+        className={`dashboard-route-layer${isCompanyCreatePage ? '' : ' is-hidden'}`}
+        aria-hidden={!isCompanyCreatePage}
+        inert={!isCompanyCreatePage}
+      >
+        <CreateCompanyPage />
+      </div>
+      <div
+        className={`dashboard-route-layer${isCompaniesPage ? '' : ' is-hidden'}`}
+        aria-hidden={!isCompaniesPage}
+        inert={!isCompaniesPage}
+      >
+        <CompanySuggestions listPage />
+      </div>
+      <div
+        className={`dashboard-route-layer${isSettingsPage ? '' : ' is-hidden'}`}
+        aria-hidden={!isSettingsPage}
+        inert={!isSettingsPage}
+      >
+        <SettingsPage isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+      </div>
       <MobileHeader />
       <Navbar
         activeView={activeView}
@@ -264,31 +349,6 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
         unreadNotificationCount={unreadNotificationCount}
         isOwnProfileRoute={isOwnProfileRoute}
       />
-      <Routes>
-        <Route path="messages" element={<Messages />} />
-        <Route path="videos" element={<Videos />} />
-        <Route
-          path="notifications"
-          element={
-            <Notifications
-              unreadCount={unreadNotificationCount}
-              onUnreadCountChanged={refreshUnreadNotificationCount}
-            />
-          }
-        />
-        <Route path="friends" element={<FriendsPage />} />
-        <Route path="profile" element={<ProfilePage />} />
-        <Route path="profile/:userId" element={<ProfilePage />} />
-        <Route path="company-create" element={<CreateCompanyPage />} />
-        <Route path="companies" element={<CompanySuggestions listPage />} />
-        <Route path="saved" element={<SavedItemsPage />} />
-        <Route path="save" element={<SaveToContainerPage />} />
-        <Route path="save/create-container" element={<CreateContainerPage />} />
-        <Route
-          path="settings"
-          element={<SettingsPage isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />}
-        />
-      </Routes>
     </div>
   )
 }
