@@ -636,9 +636,21 @@ function Messages() {
                   <img className='back-icon' src={ICONS.backArrow} alt="" />
                 </Link>
                 <div className="active-user">
-                  <img className='user-avata-msg' src={getProfileAvatar(selectedContact)} alt="" />
+                  {selectedContact?._id ? (
+                    <Link className="active-user-avatar-link" to={`/for-you/profile/${selectedContact._id}`}>
+                      <img className='user-avata-msg' src={getProfileAvatar(selectedContact)} alt="" />
+                    </Link>
+                  ) : (
+                    <img className='user-avata-msg' src={getProfileAvatar(selectedContact)} alt="" />
+                  )}
                   <div className="name-timeago">
-                    <h2 className='active-user-username'>{selectedContact?.username}</h2>
+                    {selectedContact?._id ? (
+                      <h2 className='active-user-username'>
+                        <Link to={`/for-you/profile/${selectedContact._id}`}>{selectedContact.username}</Link>
+                      </h2>
+                    ) : (
+                      <h2 className='active-user-username'>{selectedContact?.username}</h2>
+                    )}
                     <p className={typingUserIds.has(String(selectedContact?._id)) ? 'is-online is-typing' : presence.online ? 'is-online' : 'is-offline'}>
                       {typingUserIds.has(String(selectedContact?._id))
                         ? <>typing<span className="typing-dots" aria-hidden="true"><i /><i /><i /></span></>
@@ -982,11 +994,21 @@ function Messages() {
         </div>
 
         <div className="right-section">
-          <img className="chat-user-avata" src={getProfileAvatar(activeContact)} alt=""/>
+          {activeContact?._id ? (
+            <Link className="chat-user-avatar-link" to={`/for-you/profile/${activeContact._id}`}>
+              <img className="chat-user-avata" src={getProfileAvatar(activeContact)} alt=""/>
+            </Link>
+          ) : (
+            <img className="chat-user-avata" src={getProfileAvatar(activeContact)} alt=""/>
+          )}
           <div className="username-egts">
             {chatActive && (
               <>
-                <h1>{activeContact?.username}</h1>
+                {activeContact?._id ? (
+                  <h1><Link to={`/for-you/profile/${activeContact._id}`}>{activeContact.username}</Link></h1>
+                ) : (
+                  <h1>{activeContact?.username}</h1>
+                )}
                 <button>Add friend</button>
                 <p>1.8K</p>
               </>

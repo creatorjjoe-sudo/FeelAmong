@@ -457,7 +457,21 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
                 key={group.id}
                 className={`update-item${isUnread ? ' is-unread' : ''}`}
               >
-                <ActorAvatar actor={notification.actor} />
+                {notification.actor?._id ? (
+                  <button
+                    className="update-avatar-link"
+                    type="button"
+                    aria-label={`View ${buildActorName(notification.actor)} profile`}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      navigate(`/for-you/profile/${notification.actor._id}`)
+                    }}
+                  >
+                    <ActorAvatar actor={notification.actor} />
+                  </button>
+                ) : (
+                  <ActorAvatar actor={notification.actor} />
+                )}
                 <div className="update-content">
                   <div className="update-topline">
                     <span className={`update-category update-category-${category.toLowerCase()}`}>

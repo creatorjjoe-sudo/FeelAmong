@@ -971,7 +971,13 @@ function Posts() {
         {depth > 0 && <span className="post-thread-branch" aria-hidden="true" />}
         <div className="post-thread-message">
           <div className="post-thread-identity">
-            <img src={getAvatarSrc(item.user)} alt="" />
+            {item.user?._id ? (
+              <Link className="post-thread-avatar-link" to={`/for-you/profile/${item.user._id}`}>
+                <img src={getAvatarSrc(item.user)} alt="" />
+              </Link>
+            ) : (
+              <img src={getAvatarSrc(item.user)} alt="" />
+            )}
             {item.user?._id ? (
               <Link className="post-thread-author-link" to={`/for-you/profile/${item.user._id}`}>
                 {item.user.username || 'User'}
@@ -1145,7 +1151,13 @@ function Posts() {
               <div className="post-header">
                 <div className="header-left-items">
                   <div className="creator-avata">
-                    <img className='creator-icon' src={getProfileAvatar(post.user)} alt={post.user?.username || 'Creator'} />
+                    {post.user?._id ? (
+                      <Link className="creator-avatar-link" to={`/for-you/profile/${post.user._id}`}>
+                        <img className='creator-icon' src={getProfileAvatar(post.user)} alt={post.user?.username || 'Creator'} />
+                      </Link>
+                    ) : (
+                      <img className='creator-icon' src={getProfileAvatar(post.user)} alt={post.user?.username || 'Creator'} />
+                    )}
                   </div>
                   <div className="creator-details">
                     {post.user?._id ? (
@@ -1178,7 +1190,13 @@ function Posts() {
                     <div className="post-shared-content">
                       {shareCaption && <p className="post-share-caption">{shareCaption}</p>}
                       <div className="post-shared-original-header">
-                        <img src={getProfileAvatar(sharedPost.user)} alt="" />
+                        {sharedPost.user?._id ? (
+                          <Link className="post-shared-avatar-link" to={`/for-you/profile/${sharedPost.user._id}`}>
+                            <img src={getProfileAvatar(sharedPost.user)} alt="" />
+                          </Link>
+                        ) : (
+                          <img src={getProfileAvatar(sharedPost.user)} alt="" />
+                        )}
                         {sharedPost.user?._id ? (
                           <Link to={`/for-you/profile/${sharedPost.user._id}`}>
                             {sharedPost.user.username || 'Original creator'}
@@ -1236,12 +1254,17 @@ function Posts() {
                           {postLikes.map((like, index) => {
                             const liker = typeof like === 'object' && like !== null ? like : null
                             const likerName = liker?.username || 'User'
-                            return (
+                            const avatar = (
                               <img className="liked-user-avatar" key={getLikeUserId(like) || index} src={getAvatarSrc(liker)} alt="" title={likerName} role="listitem" onError={(event) => {
                                 event.currentTarget.onerror = null; event.currentTarget.src = getProfileAvatar(liker)
                               }}
                               />
                             )
+                            return getLikeUserId(like) ? (
+                              <Link className="liked-user-avatar-link" key={getLikeUserId(like) || index} to={`/for-you/profile/${getLikeUserId(like)}`} title={likerName}>
+                                {avatar}
+                              </Link>
+                            ) : avatar
                           })}
                         </div>
                       )}
@@ -1412,17 +1435,41 @@ function Posts() {
                     : commentPreviewThreads.map(({ comment, reply }) => (
                       <article className="post-comment-preview-thread" key={comment._id} role="listitem">
                         <div className="post-comment-preview-item">
-                          <img className="post-comment-preview-avatar" src={getAvatarSrc(comment.user)} alt="" />
+                          {comment.user?._id ? (
+                            <Link className="post-comment-preview-avatar-link" to={`/for-you/profile/${comment.user._id}`}>
+                              <img className="post-comment-preview-avatar" src={getAvatarSrc(comment.user)} alt="" />
+                            </Link>
+                          ) : (
+                            <img className="post-comment-preview-avatar" src={getAvatarSrc(comment.user)} alt="" />
+                          )}
                           <div className="post-comment-preview-copy">
-                            <strong>{comment.user?.username || 'User'}</strong>
+                            {comment.user?._id ? (
+                              <Link className="post-comment-preview-username" to={`/for-you/profile/${comment.user._id}`}>
+                                {comment.user.username || 'User'}
+                              </Link>
+                            ) : (
+                              <strong>{comment.user?.username || 'User'}</strong>
+                            )}
                             <p>{comment.text}</p>
                           </div>
                         </div>
                         {reply && (
                           <div className="post-comment-preview-reply">
-                            <img className="post-comment-preview-avatar" src={getAvatarSrc(reply.user)} alt="" />
+                            {reply.user?._id ? (
+                              <Link className="post-comment-preview-avatar-link" to={`/for-you/profile/${reply.user._id}`}>
+                                <img className="post-comment-preview-avatar" src={getAvatarSrc(reply.user)} alt="" />
+                              </Link>
+                            ) : (
+                              <img className="post-comment-preview-avatar" src={getAvatarSrc(reply.user)} alt="" />
+                            )}
                             <div className="post-comment-preview-copy">
-                              <strong>{reply.user?.username || 'User'}</strong>
+                              {reply.user?._id ? (
+                                <Link className="post-comment-preview-username" to={`/for-you/profile/${reply.user._id}`}>
+                                  {reply.user.username || 'User'}
+                                </Link>
+                              ) : (
+                                <strong>{reply.user?.username || 'User'}</strong>
+                              )}
                               <p>{reply.text}</p>
                             </div>
                           </div>
@@ -1494,9 +1541,21 @@ function Posts() {
                   <form className="post-share-form" onSubmit={submitSharedPost}>
                     {error && <p className="post-share-error" role="alert">{error}</p>}
                     <div className="post-share-identity">
-                      <img className="post-share-avatar" src={getProfileAvatar(user)} alt="" />
+                          {user?._id ? (
+                            <Link className="post-share-avatar-link" to={`/for-you/profile/${user._id}`}>
+                              <img className="post-share-avatar" src={getProfileAvatar(user)} alt="" />
+                            </Link>
+                          ) : (
+                            <img className="post-share-avatar" src={getProfileAvatar(user)} alt="" />
+                          )}
                       <div className="post-share-user">
-                        <strong>{user?.username || 'Feelamonger'}</strong>
+                            {user?._id ? (
+                              <Link className="post-share-username-link" to={`/for-you/profile/${user._id}`}>
+                                {user.username || 'Feelamonger'}
+                              </Link>
+                            ) : (
+                              <strong>{user?.username || 'Feelamonger'}</strong>
+                            )}
                         <label className="post-share-visibility">
                           <img src={VISIBILITY_ICONS[shareVisibility]} alt="" />
                           <select

@@ -13,13 +13,7 @@ function getDisplayName(person) {
 }
 
 function FriendAvatar({ person }) {
-  return (
-    <img
-      className="friends-avatar"
-      src={getProfileAvatar(person)}
-      alt=""
-    />
-  )
+  return <img className="friends-avatar" src={getProfileAvatar(person)} alt="" />
 }
 
 function FriendsPage() {
@@ -164,9 +158,17 @@ function FriendsPage() {
               <div className="friends-request-list">
                 {requests.map((notification) => (
                   <article className="friends-person-card" key={notification._id}>
-                    <FriendAvatar person={notification.actor} />
+                    {notification.actor?._id ? (
+                      <button className="friends-person-profile-link" type="button" onClick={() => navigate(`/for-you/profile/${notification.actor._id}`)}>
+                        <FriendAvatar person={notification.actor} />
+                      </button>
+                    ) : <FriendAvatar person={notification.actor} />}
                     <div className="friends-person-details">
-                      <strong>{getDisplayName(notification.actor)}</strong>
+                      {notification.actor?._id ? (
+                        <button className="friends-person-name-link" type="button" onClick={() => navigate(`/for-you/profile/${notification.actor._id}`)}>
+                          {getDisplayName(notification.actor)}
+                        </button>
+                      ) : <strong>{getDisplayName(notification.actor)}</strong>}
                       <span>Sent you a friend request</span>
                     </div>
                     <div className="friends-person-actions">
@@ -203,9 +205,17 @@ function FriendsPage() {
               <div className="friends-suggestion-list">
                 {visibleSuggestions.map((person) => (
                   <article className="friends-person-card" key={person._id}>
-                    <FriendAvatar person={person} />
+                    {person._id ? (
+                      <button className="friends-person-profile-link" type="button" onClick={() => navigate(`/for-you/profile/${person._id}`)}>
+                        <FriendAvatar person={person} />
+                      </button>
+                    ) : <FriendAvatar person={person} />}
                     <div className="friends-person-details">
-                      <strong>{getDisplayName(person)}</strong>
+                      {person._id ? (
+                        <button className="friends-person-name-link" type="button" onClick={() => navigate(`/for-you/profile/${person._id}`)}>
+                          {getDisplayName(person)}
+                        </button>
+                      ) : <strong>{getDisplayName(person)}</strong>}
                       <span>
                         {person.commonFriendsCount
                           ? `${person.commonFriendsCount} common friend${person.commonFriendsCount === 1 ? '' : 's'}`

@@ -446,6 +446,17 @@
   fill: #8aa398;
 }
 
+.update-avatar-link {
+  display: block;
+  width: 66px;
+  height: 66px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
 .update-content {
   min-width: 0;
 }

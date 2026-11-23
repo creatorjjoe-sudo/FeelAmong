@@ -230,7 +230,7 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
             <header className="video-overlay-creator">
               {isMediaLoading
                 ? <span className="video-loading-shape video-loading-avatar" />
-                : video.user?.isCompany && video.user?._id
+                : video.user?._id
                   ? (
                     <Link
                       className="video-overlay-creator-avatar-link"
@@ -252,7 +252,7 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
                 ) : (
                   <>
                     <div className="video-overlay-creator-name-row">
-                      {video.user?.isCompany && video.user?._id ? (
+                      {video.user?._id ? (
                         <Link
                           className="video-overlay-creator-name-link"
                           to={`/for-you/profile/${video.user._id}`}
@@ -1082,7 +1082,13 @@ function Videos() {
         {depth > 0 && <span className="post-thread-branch" aria-hidden="true" />}
         <div className="post-thread-message">
           <div className="post-thread-identity">
-            <img src={getProfileAvatar(item.user)} alt="" />
+            {item.user?._id ? (
+              <Link className="post-thread-avatar-link" to={`/for-you/profile/${item.user._id}`}>
+                <img src={getProfileAvatar(item.user)} alt="" />
+              </Link>
+            ) : (
+              <img src={getProfileAvatar(item.user)} alt="" />
+            )}
             {item.user?._id ? (
               <Link className="post-thread-author-link" to={`/for-you/profile/${item.user._id}`}>
                 {item.user.username || 'User'}
@@ -1287,9 +1293,21 @@ function Videos() {
               <form className="post-share-form" onSubmit={submitSharedVideo}>
                 {shareError && <p className="post-share-error" role="alert">{shareError}</p>}
                 <div className="post-share-identity">
-                  <img className="post-share-avatar" src={getProfileAvatar(user)} alt="" />
+                  {user?._id ? (
+                    <Link className="post-share-avatar-link" to={`/for-you/profile/${user._id}`}>
+                      <img className="post-share-avatar" src={getProfileAvatar(user)} alt="" />
+                    </Link>
+                  ) : (
+                    <img className="post-share-avatar" src={getProfileAvatar(user)} alt="" />
+                  )}
                   <div className="post-share-user">
-                    <strong>{user?.username || 'Feelamonger'}</strong>
+                    {user?._id ? (
+                      <Link className="post-share-username-link" to={`/for-you/profile/${user._id}`}>
+                        {user.username || 'Feelamonger'}
+                      </Link>
+                    ) : (
+                      <strong>{user?.username || 'Feelamonger'}</strong>
+                    )}
                     <label className="post-share-visibility">
                       <img src={VISIBILITY_ICONS[shareVisibility]} alt="" />
                       <select
