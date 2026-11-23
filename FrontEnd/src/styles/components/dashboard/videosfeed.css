@@ -481,7 +481,7 @@
 }
 
 .video-action-count {
-  color: #fff !important;
+  color: #202720;
   font-size: 18px !important;
   font-weight: 700;
   line-height: 1.2;
@@ -575,6 +575,10 @@
     right: 12px;
     bottom: 20px;
     gap: 12px;
+  }
+
+  .video-action-count {
+    color: #fff;
   }
 
   .video-action-btn .icon-disc {

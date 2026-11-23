@@ -54,6 +54,12 @@
    display: none;
 }
 
+@media screen and (min-width: 800px) {
+   .post-container > .post-wrapper:first-child {
+      margin-top: 10px;
+   }
+}
+
 .post-wrapper {
    box-sizing: border-box;
    width: 100%;
@@ -62,12 +68,33 @@
    scroll-snap-align: start;
    scroll-snap-stop: always;
    display: flex;
-   align-items: center;
-   gap: 16px;
+   flex-direction: column;
+   align-items: stretch;
+   justify-content: space-between;
+   gap: 12px;
    border: 1px solid #e0e9e0;
    border-radius: 20px;
    background: #fff;
    padding: 16px;
+}
+
+.post-header {
+   box-sizing: border-box;
+   flex: 0 0 auto;
+   width: 100%;
+   padding: 8px;
+}
+
+.post-main-container {
+   box-sizing: border-box;
+   display: flex;
+   flex: 0 1 auto;
+   align-items: stretch;
+   width: 100%;
+   min-height: 0;
+   margin-bottom: 12px;
+   gap: 8px;
+   padding: 0;
 }
 
 /* While the feed is loading, paint the shimmer directly onto the real post
@@ -230,12 +257,13 @@
 }
 
 .left-items {
+   box-sizing: border-box;
    display: flex;
    flex-direction: column;
    flex: 1 1 auto;
    width: auto;
    min-width: 0;
-   height: 100%;
+   height: auto;
    justify-content: space-between;
 }
 
@@ -449,9 +477,22 @@
    min-width: 0;
 }
 
+.middle > .liked-users {
+   margin-top: 12px;
+}
+
 .liked-users .liked-img {
    width: 30px;
    height: 30px;
+}
+
+.liked-users-empty {
+   flex: 1 1 auto;
+   min-width: 0;
+   color: #5c6065;
+   font-size: 14px;
+   line-height: 1.3;
+   overflow-wrap: anywhere;
 }
 
 .liked-users-list {
@@ -484,16 +525,15 @@
 }
 
 .right-items.e {
+   box-sizing: border-box;
    flex: 0 0 60px;
    width: 60px;
-   height: 400px;
-   align-self: end;
-   margin-bottom: 90px;
+   height: auto;
+   align-self: stretch;
    display: flex;
    flex-direction: column;
-   gap: 20px;
    align-items: center;
-   justify-content: end;
+   justify-content: space-between;
 }
 
 .right-items.e .engage-folder {
@@ -711,6 +751,149 @@
 
 .post-comment-input-row textarea::-webkit-scrollbar {
    display: none;
+}
+
+.post-comments-preview {
+   display: flex;
+   flex: 0 0 auto;
+   flex-direction: column;
+   width: 100%;
+   min-width: 0;
+   gap: 8px;
+}
+
+.post-comments-preview-list {
+   display: flex;
+   flex-direction: column;
+   min-width: 0;
+   gap: 6px;
+}
+
+.post-comment-preview-thread {
+   display: flex;
+   flex-direction: column;
+   min-width: 0;
+   gap: 6px;
+}
+
+.post-comment-preview-item,
+.post-comment-preview-reply {
+   display: flex;
+   align-items: center;
+   min-width: 0;
+   gap: 8px;
+}
+
+.post-comment-preview-reply {
+   padding-left: 32px;
+}
+
+.post-comment-preview-avatar {
+   flex: 0 0 24px;
+   width: 24px;
+   height: 24px;
+   border-radius: 50%;
+   object-fit: cover;
+}
+
+.post-comment-preview-copy {
+   flex: 1 1 auto;
+   min-width: 0;
+   padding: 5px 9px;
+   border-radius: 10px;
+   background: #f5f6f7;
+}
+
+.post-comment-preview-copy strong {
+   font-size: 12px;
+}
+
+.post-comment-preview-copy p {
+   display: -webkit-box;
+   margin: 0;
+   overflow: hidden;
+   font-size: 13px;
+   line-height: 1.3;
+   overflow-wrap: anywhere;
+   -webkit-box-orient: vertical;
+   -webkit-line-clamp: 2;
+}
+
+.post-comments-preview-empty {
+   margin: 0;
+   color: #5c6065;
+   font-size: 13px;
+}
+
+.post-inline-comment-form {
+   width: 100%;
+   margin: 0;
+}
+
+.post-inline-comment-input {
+   padding: 8px 12px;
+   border: 1px solid #c4c6ca;
+   border-radius: 20px;
+   background: #fff;
+   color: #252525;
+   font: inherit;
+   font-size: 14px;
+   line-height: 1.3;
+}
+
+.post-inline-comment-submit {
+   display: flex;
+   flex: 0 0 38px;
+   align-items: center;
+   justify-content: center;
+   align-self: center;
+   box-sizing: border-box;
+   width: 38px;
+   height: 38px;
+   padding: 0;
+   border-radius: 50%;
+   background: #00ba00;
+   line-height: 0;
+   transition: background-color 140ms ease, transform 140ms ease;
+}
+
+.post-inline-comment-submit.post-dialog-submit svg {
+   display: block;
+   flex: 0 0 26px;
+   width: 26px;
+   height: 26px;
+   fill: #fff;
+}
+
+.post-inline-comment-submit:hover:not(:disabled) {
+   background: #009f00;
+   transform: scale(1.04);
+}
+
+.post-inline-comment-submit:focus-visible {
+   outline: 3px solid rgba(0, 143, 67, 0.35);
+   outline-offset: 2px;
+}
+
+.post-inline-comment-submit:disabled {
+   opacity: .65;
+   cursor: wait;
+}
+
+.post-comments-preview-skeleton .post-comment-preview-placeholder {
+   height: 22px;
+   border-radius: 8px;
+   background: #e5e7eb;
+}
+
+.post-comments-preview-skeleton .post-comment-preview-placeholder.is-short {
+   width: 72%;
+   height: 16px;
+}
+
+.post-comments-preview-skeleton .post-comment-preview-placeholder.is-input {
+   height: 40px;
+   border-radius: 20px;
 }
 
 .post-action-dialog h2 {
@@ -1641,5 +1824,81 @@
    .post-preview-close {
       top: 18px;
       right: 18px;
+   }
+}
+
+.post-main-container * {
+   margin: 0;
+}
+
+@media (max-height: 700px) {
+   .post-wrapper {
+      gap: 8px;
+      padding: 12px;
+   }
+
+   .post-header {
+      padding: 6px;
+   }
+
+   .post-main-container {
+      margin-bottom: 4px;
+   }
+
+   .signgle-image {
+      height: min(400px, max(80px, calc(100dvh - 330px)));
+   }
+
+   .post-image-grid-feed,
+   .text-post-content {
+      width: min(calc(100% - 20px), 400px, max(80px, calc(100dvh - 330px)));
+   }
+
+   .post-comments-preview {
+      gap: 6px;
+   }
+
+   .post-comments-preview-list,
+   .post-comment-preview-thread {
+      gap: 4px;
+   }
+
+   .post-comment-preview-copy {
+      padding: 4px 8px;
+   }
+}
+
+@media (max-height: 480px) {
+   .post-wrapper {
+      height: auto;
+      min-height: 100%;
+      gap: 6px;
+      padding: 8px;
+   }
+
+   .post-header {
+      padding: 4px;
+   }
+
+   .post-main-container {
+      margin-bottom: 0;
+   }
+
+   .post-comments-preview {
+      gap: 4px;
+   }
+
+   .post-comment-preview-avatar {
+      flex-basis: 20px;
+      width: 20px;
+      height: 20px;
+   }
+
+   .post-comment-preview-copy {
+      padding: 3px 6px;
+   }
+
+   .post-comment-preview-copy p {
+      -webkit-line-clamp: 1;
    }
 }

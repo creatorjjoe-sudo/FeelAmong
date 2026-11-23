@@ -559,12 +559,6 @@
  z-index: 1;
 }
 
-.text-post-review-feed-stage .right-items.e {
- height: min(400px, calc(100% - min(90px, 10vh)));
- margin-bottom: min(90px, 10vh);
- gap: min(20px, 2vh);
-}
-
 .text-post-review-controls {
  margin: 14px 8px;
 }

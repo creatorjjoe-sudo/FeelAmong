@@ -98,6 +98,33 @@ html[data-theme="dark"] .post-wrapper .engage-count {
  color: #fff;
 }
 
+html[data-theme="dark"] .liked-users-empty {
+ color: #c4cdc7;
+}
+
+html[data-theme="dark"] .post-comment-preview-copy {
+ background: #202722;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .post-comments-preview-empty {
+ color: #a5b2a8;
+}
+
+html[data-theme="dark"] .post-inline-comment-input {
+ border-color: #3a443e;
+ background: #202722;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .post-comments-preview-skeleton .post-comment-preview-placeholder {
+ background: #232a26;
+}
+
+html[data-theme="dark"] .video-action-count {
+ color: #fff;
+}
+
 html[data-theme="dark"] .header-wrapper,
 html[data-theme="dark"] .footer-wrapper,
 html[data-theme="dark"] .profile-menu-panel,

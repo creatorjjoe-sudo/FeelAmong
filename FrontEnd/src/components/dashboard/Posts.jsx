@@ -296,58 +296,65 @@ function PostSkeleton() {
     <>
       {[0, 1, 2].map((index) => (
         <div className="post-wrapper" key={index} aria-hidden="true">
-          <div className="left-items">
-            <div className="post-header">
-              <div className="header-left-items">
-                <div className="creator-avata">
-                  <img className="creator-icon" alt="" />
-                </div>
-                <div className="creator-details">
-                  <h2>Placeholder</h2>
-                  <div className="post-time-visibility">
-                    <p className="time-ago">Placeholder</p>
-                  </div>
+          <div className="post-header">
+            <div className="header-left-items">
+              <div className="creator-avata">
+                <img className="creator-icon" alt="" />
+              </div>
+              <div className="creator-details">
+                <h2>Placeholder</h2>
+                <div className="post-time-visibility">
+                  <p className="time-ago">Placeholder</p>
                 </div>
               </div>
-              <div className="header-right-items">
-                <p className="add-friend">Add friend</p>
-              </div>
             </div>
-            <div className="top"></div>
-            <div className="middle">
-              <div className="signgle-image"></div>
-              <div className="liked-users">
-                <img className="liked-img" alt="" />
-                <div className="liked-users-list"></div>
-              </div>
+            <div className="header-right-items">
+              <p className="add-friend">Add friend</p>
             </div>
-            <div className="bottom"></div>
           </div>
-          <div className="right-items e">
-            <div className="engage-folder likes">
-              <div className="engage-background">
-                <img alt="" />
+          <div className="post-main-container">
+            <div className="left-items">
+              <div className="top"></div>
+              <div className="middle">
+                <div className="signgle-image"></div>
+                <div className="liked-users">
+                  <img className="liked-img" alt="" />
+                  <div className="liked-users-list"></div>
+                </div>
               </div>
-              <p className="engage-count">0</p>
+              <div className="bottom"></div>
             </div>
-            <div className="engage-folder comments">
-              <div className="engage-background">
-                <img alt="" />
+            <div className="right-items e">
+              <div className="engage-folder likes">
+                <div className="engage-background">
+                  <img alt="" />
+                </div>
+                <p className="engage-count">0</p>
               </div>
-              <p className="engage-count">0</p>
-            </div>
-            <div className="engage-folder shares">
-              <div className="engage-background">
-                <img alt="" />
+              <div className="engage-folder comments">
+                <div className="engage-background">
+                  <img alt="" />
+                </div>
+                <p className="engage-count">0</p>
               </div>
-              <p className="engage-count">0</p>
-            </div>
-            <div className="engage-folder saves">
-              <div className="engage-background">
-                <img alt="" />
+              <div className="engage-folder shares">
+                <div className="engage-background">
+                  <img alt="" />
+                </div>
+                <p className="engage-count">0</p>
               </div>
-              <p className="engage-count">0</p>
+              <div className="engage-folder saves">
+                <div className="engage-background">
+                  <img alt="" />
+                </div>
+                <p className="engage-count">0</p>
+              </div>
             </div>
+          </div>
+          <div className="post-comments-preview post-comments-preview-skeleton">
+            <div className="post-comment-preview-placeholder"></div>
+            <div className="post-comment-preview-placeholder is-short"></div>
+            <div className="post-comment-preview-placeholder is-input"></div>
           </div>
         </div>
       ))}
@@ -680,6 +687,49 @@ function Posts() {
     }
   }
 
+  async function saveComment(postId, text, target = null) {
+    const endpoint = target
+      ? `${baseURL}/${postId}/comments/${target.commentId}/replies`
+      : `${baseURL}/${postId}/comments`
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        text,
+        ...(target?.replyId ? { parentReplyId: target.replyId } : {}),
+        ...(target?.replyToSubReplyId ? { replyToSubReplyId: target.replyToSubReplyId } : {}),
+      }),
+    })
+    const result = await response.json()
+    if (!response.ok) throw new Error(result.message || 'Unable to add comment.')
+
+    setPosts((currentPosts) => currentPosts.map((post) => {
+      if (String(post._id) !== String(postId)) return post
+
+      if (!target) {
+        return { ...post, comments: [...(post.comments || []), result.comment] }
+      }
+
+      return {
+        ...post,
+        comments: (post.comments || []).map((comment) => {
+          if (String(comment._id) !== String(result.commentId)) return comment
+          if (!result.parentReplyId) {
+            return { ...comment, replies: [...(comment.replies || []), result.reply] }
+          }
+          return {
+            ...comment,
+            replies: (comment.replies || []).map((reply) => (
+              String(reply._id) === String(result.parentReplyId)
+                ? { ...reply, replies: [...(reply.replies || []), result.reply] }
+                : reply
+            )),
+          }
+        }),
+      }
+    }))
+  }
+
   async function addComment(event) {
     event.preventDefault()
     if (!requireLogin() || !activeDialog || isSubmittingComment) return
@@ -689,47 +739,28 @@ function Posts() {
 
     setIsSubmittingComment(true)
     try {
-      const endpoint = replyTarget
-        ? `${baseURL}/${activeDialog.postId}/comments/${replyTarget.commentId}/replies`
-        : `${baseURL}/${activeDialog.postId}/comments`
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          text,
-          ...(replyTarget?.replyId ? { parentReplyId: replyTarget.replyId } : {}),
-          ...(replyTarget?.replyToSubReplyId ? { replyToSubReplyId: replyTarget.replyToSubReplyId } : {}),
-        }),
-      })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.message || 'Unable to add comment.')
-      setPosts((currentPosts) => currentPosts.map((post) => {
-        if (String(post._id) !== String(activeDialog.postId)) return post
-
-        if (!replyTarget) {
-          return { ...post, comments: [...(post.comments || []), result.comment] }
-        }
-
-        return {
-          ...post,
-          comments: (post.comments || []).map((comment) => {
-            if (String(comment._id) !== String(result.commentId)) return comment
-            if (!result.parentReplyId) {
-              return { ...comment, replies: [...(comment.replies || []), result.reply] }
-            }
-            return {
-              ...comment,
-              replies: (comment.replies || []).map((reply) => (
-                String(reply._id) === String(result.parentReplyId)
-                  ? { ...reply, replies: [...(reply.replies || []), result.reply] }
-                  : reply
-              )),
-            }
-          }),
-        }
-      }))
+      await saveComment(activeDialog.postId, text, replyTarget)
       setCommentDraft('')
       setReplyTarget(null)
+    } catch (actionError) {
+      setError(actionError.message)
+    } finally {
+      setIsSubmittingComment(false)
+    }
+  }
+
+  async function addInlineComment(event, postId) {
+    event.preventDefault()
+    if (!requireLogin() || isSubmittingComment) return
+
+    const form = event.currentTarget
+    const text = String(new FormData(form).get('text') || '').trim()
+    if (!text) return
+
+    setIsSubmittingComment(true)
+    try {
+      await saveComment(postId, text)
+      form.reset()
     } catch (actionError) {
       setError(actionError.message)
     } finally {
@@ -1068,6 +1099,13 @@ function Posts() {
         )}
         {visiblePosts.map((post, index) => {
           const postLikes = Array.isArray(post.likes) ? post.likes : []
+          const postComments = Array.isArray(post.comments) ? post.comments : []
+          const latestComment = postComments[postComments.length - 1]
+          const latestCommentReplies = Array.isArray(latestComment?.replies) ? latestComment.replies : []
+          const latestReply = latestCommentReplies[latestCommentReplies.length - 1]
+          const commentPreviewThreads = latestReply
+            ? [{ comment: latestComment, reply: latestReply }]
+            : postComments.slice(-2).map((comment) => ({ comment, reply: null }))
           const likedByCurrentUser = Boolean(user && postLikes.some((like) => getLikeUserId(like) === String(user._id)))
           const likeCount = typeof post.likesCount === 'number' ? post.likesCount : (Array.isArray(post.likes) ? post.likes.length : 0)
           const commentCounts = getCommentThreadCounts(post.comments || [])
@@ -1104,35 +1142,36 @@ function Posts() {
               id={`post-${post._id}`}
               className={`post-wrapper${isPostPreviewOpen ? ' post-preview-item' : ''}`}
             >
-              <div className="left-items">
-                <div className="post-header">
-                  <div className="header-left-items">
-                    <div className="creator-avata">
-                      <img className='creator-icon' src={getProfileAvatar(post.user)} alt={post.user?.username || 'Creator'} />
-                    </div>
-                    <div className="creator-details">
-                      {post.user?._id ? (
-                        <h2>
-                          <Link className="post-creator-link" to={`/for-you/profile/${post.user._id}`}>
-                            {post.user.username || 'Unknown creator'}
-                          </Link>
-                        </h2>
-                      ) : (
-                        <h2>{post.user?.username || 'Unknown creator'}</h2>
-                      )}
-                      {sharedPost && <p className="post-shared-byline">shared a post</p>}
-                      <div className="post-time-visibility">
-                        <p className='time-ago'>{formatTimeAgo(post.createdAt)}</p>
-                        <img className="post-visibility-icon" src={VISIBILITY_ICONS[visibility]} alt="" title={`${visibility[0].toUpperCase()}${visibility.slice(1)} post`} aria-label={`${visibility[0].toUpperCase()} post`} />
-                      </div>
-                    </div>
+              <div className="post-header">
+                <div className="header-left-items">
+                  <div className="creator-avata">
+                    <img className='creator-icon' src={getProfileAvatar(post.user)} alt={post.user?.username || 'Creator'} />
                   </div>
-
-                  <div className="header-right-items">
-                    <p className='add-friend'>Add friend</p>
+                  <div className="creator-details">
+                    {post.user?._id ? (
+                      <h2>
+                        <Link className="post-creator-link" to={`/for-you/profile/${post.user._id}`}>
+                          {post.user.username || 'Unknown creator'}
+                        </Link>
+                      </h2>
+                    ) : (
+                      <h2>{post.user?.username || 'Unknown creator'}</h2>
+                    )}
+                    {sharedPost && <p className="post-shared-byline">shared a post</p>}
+                    <div className="post-time-visibility">
+                      <p className='time-ago'>{formatTimeAgo(post.createdAt)}</p>
+                      <img className="post-visibility-icon" src={VISIBILITY_ICONS[visibility]} alt="" title={`${visibility[0].toUpperCase()}${visibility.slice(1)} post`} aria-label={`${visibility[0].toUpperCase()} post`} />
+                    </div>
                   </div>
                 </div>
 
+                <div className="header-right-items">
+                  <p className='add-friend'>Add friend</p>
+                </div>
+              </div>
+
+              <div className="post-main-container">
+                <div className="left-items">
                 <div className="top"></div>
                 <div className="middle">
                   {sharedPost ? (
@@ -1190,25 +1229,29 @@ function Posts() {
                     )}
                   <div className='liked-users'>
                     <img className='liked-img' src={ICONS.likedusersicon} alt="" />
-                    <div className="liked-users-list" role="list" aria-label={`${likeCount} people liked this post`}>
-                      {postLikes.map((like, index) => {
-                        const liker = typeof like === 'object' && like !== null ? like : null
-                        const likerName = liker?.username || 'User'
-                        return (
-                          <img className="liked-user-avatar" key={getLikeUserId(like) || index} src={getAvatarSrc(liker)} alt="" title={likerName} role="listitem" onError={(event) => {
-                            event.currentTarget.onerror = null; event.currentTarget.src = getProfileAvatar(liker)
-                          }}
-                          />
-                        )
-                      })}
-                    </div>
+                    {likeCount === 0
+                      ? <p className="liked-users-empty">No likes yet, be the first to like</p>
+                      : (
+                        <div className="liked-users-list" role="list" aria-label={`${likeCount} people liked this post`}>
+                          {postLikes.map((like, index) => {
+                            const liker = typeof like === 'object' && like !== null ? like : null
+                            const likerName = liker?.username || 'User'
+                            return (
+                              <img className="liked-user-avatar" key={getLikeUserId(like) || index} src={getAvatarSrc(liker)} alt="" title={likerName} role="listitem" onError={(event) => {
+                                event.currentTarget.onerror = null; event.currentTarget.src = getProfileAvatar(liker)
+                              }}
+                              />
+                            )
+                          })}
+                        </div>
+                      )}
                   </div>
                 </div>
 
                 <div className="bottom"></div>
-              </div>
 
-              <div className="right-items e">
+                </div>
+                <div className="right-items e">
                 <div onClick={() => toggleLike(post._id)} className="engage-folder likes">
                   <div className="engage-background">
                     <img src={likedByCurrentUser ? ICONS.liked : ICONS.like} alt="Like" />
@@ -1360,7 +1403,59 @@ function Posts() {
                     </ul>
                   )}
                 </div>
+                </div>
               </div>
+              <section className="post-comments-preview" aria-label="Recent comments">
+                <div className="post-comments-preview-list" role="list">
+                  {commentPreviewThreads.length === 0
+                    ? <p className="post-comments-preview-empty">No comments yet.</p>
+                    : commentPreviewThreads.map(({ comment, reply }) => (
+                      <article className="post-comment-preview-thread" key={comment._id} role="listitem">
+                        <div className="post-comment-preview-item">
+                          <img className="post-comment-preview-avatar" src={getAvatarSrc(comment.user)} alt="" />
+                          <div className="post-comment-preview-copy">
+                            <strong>{comment.user?.username || 'User'}</strong>
+                            <p>{comment.text}</p>
+                          </div>
+                        </div>
+                        {reply && (
+                          <div className="post-comment-preview-reply">
+                            <img className="post-comment-preview-avatar" src={getAvatarSrc(reply.user)} alt="" />
+                            <div className="post-comment-preview-copy">
+                              <strong>{reply.user?.username || 'User'}</strong>
+                              <p>{reply.text}</p>
+                            </div>
+                          </div>
+                        )}
+                      </article>
+                    ))}
+                </div>
+                <form className="post-inline-comment-form" onSubmit={(event) => addInlineComment(event, post._id)}>
+                  <div className="post-comment-input-row">
+                    <img className="post-comment-avatar" src={getProfileAvatar(user)} alt="" />
+                    <textarea
+                      className="post-inline-comment-input"
+                      name="text"
+                      placeholder="Write a comment..."
+                      aria-label="Write a comment"
+                      maxLength={1000}
+                      required
+                      disabled={isSubmittingComment}
+                      rows={1}
+                    />
+                    <button
+                      className="post-dialog-submit post-inline-comment-submit"
+                      type="submit"
+                      aria-label="Send comment"
+                      disabled={isSubmittingComment}
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 20.5 22 12 3 3.5l.5 6.7L16 12l-12.5 1.8-.5 6.7Z" />
+                      </svg>
+                    </button>
+                  </div>
+                </form>
+              </section>
             </div>
             {index === 2 && !isPostPreviewOpen && <CompanySuggestions postSlide />}
             </React.Fragment>
