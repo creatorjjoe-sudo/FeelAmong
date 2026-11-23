@@ -58,19 +58,22 @@ async function flyInFromRect(sourceElement, targetElement, originRect, signal) {
 
   const clone = sourceImage ? sourceImage.cloneNode(false) : sourceElement.cloneNode(true)
   const sourceStyle = window.getComputedStyle(sourceElement)
+  const initialTransform = `translate3d(${originRect.left - destinationRect.left}px, ${originRect.top - destinationRect.top}px, 0) scale(${originRect.width / destinationRect.width}, ${originRect.height / destinationRect.height})`
   clone.setAttribute('aria-hidden', 'true')
   clone.removeAttribute('role')
   clone.removeAttribute('tabindex')
   Object.assign(clone.style, {
     position: 'fixed',
-    top: `${originRect.top}px`,
-    left: `${originRect.left}px`,
-    width: `${originRect.width}px`,
-    height: `${originRect.height}px`,
+    top: `${destinationRect.top}px`,
+    left: `${destinationRect.left}px`,
+    width: `${destinationRect.width}px`,
+    height: `${destinationRect.height}px`,
     boxSizing: 'border-box',
     margin: '0',
     zIndex: '1300',
     pointerEvents: 'none',
+    transformOrigin: 'top left',
+    transform: initialTransform,
   })
   if (sourceImage) {
     clone.src = sourceImage.currentSrc || sourceImage.src
@@ -82,18 +85,8 @@ async function flyInFromRect(sourceElement, targetElement, originRect, signal) {
 
   const flight = clone.animate(
     [
-      {
-        top: `${originRect.top}px`,
-        left: `${originRect.left}px`,
-        width: `${originRect.width}px`,
-        height: `${originRect.height}px`,
-      },
-      {
-        top: `${destinationRect.top}px`,
-        left: `${destinationRect.left}px`,
-        width: `${destinationRect.width}px`,
-        height: `${destinationRect.height}px`,
-      },
+      { transform: initialTransform },
+      { transform: 'translate3d(0, 0, 0) scale(1, 1)' },
     ],
     { duration: FLY_IN_DURATION * 1000, easing: FLY_IN_EASE, fill: 'forwards' },
   )
