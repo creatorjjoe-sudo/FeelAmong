@@ -11,6 +11,30 @@
   scroll-snap-align: start;
 }
 
+.company-suggestions-post-slide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  margin-bottom: 20px;
+  padding-top: 70px;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.company-suggestions-post-slide .company-suggestions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border-radius: 20px;
+}
+
 .company-suggestions-heading {
   display: flex;
   align-items: flex-end;
@@ -56,6 +80,33 @@
   border-radius: 14px;
   background: #fff;
   box-shadow: 0 4px 14px rgba(25, 47, 25, 0.06);
+}
+
+.company-suggestion-see-more {
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #168a36;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+.company-suggestion-see-more svg {
+  width: 30px;
+  height: 30px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.company-suggestion-see-more:hover,
+.company-suggestion-see-more:focus-visible {
+  border-color: #00ba00;
+  background: #f4faf4;
 }
 
 .company-suggestion-remove {
@@ -150,6 +201,61 @@
   font-size: 13px;
 }
 
+.company-discovery-page {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100vh;
+  padding: 32px clamp(16px, 5vw, 64px) 48px;
+  overflow-y: auto;
+  background: #fff;
+  color: #202720;
+}
+
+.company-discovery-back {
+  margin-bottom: 20px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: #267a26;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.company-discovery-heading {
+  margin-bottom: 24px;
+}
+
+.company-discovery-heading h1,
+.company-discovery-page > h1 {
+  margin: 0;
+  font-size: clamp(24px, 4vw, 34px);
+}
+
+.company-discovery-heading p {
+  margin: 8px 0 0;
+  color: #667166;
+}
+
+.company-discovery-state {
+  color: #667166;
+}
+
+.company-suggestions-list.is-company-discovery-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+  gap: 16px;
+  overflow: visible;
+  padding: 0;
+}
+
+.is-company-discovery-list .company-suggestion-card {
+  min-height: 200px;
+}
+
 .company-suggestions-slide {
   box-sizing: border-box;
   padding: 24px;
@@ -171,5 +277,10 @@
 
   .company-suggestion-card {
     flex-basis: 190px;
+  }
+
+  .company-discovery-page {
+    min-height: 100dvh;
+    padding: 20px 14px 32px;
   }
 }

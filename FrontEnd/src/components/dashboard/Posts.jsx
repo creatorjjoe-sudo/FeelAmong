@@ -1362,7 +1362,7 @@ function Posts() {
                 </div>
               </div>
             </div>
-            {index === 2 && !isPostPreviewOpen && <CompanySuggestions />}
+            {index === 2 && !isPostPreviewOpen && <CompanySuggestions postSlide />}
             </React.Fragment>
           )
         })}

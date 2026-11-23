@@ -43,6 +43,7 @@ function AppRoutes() {
       else if (path.includes('/friends')) pageTitle = 'Friends'
       else if (path.includes('/profile')) pageTitle = 'Profile'
       else if (path.includes('/company-create')) pageTitle = 'Create company'
+      else if (path.includes('/companies')) pageTitle = 'Companies'
       else if (path.includes('/saved')) pageTitle = 'Saved'
       else if (path.includes('/save/create-container')) pageTitle = 'Create container'
       else if (path.includes('/save')) pageTitle = 'Save post'

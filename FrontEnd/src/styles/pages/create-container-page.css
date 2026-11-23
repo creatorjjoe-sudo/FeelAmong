@@ -16,6 +16,10 @@
    display: contents;
 }
 
+.dashboard-posts-layer.is-hidden {
+   display: none;
+}
+
 .dashboard-posts-layer.is-modal-underlay {
    position: fixed;
    inset: 0;

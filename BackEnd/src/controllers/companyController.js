@@ -244,7 +244,7 @@ const getCompanySuggestions = async (req, res) => {
     }).sort((first, second) => (
       second.relevanceScore - first.relevanceScore
       || new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime()
-    )).slice(0, 12).map(({ relevanceScore, ...company }) => company);
+    )).map(({ relevanceScore, ...company }) => company);
 
     res.json({ suggestions });
   } catch (error) {

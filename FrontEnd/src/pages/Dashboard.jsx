@@ -16,6 +16,7 @@ import SaveToContainerPage from './SaveToContainerPage'
 import CreateContainerPage from './CreateContainerPage'
 import SettingsPage from './SettingsPage'
 import CreateCompanyPage from './CreateCompanyPage'
+import CompanySuggestions from '../components/dashboard/CompanySuggestions'
 import { AuthContext } from '../api/context/AuthContext'
 import { API_ORIGIN } from '../api/config'
 
@@ -34,7 +35,7 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
   const isUpdatesPage = location.pathname.endsWith('/notifications')
   const isDashboardModalPage = isSavePage || isCreateContainerPage || isFriendsPage
   const isForYouHome = /^\/for-you\/?$/.test(location.pathname)
-  const shouldRenderPosts = isForYouHome || isDashboardModalPage
+  const shouldShowPosts = isForYouHome || isDashboardModalPage
   const [activeView, setActiveView] = React.useState('for-you')
   const [unreadMessageCount, setUnreadMessageCount] = React.useState(0)
   const [unreadNotificationCount, setUnreadNotificationCount] = React.useState(0)
@@ -227,15 +228,13 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
 
   return (
     <div className={`dashboard-container${isVideosView ? ' videos-active' : ''}${isUpdatesPage ? ' is-updates-page' : ''}${isProfilePage ? ' is-profile-page' : ''}${isChromeLoading && !isDashboardModalPage ? ' is-loading' : ''}`}>
-      {shouldRenderPosts && (
-        <div
-          className={`dashboard-posts-layer${isDashboardModalPage ? ' is-modal-underlay' : ''}`}
-          aria-hidden={isDashboardModalPage}
-          inert={isDashboardModalPage}
-        >
-          <Posts />
-        </div>
-      )}
+      <div
+        className={`dashboard-posts-layer${isDashboardModalPage ? ' is-modal-underlay' : ''}${shouldShowPosts ? '' : ' is-hidden'}`}
+        aria-hidden={!shouldShowPosts || isDashboardModalPage}
+        inert={!shouldShowPosts || isDashboardModalPage}
+      >
+        <Posts />
+      </div>
       <MobileHeader />
       <Navbar
         activeView={activeView}
@@ -269,6 +268,7 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
         <Route path="profile" element={<ProfilePage />} />
         <Route path="profile/:userId" element={<ProfilePage />} />
         <Route path="company-create" element={<CreateCompanyPage />} />
+        <Route path="companies" element={<CompanySuggestions listPage />} />
         <Route path="saved" element={<SavedItemsPage />} />
         <Route path="save" element={<SaveToContainerPage />} />
         <Route path="save/create-container" element={<CreateContainerPage />} />
