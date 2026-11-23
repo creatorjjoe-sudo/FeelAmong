@@ -55,6 +55,7 @@
 }
 
 .post-wrapper {
+   box-sizing: border-box;
    width: 100%;
    height: 100%;
    margin-bottom: 20px;
@@ -63,8 +64,9 @@
    display: flex;
    align-items: center;
    gap: 16px;
+   border: 1px solid #e0e9e0;
    border-radius: 20px;
-   padding-top: 70px;
+   padding: 16px;
 }
 
 /* While the feed is loading, paint the shimmer directly onto the real post
@@ -209,6 +211,20 @@
 @keyframes post-feed-shimmer {
    to {
       transform: translateX(100%);
+   }
+}
+
+@media screen and (max-width: 799px) {
+   .posts-wrapper:not(.post-preview-overlay) {
+      position: fixed;
+      inset: var(--mobile-header-height, 55px) 0 var(--mobile-footer-height, 70px);
+      width: auto;
+   }
+
+   .posts-wrapper:not(.post-preview-overlay) .post-container {
+      box-sizing: border-box;
+      height: 100%;
+      margin-top: 0;
    }
 }
 

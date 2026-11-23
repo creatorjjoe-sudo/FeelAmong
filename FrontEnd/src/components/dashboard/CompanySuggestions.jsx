@@ -182,11 +182,10 @@ function CompanySuggestions({ videoSlide = false, postSlide = false, listPage = 
           <h2 id="company-suggestions-title">Companies you may want to follow</h2>
           <p>Recommended based on your interests</p>
         </div>
-        <span className="company-suggestions-scroll-hint" aria-hidden="true">Swipe to explore →</span>
       </header>
       {error && <p className="company-suggestions-error" role="alert">{error}</p>}
       {displayedCompanies.length > 0 && (
-        <div className="company-suggestions-list" aria-label="Suggested companies">
+        <div className="company-suggestions-list is-compact" aria-label="Suggested companies">
           {displayedCompanies.map(renderCompanyCard)}
           {companies.length > 0 && (
             <Link className="company-suggestion-card company-suggestion-see-more" to="/for-you/companies">

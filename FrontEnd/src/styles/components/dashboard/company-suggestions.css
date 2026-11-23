@@ -69,6 +69,14 @@
   overscroll-behavior-x: contain;
 }
 
+.company-suggestions-list.is-compact {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  overflow: visible;
+  padding: 0;
+}
+
 .company-suggestion-card {
   position: relative;
   display: flex;
@@ -80,6 +88,62 @@
   border-radius: 14px;
   background: #fff;
   box-shadow: 0 4px 14px rgba(25, 47, 25, 0.06);
+}
+
+.company-suggestions-list.is-compact .company-suggestion-card {
+  min-width: 0;
+  min-height: 170px;
+  padding: 32px 8px 10px;
+}
+
+.company-suggestions-list.is-compact .company-suggestion-identity {
+  flex-direction: column;
+  gap: 6px;
+  padding: 0;
+  text-align: center;
+}
+
+.company-suggestions-list.is-compact .company-suggestion-identity img {
+  flex-basis: 36px;
+  width: 36px;
+  height: 36px;
+}
+
+.company-suggestions-list.is-compact .company-suggestion-identity span {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  color: #202720;
+  font-size: 14px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.company-suggestions-list.is-compact .company-suggestion-description {
+  min-height: 30px;
+  margin: 8px 0;
+  font-size: 10px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.company-suggestions-list.is-compact .company-suggestion-follow {
+  min-height: 30px;
+  padding: 0 3px;
+  font-size: 11px;
+}
+
+.company-suggestions-list.is-compact .company-suggestion-see-more {
+  gap: 8px;
+  padding-right: 4px;
+  padding-left: 4px;
+  font-size: 12px;
+}
+
+.company-suggestions-list.is-compact .company-suggestion-see-more svg {
+  width: 24px;
+  height: 24px;
 }
 
 .company-suggestion-see-more {
@@ -156,7 +220,9 @@
 
 .company-suggestion-identity span {
   overflow: hidden;
-  overflow-wrap: anywhere;
+  color: #202720;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .company-suggestion-description {
@@ -277,6 +343,38 @@
 
   .company-suggestion-card {
     flex-basis: 190px;
+  }
+
+  .company-suggestions-list.is-compact {
+    gap: 5px;
+  }
+
+  .company-suggestions-list.is-compact .company-suggestion-card {
+    flex-basis: auto;
+    min-height: 158px;
+    padding: 30px 4px 8px;
+  }
+
+  .company-suggestions-list.is-compact .company-suggestion-identity img {
+    flex-basis: 30px;
+    width: 30px;
+    height: 30px;
+  }
+
+  .company-suggestions-list.is-compact .company-suggestion-identity span {
+    font-size: 12px;
+  }
+
+  .company-suggestions-list.is-compact .company-suggestion-description {
+    font-size: 9px;
+  }
+
+  .company-suggestions-list.is-compact .company-suggestion-follow {
+    font-size: 10px;
+  }
+
+  .company-suggestions-list.is-compact .company-suggestion-see-more {
+    font-size: 10px;
   }
 
   .company-discovery-page {
