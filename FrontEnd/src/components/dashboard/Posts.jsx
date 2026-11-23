@@ -1462,7 +1462,7 @@ function Posts() {
           )
         })}
       </div>
-      {activeDialog && activePost && (routedModal === 'comments' || routedModal === 'report' || routedModal === 'share-post') && (
+      {activeDialog && activePost && (routedModal === 'comments' || routedModal === 'report' || routedModal === 'share-post') && createPortal(
         <div
           className={`post-action-dialog-backdrop${activeDialog.type === 'comment' ? ' is-post-comments' : ''}${activeDialog.type === 'share' ? ' is-post-share' : ''}`}
           onMouseDown={(event) => {
@@ -1654,7 +1654,8 @@ function Posts() {
               </>
             )}
           </section>
-        </div>
+        </div>,
+        document.body
       )}
       {isCompanySharePromptOpen && activeDialog?.type === 'share' && routedModal === 'share-post' && createPortal(
         <div
