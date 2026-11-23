@@ -436,6 +436,7 @@ function Videos() {
   const { user, personalUser, logout, switchToCompany } = React.useContext(AuthContext)
   const location = useLocation()
   const navigate = useNavigate()
+  const isVideosView = location.pathname.replace(/\/+$/, '').endsWith('/videos')
   const routedModal = location.state?.routedModal
   const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
   const [videos, setVideos] = React.useState([])
@@ -606,6 +607,11 @@ function Videos() {
   React.useEffect(() => {
     let cancelled = false
     const registry = videoRegistryRef.current
+    if (!isVideosView) {
+      registry.forEach((element) => element?.pause())
+      return () => { cancelled = true }
+    }
+
     registry.forEach((element) => {
       if (!element) return
       if (element.dataset.slideIndex === String(activeIndex)) return
@@ -621,7 +627,7 @@ function Videos() {
       })
     }
     return () => { cancelled = true }
-  }, [activeIndex, videos.length])
+  }, [activeIndex, isVideosView, videos.length])
 
   // Keyboard navigation (desktop convenience).
   React.useEffect(() => {
@@ -1208,7 +1214,7 @@ function Videos() {
             <React.Fragment key={video._id}>
               <VideoFeedItem
                 video={video}
-                isActive={index === activeIndex}
+                isActive={isVideosView && index === activeIndex}
                 index={index}
                 registryRef={videoRegistryRef}
                 isSaved={isVideoSaved(video)}
