@@ -29,7 +29,29 @@ export function pushRoutedDropdown(navigate, location, dropdown) {
   })
 }
 
+export function pushRoutedDropdownView(navigate, location, dropdownType, view) {
+  const dropdown = location.state?.routedDropdown
+  if (dropdown?.type !== dropdownType) return
+
+  navigate(getCurrentUrl(location), {
+    state: {
+      ...location.state,
+      routedDropdown: { ...dropdown, view },
+    },
+    preventScrollReset: true,
+  })
+}
+
+export function closeRoutedDropdownView(navigate, location, dropdownType, view) {
+  if (
+    location.state?.routedDropdown?.type === dropdownType
+    && location.state?.routedDropdown?.view === view
+  ) {
+    navigate(-1)
+  }
+}
+
 export function closeRoutedDropdown(navigate, location, dropdownType) {
   if (location.state?.routedDropdown?.type !== dropdownType) return
-  navigate(-1)
+  navigate(location.state.routedDropdown.view ? -2 : -1)
 }

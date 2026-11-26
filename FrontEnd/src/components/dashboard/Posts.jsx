@@ -12,7 +12,12 @@ import { DEFAULT_TEXT_POST_BACKGROUND, getTextPostColor, isNoneTextPostBackgroun
 import { motion } from 'framer-motion'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
-import { closeRoutedDropdown, pushRoutedDropdown } from '../../utils/routedDropdown'
+import {
+  closeRoutedDropdown,
+  closeRoutedDropdownView,
+  pushRoutedDropdown,
+  pushRoutedDropdownView,
+} from '../../utils/routedDropdown'
 import CompanySwitchMenuItem from './CompanySwitchMenuItem'
 
 import { API_ORIGIN } from '../../api/config'
@@ -369,9 +374,12 @@ function Posts() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, personalUser, switchToPersonal, logout } = useContext(AuthContext)
-  const openPostMenuId = location.state?.routedDropdown?.type === 'post-more'
-    ? String(location.state.routedDropdown.id)
+  const activePostDropdown = location.state?.routedDropdown
+  const openPostMenuId = activePostDropdown?.type === 'post-more'
+    ? String(activePostDropdown.id)
     : null
+  const isCompanyMenuExpanded = activePostDropdown?.type === 'post-more'
+    && activePostDropdown.view === 'accounts'
   const previewPostId = new URLSearchParams(location.search).get('post')
   const routedModal = location.state?.routedModal
   const isLoginRequiredOpen = routedModal === 'posts-login-required'
@@ -380,7 +388,6 @@ function Posts() {
   const [posts, setPosts] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
-  const [isCompanyMenuExpanded, setIsCompanyMenuExpanded] = React.useState(false)
   const postMenuRefs = React.useRef(new Map())
   const postContainerRef = React.useRef(null)
   const feedScrollPositionRef = React.useRef(0)
@@ -408,8 +415,15 @@ function Posts() {
   const [savedItemFolders, setSavedItemFolders] = React.useState({})
 
   const closePostMenu = React.useCallback(() => {
-    setIsCompanyMenuExpanded(false)
     closeRoutedDropdown(navigate, location, 'post-more')
+  }, [location, navigate])
+
+  const setCompanyMenuExpanded = React.useCallback((expanded) => {
+    if (expanded) {
+      pushRoutedDropdownView(navigate, location, 'post-more', 'accounts')
+    } else {
+      closeRoutedDropdownView(navigate, location, 'post-more', 'accounts')
+    }
   }, [location, navigate])
 
   const togglePostMenu = React.useCallback((postId) => {
@@ -419,18 +433,8 @@ function Posts() {
       return
     }
 
-    setIsCompanyMenuExpanded(false)
     pushRoutedDropdown(navigate, location, { type: 'post-more', id })
   }, [closePostMenu, location, navigate, openPostMenuId])
-
-  React.useEffect(() => {
-    function resetExpandedAccountMenu() {
-      setIsCompanyMenuExpanded(false)
-    }
-
-    window.addEventListener('popstate', resetExpandedAccountMenu)
-    return () => window.removeEventListener('popstate', resetExpandedAccountMenu)
-  }, [])
 
   React.useLayoutEffect(() => {
     const textarea = commentInputRef.current
@@ -1352,8 +1356,8 @@ function Posts() {
                         <span aria-hidden="true" />
                       </li>
                       <CompanySwitchMenuItem
-                        onExpandedChange={setIsCompanyMenuExpanded}
-                        onSwitched={() => setIsCompanyMenuExpanded(false)}
+                        isExpanded={isCompanyMenuExpanded}
+                        onExpandedChange={setCompanyMenuExpanded}
                       />
                       <li
                         className={`post-more-actions-group${isCompanyMenuExpanded ? ' is-hidden' : ''}`}

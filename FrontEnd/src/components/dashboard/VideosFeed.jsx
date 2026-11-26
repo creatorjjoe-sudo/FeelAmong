@@ -4,7 +4,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../api/context/AuthContext'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
-import { closeRoutedDropdown, pushRoutedDropdown } from '../../utils/routedDropdown'
+import {
+  closeRoutedDropdown,
+  closeRoutedDropdownView,
+  pushRoutedDropdown,
+  pushRoutedDropdownView,
+} from '../../utils/routedDropdown'
 import LoginRequiredModal from './LoginRequiredModal'
 import CompanySuggestions from './CompanySuggestions'
 import CompanySwitchMenuItem from './CompanySwitchMenuItem'
@@ -50,7 +55,7 @@ function formatThreadTime(createdAt) {
   return `${value}${shortUnit}`
 }
 
-function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, onLike, onComment, onShare, onMore, onAccountSwitched, onCompanyFollow, currentUserId, isCompanyFollowBusy, isLikedByMe, likedUsers, isMoreOpen, isCompanyMenuExpanded, onCompanyMenuExpandedChange, moreActions, moreAnchorsRef, isLoading = false }) {
+function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, onLike, onComment, onShare, onMore, onCompanyFollow, currentUserId, isCompanyFollowBusy, isLikedByMe, likedUsers, isMoreOpen, isCompanyMenuExpanded, onCompanyMenuExpandedChange, moreActions, moreAnchorsRef, isLoading = false }) {
   const videoRef = React.useRef(null)
   const rowRef = React.useRef(null)
   const [isPaused, setIsPaused] = React.useState(false)
@@ -392,8 +397,8 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
                     <span aria-hidden="true" />
                   </li>
                   <CompanySwitchMenuItem
+                    isExpanded={isCompanyMenuExpanded}
                     onExpandedChange={onCompanyMenuExpandedChange}
-                    onSwitched={onAccountSwitched}
                   />
                   <li
                     className={`video-more-actions-group${isCompanyMenuExpanded ? ' is-hidden' : ''}`}
@@ -456,9 +461,12 @@ function Videos() {
   const { user, personalUser, logout, switchToCompany } = React.useContext(AuthContext)
   const location = useLocation()
   const navigate = useNavigate()
-  const moreMenuVideoId = location.state?.routedDropdown?.type === 'video-more'
-    ? String(location.state.routedDropdown.id)
+  const activeVideoDropdown = location.state?.routedDropdown
+  const moreMenuVideoId = activeVideoDropdown?.type === 'video-more'
+    ? String(activeVideoDropdown.id)
     : null
+  const isCompanyMenuExpanded = activeVideoDropdown?.type === 'video-more'
+    && activeVideoDropdown.view === 'accounts'
   const isVideosView = location.pathname.replace(/\/+$/, '').endsWith('/videos')
   const routedModal = location.state?.routedModal
   const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
@@ -473,7 +481,6 @@ function Videos() {
   const [replyTarget, setReplyTarget] = React.useState(null)
   const [isSubmittingComment, setIsSubmittingComment] = React.useState(false)
   const commentInputRef = React.useRef(null)
-  const [isCompanyMenuExpanded, setIsCompanyMenuExpanded] = React.useState(false)
   const moreAnchorsRef = React.useRef(new Map())
   const [reportVideoItemData, setReportVideoItemData] = React.useState(null)
   const activeVideoDialog = routedModal === 'video-feed-comments' ? activeVideoDialogData : null
@@ -501,10 +508,16 @@ function Videos() {
   const videoRegistryRef = React.useRef(new Map())
 
   const closeMoreMenu = React.useCallback(() => {
-    setIsCompanyMenuExpanded(false)
     closeRoutedDropdown(navigate, location, 'video-more')
   }, [location, navigate])
 
+  const setCompanyMenuExpanded = React.useCallback((expanded) => {
+    if (expanded) {
+      pushRoutedDropdownView(navigate, location, 'video-more', 'accounts')
+    } else {
+      closeRoutedDropdownView(navigate, location, 'video-more', 'accounts')
+    }
+  }, [location, navigate])
   React.useLayoutEffect(() => {
     const textarea = commentInputRef.current
     if (!textarea) return
@@ -996,18 +1009,8 @@ function Videos() {
       return
     }
 
-    setIsCompanyMenuExpanded(false)
     pushRoutedDropdown(navigate, location, { type: 'video-more', id: String(video._id) })
   }
-
-  React.useEffect(() => {
-    function resetExpandedAccountMenu() {
-      setIsCompanyMenuExpanded(false)
-    }
-
-    window.addEventListener('popstate', resetExpandedAccountMenu)
-    return () => window.removeEventListener('popstate', resetExpandedAccountMenu)
-  }, [])
 
   // Close the more menu on outside click / Escape (same as posts).
   React.useEffect(() => {
@@ -1272,8 +1275,7 @@ function Videos() {
                 isLikedByMe={Boolean(user && (video.likes || []).some((id) => String(typeof id === 'object' ? id?._id : id) === String(user._id)))}
                 isMoreOpen={moreMenuVideoId === video._id}
                 isCompanyMenuExpanded={isCompanyMenuExpanded}
-                onCompanyMenuExpandedChange={setIsCompanyMenuExpanded}
-                onAccountSwitched={() => setIsCompanyMenuExpanded(false)}
+                onCompanyMenuExpandedChange={setCompanyMenuExpanded}
                 moreAnchorsRef={moreAnchorsRef}
                 moreActions={{
                   onLike: (item) => { toggleLike(item) },

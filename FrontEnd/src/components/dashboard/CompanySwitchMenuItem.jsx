@@ -3,7 +3,7 @@ import { AuthContext } from '../../api/context/AuthContext'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { API_ORIGIN } from '../../api/config'
 
-function CompanySwitchMenuItem({ onExpandedChange, onSwitched }) {
+function CompanySwitchMenuItem({ isExpanded, onExpandedChange }) {
   const { user, personalUser, switchToCompany, switchToPersonal } = React.useContext(AuthContext)
   const personalAccount = personalUser || (!user?.isCompany ? user : null)
   const activeAccount = user || personalAccount
@@ -12,7 +12,6 @@ function CompanySwitchMenuItem({ onExpandedChange, onSwitched }) {
   const requestKey = `${accountId}:${token || ''}`
   const [companyResult, setCompanyResult] = React.useState(null)
   const [switchError, setSwitchError] = React.useState('')
-  const [isExpanded, setIsExpanded] = React.useState(false)
   const [switchingAccountId, setSwitchingAccountId] = React.useState('')
 
   React.useEffect(() => {
@@ -52,9 +51,7 @@ function CompanySwitchMenuItem({ onExpandedChange, onSwitched }) {
     try {
       if (account.isCompany) await switchToCompany(account._id)
       else switchToPersonal()
-      setIsExpanded(false)
       onExpandedChange(false)
-      onSwitched()
     } catch (switchError) {
       setSwitchError(switchError.message || 'Could not switch to that company account.')
       setSwitchingAccountId('')
@@ -80,7 +77,6 @@ function CompanySwitchMenuItem({ onExpandedChange, onSwitched }) {
     || 'Profile'
 
   function collapseAccountList() {
-    setIsExpanded(false)
     onExpandedChange(false)
   }
 
@@ -99,9 +95,8 @@ function CompanySwitchMenuItem({ onExpandedChange, onSwitched }) {
                 className="company-switch-menu-trigger"
                 type="button"
                 role="menuitem"
-                aria-expanded="false"
+                aria-expanded={isExpanded}
                 onClick={() => {
-                  setIsExpanded(true)
                   onExpandedChange(true)
                 }}
               >
