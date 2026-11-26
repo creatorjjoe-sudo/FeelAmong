@@ -125,6 +125,77 @@ html[data-theme="dark"] .video-action-count {
  color: #fff;
 }
 
+html[data-theme="dark"] .post-more-options {
+ border-color: #303a33;
+ background-color: #1b211e;
+}
+
+html[data-theme="dark"] .post-more-drag-handle > span {
+ background: #849087;
+}
+
+html[data-theme="dark"] .company-switch-menu-trigger,
+html[data-theme="dark"] .company-switch-menu-choice,
+html[data-theme="dark"] .company-switch-menu-back,
+html[data-theme="dark"] .company-switch-menu-copy strong {
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .company-switch-menu-copy small {
+ color: #b9c0d6;
+}
+
+html[data-theme="dark"] .company-switch-menu-trigger:hover,
+html[data-theme="dark"] .company-switch-menu-trigger:focus-visible,
+html[data-theme="dark"] .company-switch-menu-back:hover,
+html[data-theme="dark"] .company-switch-menu-back:focus-visible,
+html[data-theme="dark"] .company-switch-menu-choice:hover,
+html[data-theme="dark"] .company-switch-menu-choice:focus-visible {
+ background: #29352d;
+}
+
+html[data-theme="dark"] .company-switch-menu-item {
+ border-bottom-color: #3a443d;
+}
+
+html[data-theme="dark"] .company-switch-menu-choice.is-active {
+ background: #29352d;
+}
+
+html[data-theme="dark"] .company-switch-menu-choice.is-active .company-switch-menu-copy strong {
+ color: #00ba00;
+}
+
+html[data-theme="dark"] .company-switch-menu-error {
+ color: #ff8a80;
+}
+
+html[data-theme="dark"] .more-menu-section-title {
+ color: #b9c0d6;
+}
+
+html[data-theme="dark"] .more-menu-section-title.is-divider {
+ border-top-color: #3a443d;
+}
+
+html[data-theme="dark"] .post-more-option,
+html[data-theme="dark"] .post-more-option span strong {
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .post-more-option span small {
+ color: #b9c0d6;
+}
+
+html[data-theme="dark"] .post-more-options li.post-more-section-start {
+ border-top-color: #3a443d;
+}
+
+html[data-theme="dark"] .post-more-option.is-active,
+html[data-theme="dark"] .post-more-option.is-active span strong {
+ color: #00ba00;
+}
+
 html[data-theme="dark"] .header-wrapper,
 html[data-theme="dark"] .footer-wrapper,
 html[data-theme="dark"] .profile-menu-panel,

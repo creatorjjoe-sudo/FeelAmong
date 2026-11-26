@@ -6,6 +6,7 @@ import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 import LoginRequiredModal from './LoginRequiredModal'
 import CompanySuggestions from './CompanySuggestions'
+import CompanySwitchMenuItem from './CompanySwitchMenuItem'
 import { ICONS } from '../../assets/icons'
 import '../../styles/components/dashboard/posts.css'
 import '../../styles/components/dashboard/videosfeed.css'
@@ -48,7 +49,7 @@ function formatThreadTime(createdAt) {
   return `${value}${shortUnit}`
 }
 
-function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, onLike, onComment, onShare, onMore, onCompanyFollow, currentUserId, isCompanyFollowBusy, isLikedByMe, likedUsers, isMoreOpen, moreActions, moreAnchorsRef, isLoading = false }) {
+function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, onLike, onComment, onShare, onMore, onCloseMore, onCompanyFollow, currentUserId, isCompanyFollowBusy, isLikedByMe, likedUsers, isMoreOpen, isCompanyMenuExpanded, onCompanyMenuExpandedChange, moreActions, moreAnchorsRef, isLoading = false }) {
   const videoRef = React.useRef(null)
   const rowRef = React.useRef(null)
   const [isPaused, setIsPaused] = React.useState(false)
@@ -386,41 +387,59 @@ function VideoFeedItem({ video, isSaved, onSave, isActive, index, registryRef, o
               </button>
               {isMoreOpen && (
                 <ul className="video-more-options" role="menu" aria-label="Video options">
+                  <li className="video-more-drag-handle" role="presentation">
+                    <span aria-hidden="true" />
+                  </li>
+                  <CompanySwitchMenuItem
+                    onExpandedChange={onCompanyMenuExpandedChange}
+                    onSwitched={onCloseMore}
+                  />
+                  <li
+                    className={`video-more-actions-group${isCompanyMenuExpanded ? ' is-hidden' : ''}`}
+                    role="none"
+                    aria-hidden={isCompanyMenuExpanded}
+                    inert={isCompanyMenuExpanded}
+                  >
+                    <ul className="video-more-actions-list" role="presentation">
+                  <li className="more-menu-section-title" role="presentation">Engage</li>
                   <li role="none">
                     <button className={`video-more-option${isLikedByMe ? ' is-active' : ''}`} type="button" role="menuitem" onClick={() => moreActions.onLike(video)}>
                       <img src={isLikedByMe ? ICONS.liked : ICONS.like} alt="" />
-                      <span>{isLikedByMe ? 'Liked' : 'Like'}</span>
+                      <span><strong>{isLikedByMe ? 'Liked' : 'Like'}</strong><small>React to this video</small></span>
                     </button>
                   </li>
                   <li role="none">
                     <button className="video-more-option" type="button" role="menuitem" onClick={() => moreActions.onComment(video)}>
                       <img src={ICONS.comment} alt="" />
-                      <span>Comment</span>
+                      <span><strong>Comment</strong><small>Join the conversation</small></span>
                     </button>
                   </li>
                   <li role="none">
                     <button className="video-more-option" type="button" role="menuitem" onClick={() => moreActions.onShare(video)}>
                       <img src={ICONS.share} alt="" />
-                      <span>Share</span>
+                      <span><strong>Share</strong><small>Share this video with others</small></span>
                     </button>
                   </li>
                   <li role="none">
                     <button className={`video-more-option${isSaved ? ' is-active' : ''}`} type="button" role="menuitem" onClick={() => moreActions.onSave(video)}>
                       <img src={isSaved ? ICONS.saved : ICONS.save} alt="" />
-                      <span>{isSaved ? 'Saved' : 'Save'}</span>
+                      <span><strong>{isSaved ? 'Saved' : 'Save'}</strong><small>Add this to your saved videos</small></span>
                     </button>
                   </li>
+                  <li className="more-menu-section-title is-divider" role="presentation">Other actions</li>
                   <li role="none">
                     <button className="video-more-option" type="button" role="menuitem" onClick={() => moreActions.onReport(video)}>
                       <img src={ICONS.info} alt="" />
-                      <span>Report video</span>
+                      <span><strong>Report video</strong><small>Tell us about a concern with this video</small></span>
                     </button>
                   </li>
                   <li role="none">
                     <button className="video-more-option" type="button" role="menuitem" onClick={() => moreActions.onNotInterested(video)}>
                       <img src={ICONS.eyeClose} alt="" />
-                      <span>Not interested</span>
+                      <span><strong>Not interested</strong><small>Show fewer videos like this</small></span>
                     </button>
+                  </li>
+                    </ul>
                   </li>
                 </ul>
               )}
@@ -451,6 +470,7 @@ function Videos() {
   const [isSubmittingComment, setIsSubmittingComment] = React.useState(false)
   const commentInputRef = React.useRef(null)
   const [moreMenuVideoId, setMoreMenuVideoId] = React.useState(null)
+  const [isCompanyMenuExpanded, setIsCompanyMenuExpanded] = React.useState(false)
   const moreAnchorsRef = React.useRef(new Map())
   const [reportVideoItemData, setReportVideoItemData] = React.useState(null)
   const activeVideoDialog = routedModal === 'video-feed-comments' ? activeVideoDialogData : null
@@ -963,6 +983,7 @@ function Videos() {
       pushRoutedModal(navigate, location, 'video-feed-login-required')
       return
     }
+    setIsCompanyMenuExpanded(false)
     setMoreMenuVideoId((current) => (current === video._id ? null : video._id))
   }
 
@@ -973,11 +994,15 @@ function Videos() {
     function handlePointerDown(event) {
       if (!moreAnchorsRef.current.get(moreMenuVideoId)?.contains(event.target)) {
         setMoreMenuVideoId(null)
+        setIsCompanyMenuExpanded(false)
       }
     }
 
     function handleKeyDown(event) {
-      if (event.key === 'Escape') setMoreMenuVideoId(null)
+      if (event.key === 'Escape') {
+        setMoreMenuVideoId(null)
+        setIsCompanyMenuExpanded(false)
+      }
     }
 
     document.addEventListener('pointerdown', handlePointerDown)
@@ -1228,6 +1253,12 @@ function Videos() {
                 onMore={openMoreMenu}
                 isLikedByMe={Boolean(user && (video.likes || []).some((id) => String(typeof id === 'object' ? id?._id : id) === String(user._id)))}
                 isMoreOpen={moreMenuVideoId === video._id}
+                isCompanyMenuExpanded={isCompanyMenuExpanded}
+                onCompanyMenuExpandedChange={setIsCompanyMenuExpanded}
+                onCloseMore={() => {
+                  setMoreMenuVideoId(null)
+                  setIsCompanyMenuExpanded(false)
+                }}
                 moreAnchorsRef={moreAnchorsRef}
                 moreActions={{
                   onLike: (item) => { toggleLike(item) },

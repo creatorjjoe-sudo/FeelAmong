@@ -12,6 +12,7 @@ import { DEFAULT_TEXT_POST_BACKGROUND, getTextPostColor, isNoneTextPostBackgroun
 import { motion } from 'framer-motion'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
+import CompanySwitchMenuItem from './CompanySwitchMenuItem'
 
 import { API_ORIGIN } from '../../api/config'
 function formatTimeAgo(createdAt) {
@@ -376,6 +377,7 @@ function Posts() {
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
   const [openPostMenuId, setOpenPostMenuId] = React.useState(null)
+  const [isCompanyMenuExpanded, setIsCompanyMenuExpanded] = React.useState(false)
   const postMenuRefs = React.useRef(new Map())
   const postContainerRef = React.useRef(null)
   const feedScrollPositionRef = React.useRef(0)
@@ -529,11 +531,15 @@ function Posts() {
     function handlePointerDown(event) {
       if (!postMenuRefs.current.get(openPostMenuId)?.contains(event.target)) {
         setOpenPostMenuId(null)
+        setIsCompanyMenuExpanded(false)
       }
     }
 
     function handleKeyDown(event) {
-      if (event.key === 'Escape') setOpenPostMenuId(null)
+      if (event.key === 'Escape') {
+        setOpenPostMenuId(null)
+        setIsCompanyMenuExpanded(false)
+      }
     }
 
     document.addEventListener('pointerdown', handlePointerDown)
@@ -1311,7 +1317,10 @@ function Posts() {
                     else postMenuRefs.current.delete(post._id)
                   }}
                 >
-                  <button className="engage-folder post-more-trigger" type="button" aria-label="More post options" aria-expanded={openPostMenuId === post._id} aria-haspopup="menu" onClick={() => setOpenPostMenuId((currentId) => currentId === post._id ? null : post._id)}
+                  <button className="engage-folder post-more-trigger" type="button" aria-label="More post options" aria-expanded={openPostMenuId === post._id} aria-haspopup="menu" onClick={() => {
+                    setIsCompanyMenuExpanded(false)
+                    setOpenPostMenuId((currentId) => currentId === post._id ? null : post._id)
+                  }}
                   >
                     <span className="engage-background">
                       <img src={ICONS.more} alt="" />
@@ -1319,13 +1328,31 @@ function Posts() {
                   </button>
                   {openPostMenuId === post._id && (
                     <ul className="post-more-options" role="menu" aria-label="Post options">
+                      <li className="post-more-drag-handle" role="presentation">
+                        <span aria-hidden="true" />
+                      </li>
+                      <CompanySwitchMenuItem
+                        onExpandedChange={setIsCompanyMenuExpanded}
+                        onSwitched={() => {
+                          setOpenPostMenuId(null)
+                          setIsCompanyMenuExpanded(false)
+                        }}
+                      />
+                      <li
+                        className={`post-more-actions-group${isCompanyMenuExpanded ? ' is-hidden' : ''}`}
+                        role="none"
+                        aria-hidden={isCompanyMenuExpanded}
+                        inert={isCompanyMenuExpanded}
+                      >
+                        <ul className="post-more-actions-list" role="presentation">
+                      <li className="more-menu-section-title" role="presentation">Engage</li>
                       <li role="none">
                         <button className={`post-more-option ${likedByCurrentUser ? 'is-active' : ''}`} type="button" role="menuitem" onClick={() => {
                           setOpenPostMenuId(null)
                           toggleLike(post._id)
                         }}>
                           <img src={likedByCurrentUser ? ICONS.liked : ICONS.like} alt="" />
-                          <span>{likedByCurrentUser ? 'Liked' : 'Like'}</span>
+                          <span><strong>{likedByCurrentUser ? 'Liked' : 'Like'}</strong><small>React to this post</small></span>
                         </button>
                       </li>
                       <li role="none">
@@ -1333,7 +1360,7 @@ function Posts() {
                           if (!requireLogin()) return; setCommentDraft(''); setReplyTarget(null); setActiveDialog({ type: 'comment', postId: post._id }); openPostModal('comments'); setOpenPostMenuId(null);
                         }}>
                           <img src={ICONS.comment} alt="" />
-                          <span>Comment</span>
+                          <span><strong>Comment</strong><small>Join the conversation</small></span>
                         </button>
                       </li>
                       <li role="none">
@@ -1342,7 +1369,7 @@ function Posts() {
                           sharePost(post._id).catch((shareError) => setError(shareError.message))
                         }}>
                           <img src={ICONS.share} alt="" />
-                          <span>Share</span>
+                          <span><strong>Share</strong><small>Share this post with others</small></span>
                         </button>
                       </li>
                       <li role="none">
@@ -1351,7 +1378,7 @@ function Posts() {
                           toggleSave(post._id)
                         }}>
                           <img src={savedByCurrentUser ? ICONS.saved : ICONS.save} alt="" />
-                          <span>{savedByCurrentUser ? 'Saved' : 'Save'}</span>
+                          <span><strong>{savedByCurrentUser ? 'Saved' : 'Save'}</strong><small>Add this to your saved posts</small></span>
                         </button>
                       </li>
                       {isPostCreator && !sharedPost && (
@@ -1364,7 +1391,7 @@ function Posts() {
                               <path d="M12 20h9" />
                               <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" />
                             </svg>
-                            <span>Edit</span>
+                            <span><strong>Edit post</strong><small>Update this post</small></span>
                           </button>
                         </li>
                       )}
@@ -1380,10 +1407,23 @@ function Posts() {
                               <path d="m19 6-1 14H6L5 6" />
                               <path d="M10 11v5M14 11v5" />
                             </svg>
-                            <span>Delete</span>
+                            <span><strong>Delete post</strong><small>Remove this post permanently</small></span>
                           </button>
                         </li>
                       )}
+                      <li className="more-menu-section-title is-divider" role="presentation">Other actions</li>
+                      <li role="none">
+                        <button className="post-more-option" type="button" role="menuitem" onClick={() => {
+                          if (!requireLogin()) return; setReportReason(''); setReportDetails(''); setActiveDialog({ type: 'report', postId: post._id }); openPostModal('report'); setOpenPostMenuId(null);
+                        }}>
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 9v4" />
+                            <path d="M12 17h.01" />
+                            <path d="M10.3 3.9 1.8 18.2A2 2 0 0 0 3.5 21h17a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+                          </svg>
+                          <span><strong>Report post</strong><small>Tell us about a concern with this post</small></span>
+                        </button>
+                      </li>
                       {!isPostCreator && (
                         <li role="none">
                           <button className="post-more-option" type="button" role="menuitem" onClick={() => {
@@ -1395,22 +1435,13 @@ function Posts() {
                               <circle cx="10" cy="7" r="4" />
                               <path d="M19 8v6M22 11h-6" />
                             </svg>
-                            <span>{isPostCreatorFriend ? 'Unfriend' : 'Add friend'}</span>
+                            <span>
+                              <strong>{isPostCreatorFriend ? 'Unfriend' : 'Add friend'}</strong>
+                              <small>{isPostCreatorFriend ? 'Remove this connection' : 'Connect with this creator'}</small>
+                            </span>
                           </button>
                         </li>
                       )}
-                      <li role="none">
-                        <button className="post-more-option" type="button" role="menuitem" onClick={() => {
-                          if (!requireLogin()) return; setReportReason(''); setReportDetails(''); setActiveDialog({ type: 'report', postId: post._id }); openPostModal('report'); setOpenPostMenuId(null);
-                        }}>
-                          <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M12 9v4" />
-                            <path d="M12 17h.01" />
-                            <path d="M10.3 3.9 1.8 18.2A2 2 0 0 0 3.5 21h17a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z" />
-                          </svg>
-                          <span>Report</span>
-                        </button>
-                      </li>
                       <li role="none">
                         <button className="post-more-option" type="button" role="menuitem" onClick={() => {
                           setOpenPostMenuId(null)
@@ -1420,8 +1451,10 @@ function Posts() {
                             <rect x="8" y="8" width="13" height="13" rx="2" />
                             <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
                           </svg>
-                          <span>Copy link</span>
+                          <span><strong>Copy link</strong><small>Copy a link to this post</small></span>
                         </button>
+                      </li>
+                        </ul>
                       </li>
                     </ul>
                   )}
