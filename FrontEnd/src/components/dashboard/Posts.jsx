@@ -12,6 +12,7 @@ import { DEFAULT_TEXT_POST_BACKGROUND, getTextPostColor, isNoneTextPostBackgroun
 import { motion } from 'framer-motion'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
+import { closeRoutedDropdown, pushRoutedDropdown } from '../../utils/routedDropdown'
 import CompanySwitchMenuItem from './CompanySwitchMenuItem'
 
 import { API_ORIGIN } from '../../api/config'
@@ -368,6 +369,9 @@ function Posts() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, personalUser, switchToPersonal, logout } = useContext(AuthContext)
+  const openPostMenuId = location.state?.routedDropdown?.type === 'post-more'
+    ? String(location.state.routedDropdown.id)
+    : null
   const previewPostId = new URLSearchParams(location.search).get('post')
   const routedModal = location.state?.routedModal
   const isLoginRequiredOpen = routedModal === 'posts-login-required'
@@ -376,7 +380,6 @@ function Posts() {
   const [posts, setPosts] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
-  const [openPostMenuId, setOpenPostMenuId] = React.useState(null)
   const [isCompanyMenuExpanded, setIsCompanyMenuExpanded] = React.useState(false)
   const postMenuRefs = React.useRef(new Map())
   const postContainerRef = React.useRef(null)
@@ -403,6 +406,32 @@ function Posts() {
   const [imagePreview, setImagePreview] = React.useState(null)
   const [textPostPreview, setTextPostPreview] = React.useState(null)
   const [savedItemFolders, setSavedItemFolders] = React.useState({})
+
+  const closePostMenu = React.useCallback(() => {
+    setIsCompanyMenuExpanded(false)
+    closeRoutedDropdown(navigate, location, 'post-more')
+  }, [location, navigate])
+
+  const togglePostMenu = React.useCallback((postId) => {
+    const id = String(postId)
+    if (String(openPostMenuId) === id) {
+      closePostMenu()
+      return
+    }
+
+    setIsCompanyMenuExpanded(false)
+    pushRoutedDropdown(navigate, location, { type: 'post-more', id })
+  }, [closePostMenu, location, navigate, openPostMenuId])
+
+  React.useEffect(() => {
+    function resetExpandedAccountMenu() {
+      setIsCompanyMenuExpanded(false)
+    }
+
+    window.addEventListener('popstate', resetExpandedAccountMenu)
+    return () => window.removeEventListener('popstate', resetExpandedAccountMenu)
+  }, [])
+
   React.useLayoutEffect(() => {
     const textarea = commentInputRef.current
     if (!textarea) return
@@ -530,16 +559,12 @@ function Posts() {
 
     function handlePointerDown(event) {
       if (!postMenuRefs.current.get(openPostMenuId)?.contains(event.target)) {
-        setOpenPostMenuId(null)
-        setIsCompanyMenuExpanded(false)
+        closePostMenu()
       }
     }
 
     function handleKeyDown(event) {
-      if (event.key === 'Escape') {
-        setOpenPostMenuId(null)
-        setIsCompanyMenuExpanded(false)
-      }
+      if (event.key === 'Escape') closePostMenu()
     }
 
     document.addEventListener('pointerdown', handlePointerDown)
@@ -548,7 +573,7 @@ function Posts() {
       document.removeEventListener('pointerdown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [openPostMenuId])
+  }, [closePostMenu, openPostMenuId])
 
   React.useEffect(() => {
     if (!notice) return undefined
@@ -884,7 +909,6 @@ function Posts() {
     setShareVisibility('public')
     setActiveDialog({ type: 'share', postId })
     openPostModal('share-post')
-    setOpenPostMenuId(null)
   }
 
   async function submitSharedPost(event) {
@@ -1288,7 +1312,7 @@ function Posts() {
                   <p className='engage-count'>{likeCount}</p>
                 </div>
                 <button className="engage-folder comments" type="button" onClick={() => {
-                  if (!requireLogin()) return; setCommentDraft(''); setReplyTarget(null); setActiveDialog({ type: 'comment', postId: post._id }); openPostModal('comments'); setOpenPostMenuId(null);
+                  if (!requireLogin()) return; setCommentDraft(''); setReplyTarget(null); setActiveDialog({ type: 'comment', postId: post._id }); openPostModal('comments');
                 }}>
                   <div className="engage-background">
                     <img src={ICONS.comment} alt="" />
@@ -1296,7 +1320,6 @@ function Posts() {
                   <p className='engage-count'>{commentCount}</p>
                 </button>
                 <button className="engage-folder shares" type="button" onClick={() => {
-                  setOpenPostMenuId(null)
                   sharePost(post._id).catch((shareError) => setError(shareError.message))
                 }}>
                   <div className="engage-background">
@@ -1317,10 +1340,7 @@ function Posts() {
                     else postMenuRefs.current.delete(post._id)
                   }}
                 >
-                  <button className="engage-folder post-more-trigger" type="button" aria-label="More post options" aria-expanded={openPostMenuId === post._id} aria-haspopup="menu" onClick={() => {
-                    setIsCompanyMenuExpanded(false)
-                    setOpenPostMenuId((currentId) => currentId === post._id ? null : post._id)
-                  }}
+                  <button className="engage-folder post-more-trigger" type="button" aria-label="More post options" aria-expanded={openPostMenuId === post._id} aria-haspopup="menu" onClick={() => togglePostMenu(post._id)}
                   >
                     <span className="engage-background">
                       <img src={ICONS.more} alt="" />
@@ -1333,10 +1353,7 @@ function Posts() {
                       </li>
                       <CompanySwitchMenuItem
                         onExpandedChange={setIsCompanyMenuExpanded}
-                        onSwitched={() => {
-                          setOpenPostMenuId(null)
-                          setIsCompanyMenuExpanded(false)
-                        }}
+                        onSwitched={() => setIsCompanyMenuExpanded(false)}
                       />
                       <li
                         className={`post-more-actions-group${isCompanyMenuExpanded ? ' is-hidden' : ''}`}
@@ -1348,7 +1365,7 @@ function Posts() {
                       <li className="more-menu-section-title" role="presentation">Engage</li>
                       <li role="none">
                         <button className={`post-more-option ${likedByCurrentUser ? 'is-active' : ''}`} type="button" role="menuitem" onClick={() => {
-                          setOpenPostMenuId(null)
+                          closePostMenu()
                           toggleLike(post._id)
                         }}>
                           <img src={likedByCurrentUser ? ICONS.liked : ICONS.like} alt="" />
@@ -1357,7 +1374,7 @@ function Posts() {
                       </li>
                       <li role="none">
                         <button className="post-more-option" type="button" role="menuitem" onClick={() => {
-                          if (!requireLogin()) return; setCommentDraft(''); setReplyTarget(null); setActiveDialog({ type: 'comment', postId: post._id }); openPostModal('comments'); setOpenPostMenuId(null);
+                          if (!requireLogin()) return; setCommentDraft(''); setReplyTarget(null); setActiveDialog({ type: 'comment', postId: post._id }); openPostModal('comments');
                         }}>
                           <img src={ICONS.comment} alt="" />
                           <span><strong>Comment</strong><small>Join the conversation</small></span>
@@ -1365,7 +1382,6 @@ function Posts() {
                       </li>
                       <li role="none">
                         <button className="post-more-option" type="button" role="menuitem" onClick={() => {
-                          setOpenPostMenuId(null)
                           sharePost(post._id).catch((shareError) => setError(shareError.message))
                         }}>
                           <img src={ICONS.share} alt="" />
@@ -1374,7 +1390,7 @@ function Posts() {
                       </li>
                       <li role="none">
                         <button className={`post-more-option ${savedByCurrentUser ? 'is-active' : ''}`} type="button" role="menuitem" onClick={() => {
-                          setOpenPostMenuId(null)
+                          closePostMenu()
                           toggleSave(post._id)
                         }}>
                           <img src={savedByCurrentUser ? ICONS.saved : ICONS.save} alt="" />
@@ -1384,7 +1400,6 @@ function Posts() {
                       {isPostCreator && !sharedPost && (
                         <li role="none">
                           <button className="post-more-option" type="button" role="menuitem" onClick={() => {
-                            setOpenPostMenuId(null)
                             navigate(`/post-create-one?type=${isTextPost ? 'text' : 'image'}&edit=${post._id}`)
                           }}>
                             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1398,7 +1413,7 @@ function Posts() {
                       {isPostCreator && (
                         <li role="none">
                           <button className="post-more-option" type="button" role="menuitem" onClick={() => {
-                            setOpenPostMenuId(null)
+                            closePostMenu()
                             deletePost(post._id)
                           }}>
                             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1414,7 +1429,7 @@ function Posts() {
                       <li className="more-menu-section-title is-divider" role="presentation">Other actions</li>
                       <li role="none">
                         <button className="post-more-option" type="button" role="menuitem" onClick={() => {
-                          if (!requireLogin()) return; setReportReason(''); setReportDetails(''); setActiveDialog({ type: 'report', postId: post._id }); openPostModal('report'); setOpenPostMenuId(null);
+                          if (!requireLogin()) return; setReportReason(''); setReportDetails(''); setActiveDialog({ type: 'report', postId: post._id }); openPostModal('report');
                         }}>
                           <svg viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M12 9v4" />
@@ -1427,7 +1442,7 @@ function Posts() {
                       {!isPostCreator && (
                         <li role="none">
                           <button className="post-more-option" type="button" role="menuitem" onClick={() => {
-                            setOpenPostMenuId(null)
+                            closePostMenu()
                             toggleFriend(post.user?._id)
                           }}>
                             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1444,7 +1459,7 @@ function Posts() {
                       )}
                       <li role="none">
                         <button className="post-more-option" type="button" role="menuitem" onClick={() => {
-                          setOpenPostMenuId(null)
+                          closePostMenu()
                           copyPostLink(post._id).catch((copyError) => setError(copyError.message))
                         }}>
                           <svg viewBox="0 0 24 24" aria-hidden="true">

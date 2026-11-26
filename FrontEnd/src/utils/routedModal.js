@@ -7,6 +7,8 @@ export function pushRoutedModal(navigate, location, modal) {
   const baseState = { ...(location.state || {}) }
   delete baseState.routedModal
   delete baseState.routedModalReturn
+  delete baseState.routedDropdown
+  delete baseState.routedDropdownReturn
   const returnTo = location.state?.routedModal
     ? { url: currentUrl, state: location.state }
     : { url: currentUrl, state: baseState }

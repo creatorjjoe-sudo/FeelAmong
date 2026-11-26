@@ -52,6 +52,8 @@ function CompanySwitchMenuItem({ onExpandedChange, onSwitched }) {
     try {
       if (account.isCompany) await switchToCompany(account._id)
       else switchToPersonal()
+      setIsExpanded(false)
+      onExpandedChange(false)
       onSwitched()
     } catch (switchError) {
       setSwitchError(switchError.message || 'Could not switch to that company account.')
