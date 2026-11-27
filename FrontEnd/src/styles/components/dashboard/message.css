@@ -986,6 +986,7 @@
 
  .header-right {
   gap: 20px;
+  margin-right: 6px;
  }
 
  .header-right img {
