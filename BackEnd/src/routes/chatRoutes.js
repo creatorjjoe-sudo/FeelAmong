@@ -10,8 +10,9 @@ const {
   deleteMessage
 } = require('../controllers/chatController');
 const { protect } = require('../middleware/authMiddleware');
+const { uploadChatAttachments } = require('../middleware/chatAttachmentUpload');
 
-router.post('/send', protect, sendMessage);
+router.post('/send', protect, uploadChatAttachments, sendMessage);
 router.put('/messages/:messageId', protect, editMessage);
 router.delete('/messages/:messageId', protect, deleteMessage);
 router.get('/unread/count', protect, getUnreadMessageCount);

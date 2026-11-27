@@ -1,5 +1,14 @@
 const Message = require('../models/Message');
 const { getIO } = require('../config/socket');
+const { deleteUploadedFiles } = require('../services/mediaStorage');
+
+function getSafeFilename(filename) {
+  return String(filename || 'attachment')
+    .replace(/[\u0000-\u001f\u007f]/g, '')
+    .split(/[\\/]/)
+    .pop()
+    .slice(0, 255) || 'attachment';
+}
 
 async function markMessagesRead(senderId, recipientId) {
   const unreadMessages = await Message.find({
@@ -30,9 +39,15 @@ async function markMessagesRead(senderId, recipientId) {
 }
 
 const sendMessage = async (req, res) => {
+  const uploadedFiles = req.files || [];
+  let messagePersisted = false;
+
   try {
-    const { recipientId, text, replyTo } = req.body;
-    if (!recipientId || !text) return res.status(400).json({ message: 'Missing recipient or text' });
+    const { recipientId, text, replyTo } = req.body || {};
+    const messageText = typeof text === 'string' ? text.trim() : '';
+    if (!recipientId || (!messageText && !uploadedFiles.length)) {
+      return res.status(400).json({ message: 'Add a recipient and either a note or an attachment.' });
+    }
 
     // Validate the reply target belongs to this conversation.
     let replyToId = null;
@@ -49,12 +64,21 @@ const sendMessage = async (req, res) => {
     const message = await Message.create({
       sender: req.user._id,
       recipient: recipientId,
-      text,
-      replyTo: replyToId
+      text: messageText,
+      replyTo: replyToId,
+      attachments: uploadedFiles.map((file) => ({
+        url: file.cloudinaryAsset.url,
+        publicId: file.cloudinaryAsset.publicId,
+        resourceType: file.cloudinaryAsset.resourceType,
+        filename: getSafeFilename(file.originalname),
+        mimeType: file.mimetype,
+        size: file.size
+      }))
     });
+    messagePersisted = true;
 
     const populated = await Message.findById(message._id)
-      .populate('replyTo', 'text sender createdAt');
+      .populate('replyTo', 'text sender createdAt attachments.filename');
 
     // Real-Time Socket Emit to Recipient's Room
     try {
@@ -67,6 +91,10 @@ const sendMessage = async (req, res) => {
     res.status(201).json(populated);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  } finally {
+    if (!messagePersisted && uploadedFiles.length) {
+      await deleteUploadedFiles(uploadedFiles);
+    }
   }
 };
 
@@ -87,7 +115,7 @@ const editMessage = async (req, res) => {
     await message.save();
 
     const populated = await Message.findById(message._id)
-      .populate('replyTo', 'text sender createdAt');
+      .populate('replyTo', 'text sender createdAt attachments.filename');
 
     try {
       const io = getIO();
@@ -131,7 +159,15 @@ const deleteMessage = async (req, res) => {
     message.text = 'This message was deleted';
     message.deletedAt = new Date();
     message.replyTo = null;
+    const attachmentsToDelete = (message.attachments || []).map((attachment) => ({
+      cloudinaryAsset: {
+        publicId: attachment.publicId,
+        resourceType: attachment.resourceType
+      }
+    }));
+    message.attachments = [];
     await message.save();
+    await deleteUploadedFiles(attachmentsToDelete);
 
     const populated = await Message.findById(message._id);
 
@@ -159,7 +195,7 @@ const getMessages = async (req, res) => {
         { sender: userId, recipient: req.user._id }
       ],
       deletedFor: { $ne: req.user._id }
-    }).populate('replyTo', 'text sender createdAt').sort({ createdAt: 1 });
+    }).populate('replyTo', 'text sender createdAt attachments.filename').sort({ createdAt: 1 });
 
     res.json(messages);
   } catch (error) {
@@ -227,7 +263,19 @@ const getConversations = async (req, res) => {
           username: '$contact.username',
           avatar: '$contact.avatar',
           sex: '$contact.sex',
-          lastMessage: '$latestMessage.text',
+          lastMessage: {
+            $cond: [
+              { $ne: [{ $ifNull: ['$latestMessage.text', ''] }, ''] },
+              '$latestMessage.text',
+              {
+                $cond: [
+                  { $gt: [{ $size: { $ifNull: ['$latestMessage.attachments', []] } }, 0] },
+                  { $arrayElemAt: ['$latestMessage.attachments.filename', 0] },
+                  ''
+                ]
+              }
+            ]
+          },
           lastMessageSender: '$latestMessage.sender',
           lastMessageAt: '$latestMessage.createdAt',
           unreadCount: 1

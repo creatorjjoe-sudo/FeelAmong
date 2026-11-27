@@ -12,6 +12,21 @@ import { API_ORIGIN } from '../../api/config'
 // Messages from the same sender sent less than this apart render as one
 // bubble group: the corners where bubbles touch are squared off.
 const GROUP_WINDOW_MS = 60 * 1000
+const MAX_CHAT_ATTACHMENTS = 10
+const MAX_CHAT_ATTACHMENT_SIZE = 10 * 1024 * 1024
+const CHAT_IMAGE_MIME_TYPES = new Set([
+  'image/avif',
+  'image/gif',
+  'image/jpeg',
+  'image/png',
+  'image/webp'
+])
+
+function formatFileSize(size) {
+  if (size < 1024) return `${size} B`
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`
+}
 
 // Formats a group timestamp: "Just now" within a minute of now, otherwise a
 // clock time like "5:16 pm".
@@ -129,10 +144,13 @@ function Messages() {
   })
   const [presenceNow, setPresenceNow] = React.useState(Date.now())
   const [draft, setDraft] = React.useState('')
+  const [attachmentDraft, setAttachmentDraft] = React.useState([])
+  const [attachmentDraftRecipientId, setAttachmentDraftRecipientId] = React.useState(null)
   const [sending, setSending] = React.useState(false)
   const [error, setError] = React.useState('')
   const messageMenuAnchorsRef = React.useRef(new Map())
   const attachmentMenuAnchorRef = React.useRef(null)
+  const attachmentPreviewUrlsRef = React.useRef(new Set())
   const imagePickerRef = React.useRef(null)
   const filePickerRef = React.useRef(null)
   const longPressRef = React.useRef(null)
@@ -147,6 +165,10 @@ function Messages() {
   const selectableTextareaRef = React.useRef(null)
   const typingTimeoutRef = React.useRef(null)
   const typingRecipientRef = React.useRef(null)
+
+  React.useEffect(() => () => {
+    attachmentPreviewUrlsRef.current.forEach((previewUrl) => URL.revokeObjectURL(previewUrl))
+  }, [])
 
   const closeMessageMenu = React.useCallback(() => {
     closeRoutedDropdown(navigate, location, 'message-actions')
@@ -535,23 +557,109 @@ function Messages() {
       ? (presence.viewingChat ? 'With you for now' : 'Active')
       : formatPresence(presence.lastSeen, presenceNow)
 
+  const handleAttachmentSelection = (event) => {
+    const files = Array.from(event.currentTarget.files || [])
+    event.currentTarget.value = ''
+    if (!files.length) return
+
+    if (attachmentDraft.length + files.length > MAX_CHAT_ATTACHMENTS) {
+      setError(`You can attach up to ${MAX_CHAT_ATTACHMENTS} files.`)
+      return
+    }
+
+    if (files.some((file) => file.size > MAX_CHAT_ATTACHMENT_SIZE)) {
+      setError('Each chat attachment must be 10 MB or smaller.')
+      return
+    }
+
+    if (files.some((file) => file.type.startsWith('image/') && !CHAT_IMAGE_MIME_TYPES.has(file.type))) {
+      setError('Choose a supported image format (AVIF, GIF, JPEG, PNG, or WebP).')
+      return
+    }
+
+    const newAttachments = files.map((file) => {
+      const previewUrl = CHAT_IMAGE_MIME_TYPES.has(file.type) ? URL.createObjectURL(file) : null
+      if (previewUrl) attachmentPreviewUrlsRef.current.add(previewUrl)
+      return { file, previewUrl }
+    })
+    setError('')
+    setAttachmentDraft((current) => [...current, ...newAttachments])
+    setAttachmentDraftRecipientId(String(activeContact._id))
+  }
+
+  const removeAttachmentDraft = (indexToRemove) => {
+    const previewUrl = attachmentDraft[indexToRemove]?.previewUrl
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+      attachmentPreviewUrlsRef.current.delete(previewUrl)
+    }
+    if (attachmentDraft.length === 1) setAttachmentDraftRecipientId(null)
+    setAttachmentDraft((current) => current.filter((_, index) => index !== indexToRemove))
+  }
+
+  const clearAttachmentDraft = React.useCallback(() => {
+    attachmentPreviewUrlsRef.current.forEach((previewUrl) => URL.revokeObjectURL(previewUrl))
+    attachmentPreviewUrlsRef.current.clear()
+    setAttachmentDraft([])
+    setAttachmentDraftRecipientId(null)
+    setError('')
+  }, [])
+
+  const attachmentDraftMatchesActiveContact = !attachmentDraft.length
+    || attachmentDraftRecipientId === String(activeContact?._id)
+
   const handleSend = async (e) => {
-    e.preventDefault()
+    e?.preventDefault()
 
     const trimmedMessage = draft.trim()
-    if (!trimmedMessage || !token || !activeContact?._id) return
+    if ((!trimmedMessage && !attachmentDraft.length) || !token || !activeContact?._id || sending) return
+    if (!attachmentDraftMatchesActiveContact) {
+      setError('The conversation changed. Select these attachments again before sending.')
+      return
+    }
     stopTyping()
 
     const pendingMessage = {
-      _id: `pending-${Date.now()}`, sender: user._id, recipient: activeContact._id, text: trimmedMessage, createdAt: new Date().toISOString(), replyTo: replyToMessage
+      _id: `pending-${Date.now()}`,
+      sender: user._id,
+      recipient: activeContact._id,
+      text: trimmedMessage,
+      attachments: attachmentDraft.map(({ file, previewUrl }) => ({
+        url: previewUrl,
+        filename: file.name,
+        mimeType: file.type,
+        size: file.size,
+        isLocalPreview: true
+      })),
+      createdAt: new Date().toISOString(),
+      replyTo: replyToMessage
     }
-    setMessages((prev) => [...prev, pendingMessage]); setDraft(''); setSending(true); setError('')
+    setMessages((prev) => [...prev, pendingMessage])
+    setSending(true)
+    setError('')
 
     try {
+      const requestHeaders = { Authorization: `Bearer ${token}` }
+      let requestBody
+      if (attachmentDraft.length) {
+        requestBody = new FormData()
+        requestBody.append('recipientId', activeContact._id)
+        requestBody.append('text', trimmedMessage)
+        requestBody.append('replyTo', replyToMessage?._id || '')
+        attachmentDraft.forEach(({ file }) => requestBody.append('attachments', file, file.name))
+      } else {
+        requestHeaders['Content-Type'] = 'application/json'
+        requestBody = JSON.stringify({
+          recipientId: activeContact._id,
+          text: trimmedMessage,
+          replyTo: replyToMessage?._id || null
+        })
+      }
+
       const res = await fetch(`${API_ORIGIN}/api/chats/send`, {
-        method: 'POST', headers: {'Content-Type': 'application/json', Authorization: `Bearer ${user.token}`
-        },
-        body: JSON.stringify({ recipientId: activeContact._id, text: trimmedMessage, replyTo: replyToMessage?._id || null })
+        method: 'POST',
+        headers: requestHeaders,
+        body: requestBody
       })
 
       const data = await res.json()
@@ -560,20 +668,25 @@ function Messages() {
         throw new Error(data.message || 'Unable to send message')
       }
 
+      setMessages((prev) => prev.map((msg) => (msg._id === pendingMessage._id ? data : msg)))
       setReplyToMessage(null)
+      setDraft('')
+      clearAttachmentDraft()
 
-      setMessages((prev) => prev.map((msg) => (msg._id === pendingMessage._id ? data : msg))
-      )
-      const conversationsResponse = await fetch(`${API_ORIGIN}/api/chats/conversations`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      const conversationData = await conversationsResponse.json()
-      if (!conversationsResponse.ok) {
-        throw new Error(conversationData.message || 'Message sent, but conversations could not refresh.')
+      try {
+        const conversationsResponse = await fetch(`${API_ORIGIN}/api/chats/conversations`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const conversationData = await conversationsResponse.json()
+        if (!conversationsResponse.ok) {
+          throw new Error(conversationData.message || 'Could not refresh conversations.')
+        }
+        setConversations(Array.isArray(conversationData) ? conversationData : [])
+      } catch (refreshError) {
+        setError(`Message sent, but conversations could not refresh: ${refreshError.message}`)
       }
-      setConversations(Array.isArray(conversationData) ? conversationData : [])
     } catch (err) {
-      setError(err.message)
+      setError(err.message || 'Unable to send message.')
       setMessages((prev) => prev.filter((msg) => msg._id !== pendingMessage._id))
     } finally {
       setSending(false)
@@ -879,7 +992,7 @@ function Messages() {
                   // sits ABOVE the bubble (under the previous message); once
                   // the server confirms, the timestamp renders BELOW it as
                   // normal.
-                  const canEdit = isMine && !isPending && !msg.deletedAt
+                  const canEdit = isMine && !isPending && !msg.deletedAt && Boolean(msg.text)
                   // Delete is available on any message (own or the other
                   // person's) as long as it actually exists on the server.
                   const canDelete = !isPending && !msg.deletedAt
@@ -896,7 +1009,7 @@ function Messages() {
                         </span>
                         <span className="message-reply-quote" aria-label="Replying to">
                           <span className="message-reply-quote-text">
-                            {msg.replyTo.text}
+                            {msg.replyTo.text || msg.replyTo.attachments?.[0]?.filename || 'Attachment'}
                           </span>
                         </span>
                       </div>
@@ -952,6 +1065,56 @@ function Messages() {
                         else messageMenuAnchorsRef.current.delete(msg._id)
                       }}
                     >
+                      {msg.attachments?.length > 0 && !msg.deletedAt && (
+                        <div className="message-attachments">
+                          {msg.attachments.map((attachment, attachmentIndex) => {
+                            const key = attachment._id || `${msg._id}-${attachmentIndex}`
+                            if (attachment.mimeType?.startsWith('image/') && attachment.url) {
+                              return (
+                                <a
+                                  key={key}
+                                  className="message-image-attachment"
+                                  href={attachment.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  aria-label={`Open image ${attachment.filename}`}
+                                >
+                                  <img src={attachment.url} alt={attachment.filename} />
+                                </a>
+                              )
+                            }
+
+                            const fileCard = (
+                              <>
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                  <path d="M7 3.75h7l4 4v12.5H7a2 2 0 0 1-2-2v-12.5a2 2 0 0 1 2-2Z" />
+                                  <path d="M14 3.75v4h4M8.5 12h7M8.5 15.5h7" />
+                                </svg>
+                                <span className="message-file-copy">
+                                  <strong>{attachment.filename}</strong>
+                                  <small>{formatFileSize(attachment.size || 0)}</small>
+                                </span>
+                              </>
+                            )
+
+                            return attachment.url ? (
+                              <a
+                                key={key}
+                                className="message-file-attachment"
+                                href={attachment.url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                {fileCard}
+                              </a>
+                            ) : (
+                              <div key={key} className="message-file-attachment">
+                                {fileCard}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
                       {isEditing ? (
                         <form className="message-edit-form" onSubmit={(event) => saveEdit(event, msg)}>
                           <input
@@ -1000,12 +1163,12 @@ function Messages() {
                             </button>
                           </div>
                         </div>
-                      ) : (
+                      ) : msg.deletedAt || msg.text ? (
                         <p className={msg.deletedAt ? 'is-deleted' : ''}>
                           {msg.deletedAt ? 'This message was deleted' : msg.text}
                           {msg.editedAt && !msg.deletedAt && <em className="message-edited-badge"> (edited)</em>}
                         </p>
-                      )}
+                      ) : null}
                       {openMessageMenuId === msg._id && !isPending && (() => {
                         const bubbleElement = messageMenuAnchorsRef.current.get(msg._id)
                         const rect = bubbleElement?.querySelector('p, .message-edit-form, .message-reply-quote')?.getBoundingClientRect()
@@ -1038,7 +1201,7 @@ function Messages() {
                               </button>
                             </li>
                           )}
-                          {!msg.deletedAt && (
+                          {!msg.deletedAt && msg.text && (
                             <li role="none">
                               <button className="message-more-option" type="button" role="menuitem" onClick={(event) => { event.stopPropagation(); startSelect(msg) }}>
                                 <span>Select</span>
@@ -1112,6 +1275,7 @@ function Messages() {
                           closeAttachmentMenu()
                         }}
                       >
+                        <img src={ICONS.addPhoto} alt="" />
                         <span><strong>Add images</strong></span>
                       </button>
                     </li>
@@ -1125,6 +1289,10 @@ function Messages() {
                           closeAttachmentMenu()
                         }}
                       >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M7 3.75h7l4 4v12.5H7a2 2 0 0 1-2-2v-12.5a2 2 0 0 1 2-2Z" />
+                          <path d="M14 3.75v4h4M8.5 12h7M8.5 15.5h7" />
+                        </svg>
                         <span><strong>Add files</strong></span>
                       </button>
                     </li>
@@ -1135,10 +1303,10 @@ function Messages() {
                 ref={imagePickerRef}
                 className="chat-attachment-file-input"
                 type="file"
-                accept="image/*"
+                accept="image/avif,image/gif,image/jpeg,image/png,image/webp"
                 multiple
                 hidden
-                onChange={(event) => { event.currentTarget.value = '' }}
+                onChange={handleAttachmentSelection}
               />
               <input
                 ref={filePickerRef}
@@ -1146,7 +1314,7 @@ function Messages() {
                 type="file"
                 multiple
                 hidden
-                onChange={(event) => { event.currentTarget.value = '' }}
+                onChange={handleAttachmentSelection}
               />
               <img className='attach-icon mic' src={ICONS.micGreen} alt="" />
               <div className="input-container">
@@ -1154,7 +1322,9 @@ function Messages() {
                   <div className="reply-preview-bar">
                     <div className="reply-preview-body">
                       <span className="reply-preview-label">Replying to</span>
-                      <span className="reply-preview-text">{replyToMessage.text}</span>
+                      <span className="reply-preview-text">
+                        {replyToMessage.text || replyToMessage.attachments?.[0]?.filename || 'Attachment'}
+                      </span>
                     </div>
                     <button type="button" className="reply-preview-cancel" aria-label="Cancel reply" onClick={() => setReplyToMessage(null)}>×</button>
                   </div>
@@ -1264,6 +1434,96 @@ function Messages() {
             )
           )
         })()}
+
+        {attachmentDraft.length > 0 && createPortal(
+          <div className="chat-attachment-preview-backdrop" role="presentation">
+            <section
+              className="chat-attachment-preview-dialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="chat-attachment-preview-title"
+            >
+              <header className="chat-attachment-preview-header">
+                <div>
+                  <h2 id="chat-attachment-preview-title">Review attachments</h2>
+                  <p>{attachmentDraft.length} file{attachmentDraft.length === 1 ? '' : 's'} selected</p>
+                </div>
+                <button
+                  type="button"
+                  className="chat-attachment-preview-close"
+                  aria-label="Remove attachments and close"
+                  disabled={sending}
+                  onClick={clearAttachmentDraft}
+                >
+                  ×
+                </button>
+              </header>
+              <div className="chat-attachment-preview-list">
+                {attachmentDraft.map(({ file, previewUrl }, index) => (
+                  <article className="chat-attachment-preview-item" key={`${file.name}-${file.lastModified}-${index}`}>
+                    {previewUrl ? (
+                      <img className="chat-attachment-preview-image" src={previewUrl} alt={`Preview of ${file.name}`} />
+                    ) : (
+                      <div className="chat-attachment-preview-file-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                          <path d="M7 3.75h7l4 4v12.5H7a2 2 0 0 1-2-2v-12.5a2 2 0 0 1 2-2Z" />
+                          <path d="M14 3.75v4h4M8.5 12h7M8.5 15.5h7" />
+                        </svg>
+                      </div>
+                    )}
+                    <div className="chat-attachment-preview-copy">
+                      <strong title={file.name}>{file.name}</strong>
+                      <small>{formatFileSize(file.size)}</small>
+                    </div>
+                    <button
+                      type="button"
+                      className="chat-attachment-preview-remove"
+                      aria-label={`Remove ${file.name}`}
+                      disabled={sending}
+                      onClick={() => removeAttachmentDraft(index)}
+                    >
+                      ×
+                    </button>
+                  </article>
+                ))}
+              </div>
+              <label className="chat-attachment-note">
+                <span>Note (optional)</span>
+                <textarea
+                  value={draft}
+                  onChange={handleDraftChange}
+                  placeholder="Add a note with your attachments..."
+                  rows={3}
+                />
+              </label>
+              {error && <p className="chat-attachment-error" role="alert">{error}</p>}
+              {!attachmentDraftMatchesActiveContact && (
+                <p className="chat-attachment-error" role="alert">
+                  The conversation changed. Cancel and select these attachments again.
+                </p>
+              )}
+              <div className="chat-attachment-preview-actions">
+                <button
+                  type="button"
+                  className="chat-attachment-cancel"
+                  disabled={sending}
+                  onClick={clearAttachmentDraft}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="chat-attachment-send"
+                  disabled={sending || !chatActive || !attachmentDraftMatchesActiveContact}
+                  onClick={() => handleSend()}
+                >
+                  {sending ? 'Sending...' : 'Send'}
+                </button>
+              </div>
+            </section>
+          </div>,
+          document.body
+        )}
 
       </div>
     </div>

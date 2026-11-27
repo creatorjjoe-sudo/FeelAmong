@@ -391,6 +391,77 @@
   line-height: 1.4;
 }
 
+.message-attachments {
+ display: flex;
+ flex-wrap: wrap;
+ align-items: flex-start;
+ gap: 8px;
+ max-width: 80%;
+}
+
+.message-image-attachment {
+ display: block;
+ max-width: min(320px, 75vw);
+ max-height: 320px;
+ overflow: hidden;
+ border-radius: 16px;
+}
+
+.message-image-attachment img {
+ display: block;
+ max-width: 100%;
+ max-height: 320px;
+ object-fit: contain;
+}
+
+.message-file-attachment {
+ display: flex;
+ align-items: center;
+ gap: 10px;
+ width: min(280px, 70vw);
+ min-width: 0;
+ padding: 10px 12px;
+ border-radius: 16px;
+ background: #f0f2f5;
+ color: #1d1d1d;
+ text-decoration: none;
+}
+
+.message-row.mine .message-file-attachment {
+ background: #00ba00;
+ color: #fff;
+}
+
+.message-file-attachment > svg {
+ flex: 0 0 24px;
+ width: 24px;
+ height: 24px;
+ fill: none;
+ stroke: currentColor;
+ stroke-linecap: round;
+ stroke-linejoin: round;
+ stroke-width: 1.7;
+}
+
+.message-file-copy {
+ display: flex;
+ min-width: 0;
+ flex-direction: column;
+ gap: 3px;
+}
+
+.message-file-copy strong {
+ overflow: hidden;
+ font-size: 13px;
+ text-overflow: ellipsis;
+ white-space: nowrap;
+}
+
+.message-file-copy small {
+ font-size: 11px;
+ opacity: 0.75;
+}
+
 /* Within a group of messages sent back-to-back (same sender, under a minute
    apart) the corners where bubbles touch are squared off: for my messages
    (right-aligned) those are the right-hand corners, for theirs (left-aligned)
@@ -647,6 +718,204 @@
  left: 0;
  width: min(270px, calc(100vw - 24px));
  transform-origin: bottom left;
+}
+
+.chat-attachment-preview-backdrop {
+ position: fixed;
+ inset: 0;
+ z-index: 10000;
+ display: grid;
+ place-items: center;
+ padding: 16px;
+ background: rgb(13 20 15 / 55%);
+}
+
+.chat-attachment-preview-dialog {
+ display: flex;
+ width: min(600px, calc(100vw - 32px));
+ max-height: min(88vh, 760px);
+ max-height: min(88dvh, 760px);
+ flex-direction: column;
+ gap: 18px;
+ box-sizing: border-box;
+ padding: 22px;
+ border: 1px solid #e1e7e2;
+ border-radius: 20px;
+ background: #fff;
+ color: #18211b;
+ box-shadow: 0 18px 56px rgb(0 0 0 / 28%);
+}
+
+.chat-attachment-preview-header,
+.chat-attachment-preview-actions {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ gap: 12px;
+}
+
+.chat-attachment-preview-header h2 {
+ margin: 0;
+ font-size: 20px;
+}
+
+.chat-attachment-preview-header p {
+ margin: 4px 0 0;
+ color: #68746b;
+ font-size: 13px;
+}
+
+.chat-attachment-preview-close,
+.chat-attachment-preview-remove {
+ display: grid;
+ flex: 0 0 32px;
+ width: 32px;
+ height: 32px;
+ padding: 0;
+ place-items: center;
+ border: 0;
+ border-radius: 50%;
+ background: #edf2ee;
+ color: #344139;
+ font-size: 22px;
+ line-height: 1;
+ cursor: pointer;
+}
+
+.chat-attachment-preview-list {
+ display: grid;
+ grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+ gap: 10px;
+ max-height: 360px;
+ overflow-y: auto;
+ padding: 2px;
+}
+
+.chat-attachment-preview-item {
+ position: relative;
+ display: flex;
+ min-width: 0;
+ flex-direction: column;
+ gap: 8px;
+ padding: 8px;
+ border: 1px solid #e1e7e2;
+ border-radius: 14px;
+ background: #f8faf8;
+}
+
+.chat-attachment-preview-image,
+.chat-attachment-preview-file-icon {
+ display: grid;
+ width: 100%;
+ aspect-ratio: 1;
+ place-items: center;
+ overflow: hidden;
+ border-radius: 10px;
+ background: #edf2ee;
+}
+
+.chat-attachment-preview-image {
+ object-fit: contain;
+}
+
+.chat-attachment-preview-file-icon svg {
+ width: 40px;
+ height: 40px;
+ fill: none;
+ stroke: #516158;
+ stroke-linecap: round;
+ stroke-linejoin: round;
+ stroke-width: 1.5;
+}
+
+.chat-attachment-preview-copy {
+ display: flex;
+ min-width: 0;
+ flex-direction: column;
+ gap: 3px;
+ padding-right: 20px;
+}
+
+.chat-attachment-preview-copy strong {
+ overflow: hidden;
+ font-size: 12px;
+ text-overflow: ellipsis;
+ white-space: nowrap;
+}
+
+.chat-attachment-preview-copy small {
+ color: #68746b;
+ font-size: 11px;
+}
+
+.chat-attachment-preview-remove {
+ position: absolute;
+ top: 4px;
+ right: 4px;
+ width: 26px;
+ height: 26px;
+ min-width: 0;
+ background: rgb(255 255 255 / 90%);
+ font-size: 19px;
+}
+
+.chat-attachment-note {
+ display: flex;
+ flex-direction: column;
+ gap: 7px;
+ font-size: 13px;
+ font-weight: 600;
+}
+
+.chat-attachment-note textarea {
+ box-sizing: border-box;
+ width: 100%;
+ min-height: 76px;
+ padding: 10px 12px;
+ border: 1px solid #ccd7ce;
+ border-radius: 12px;
+ background: #fff;
+ color: #18211b;
+ font: inherit;
+ font-weight: 400;
+ resize: vertical;
+}
+
+.chat-attachment-error {
+ margin: -8px 0 0;
+ color: #b71c1c;
+ font-size: 13px;
+}
+
+.chat-attachment-preview-actions {
+ justify-content: flex-end;
+}
+
+.chat-attachment-preview-actions button {
+ min-width: 92px;
+ padding: 10px 16px;
+ border: 0;
+ border-radius: 999px;
+ font: inherit;
+ font-weight: 600;
+ cursor: pointer;
+}
+
+.chat-attachment-preview-actions button:disabled,
+.chat-attachment-preview-close:disabled,
+.chat-attachment-preview-remove:disabled {
+ cursor: not-allowed;
+ opacity: 0.55;
+}
+
+.chat-attachment-cancel {
+ background: #edf2ee;
+ color: #344139;
+}
+
+.chat-attachment-send {
+ background: #00ba00;
+ color: #fff;
 }
 
 .msg-composer-skeleton {

@@ -130,6 +130,10 @@ html[data-theme="dark"] .post-more-options {
  background-color: #1b211e;
 }
 
+html[data-theme="dark"] .chat-attachments-options .post-more-option img {
+ filter: brightness(0) invert(1);
+}
+
 html[data-theme="dark"] .post-more-drag-handle > span {
  background: #849087;
 }
@@ -491,6 +495,47 @@ html[data-theme="dark"] .typing-bubble {
 
 html[data-theme="dark"] .typing-bubble i {
  color: #cdd6e4;
+}
+
+html[data-theme="dark"] .chat-attachment-preview-dialog {
+ border-color: #303a33;
+ background: #1b211e;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .chat-attachment-preview-header p,
+html[data-theme="dark"] .chat-attachment-preview-copy small {
+ color: #a5b2a8;
+}
+
+html[data-theme="dark"] .chat-attachment-preview-item,
+html[data-theme="dark"] .chat-attachment-preview-file-icon,
+html[data-theme="dark"] .chat-attachment-preview-image,
+html[data-theme="dark"] .chat-attachment-preview-close,
+html[data-theme="dark"] .chat-attachment-preview-remove,
+html[data-theme="dark"] .chat-attachment-cancel {
+ border-color: #3a443d;
+ background: #252e28;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .chat-attachment-preview-file-icon svg {
+ stroke: #a5b2a8;
+}
+
+html[data-theme="dark"] .chat-attachment-note textarea {
+ border-color: #455148;
+ background: #121614;
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .chat-attachment-error {
+ color: #ff9a9a;
+}
+
+html[data-theme="dark"] .message-row.their .message-file-attachment {
+ background: #29352d;
+ color: #e5ebe6;
 }
 
 /* Search icons (navbar / mobile header / search modal input): dark icons

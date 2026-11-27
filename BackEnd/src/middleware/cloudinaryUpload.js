@@ -51,7 +51,10 @@ function createCloudinaryUpload({
 
       try {
         for (const file of files) {
-          file.cloudinaryAsset = await uploadBuffer(file, folder, resourceType);
+          const fileResourceType = typeof resourceType === 'function'
+            ? resourceType(file)
+            : resourceType;
+          file.cloudinaryAsset = await uploadBuffer(file, folder, fileResourceType);
           file.buffer = undefined;
         }
       } catch (error) {

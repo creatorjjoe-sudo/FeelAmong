@@ -27,9 +27,10 @@ function uploadBuffer(file, folder, resourceType) {
   configureCloudinary();
 
   return new Promise((resolve, reject) => {
+    const rawExtension = resourceType === 'raw' ? path.extname(file.originalname || '') : '';
     const uploadStream = cloudinary.uploader.upload_stream({
       folder: `feelamong/${folder}`,
-      public_id: randomUUID(),
+      public_id: `${randomUUID()}${rawExtension}`,
       resource_type: resourceType,
       overwrite: false
     }, (error, result) => {
@@ -87,7 +88,9 @@ function getCloudinaryPublicId(url, resourceType) {
   const uploadPath = parsedUrl.pathname.split(`/${resourceType}/upload/`)[1];
   if (!uploadPath) return null;
   const publicIdWithExtension = uploadPath.replace(/^v\d+\//, '');
-  const publicId = publicIdWithExtension.replace(/\.[^/.]+$/, '');
+  const publicId = resourceType === 'raw'
+    ? publicIdWithExtension
+    : publicIdWithExtension.replace(/\.[^/.]+$/, '');
   if (!publicId) return null;
   try {
     return decodeURIComponent(publicId);

@@ -5,6 +5,14 @@ const messageSchema = new mongoose.Schema(
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     text: { type: String, default: '' },
+    attachments: [{
+      url: { type: String, required: true },
+      publicId: { type: String, required: true },
+      resourceType: { type: String, enum: ['image', 'raw'], required: true },
+      filename: { type: String, required: true },
+      mimeType: { type: String, required: true },
+      size: { type: Number, required: true }
+    }],
     read: { type: Boolean, default: false },
     readAt: { type: Date, default: null },
     // Optional reply reference for chat replies.
