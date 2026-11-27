@@ -6,6 +6,7 @@ import '../../styles/components/dashboard/message.css'
 import { AuthContext } from '../../api/context/AuthContext'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedDropdown, dismissRoutedDropdown, pushRoutedDropdown } from '../../utils/routedDropdown'
+import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
 
 import { API_ORIGIN } from '../../api/config'
 
@@ -120,6 +121,7 @@ function Messages() {
     ? String(activeMessageDropdown.id)
     : null
   const isAttachmentMenuOpen = activeMessageDropdown?.type === 'chat-attachments'
+  const isAttachmentPreviewOpen = location.state?.routedModal === 'chat-attachment-preview'
   const requestedUserId = searchParams.get('user')
   const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
   const hasHistoryRef = React.useRef(false)
@@ -182,14 +184,48 @@ function Messages() {
     closeRoutedDropdown(navigate, location, 'chat-attachments')
   }, [location, navigate])
 
+  const closeAttachmentPreview = React.useCallback(() => {
+    closeRoutedModal(navigate, location)
+  }, [location, navigate])
+
+  React.useEffect(() => {
+    if (!isAttachmentPreviewOpen) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') closeAttachmentPreview()
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [closeAttachmentPreview, isAttachmentPreviewOpen])
+
+  const openAttachmentPreview = React.useCallback(() => {
+    pushRoutedModal(navigate, location, 'chat-attachment-preview')
+  }, [location, navigate])
+
   const toggleAttachmentMenu = React.useCallback(() => {
+    if (attachmentDraft.length && !isAttachmentPreviewOpen) {
+      openAttachmentPreview()
+      return
+    }
+
     if (isAttachmentMenuOpen) {
       closeAttachmentMenu()
       return
     }
 
     pushRoutedDropdown(navigate, location, { type: 'chat-attachments' })
-  }, [closeAttachmentMenu, isAttachmentMenuOpen, location, navigate])
+  }, [attachmentDraft.length, closeAttachmentMenu, isAttachmentMenuOpen, isAttachmentPreviewOpen, location, navigate, openAttachmentPreview])
+
+  const cancelAttachmentPreview = () => {
+    clearAttachmentDraft()
+    closeAttachmentPreview()
+  }
 
   const openMessageMenu = React.useCallback((messageId) => {
     if (openMessageMenuId === String(messageId)) {
@@ -585,6 +621,7 @@ function Messages() {
     setError('')
     setAttachmentDraft((current) => [...current, ...newAttachments])
     setAttachmentDraftRecipientId(String(activeContact._id))
+    openAttachmentPreview()
   }
 
   const removeAttachmentDraft = (indexToRemove) => {
@@ -671,6 +708,7 @@ function Messages() {
       setMessages((prev) => prev.map((msg) => (msg._id === pendingMessage._id ? data : msg)))
       setReplyToMessage(null)
       setDraft('')
+      if (isAttachmentPreviewOpen) closeAttachmentPreview()
       clearAttachmentDraft()
 
       try {
@@ -1435,8 +1473,14 @@ function Messages() {
           )
         })()}
 
-        {attachmentDraft.length > 0 && createPortal(
-          <div className="chat-attachment-preview-backdrop" role="presentation">
+        {isAttachmentPreviewOpen && attachmentDraft.length > 0 && createPortal(
+          <div
+            className="chat-attachment-preview-backdrop"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) closeAttachmentPreview()
+            }}
+          >
             <section
               className="chat-attachment-preview-dialog"
               role="dialog"
@@ -1453,7 +1497,7 @@ function Messages() {
                   className="chat-attachment-preview-close"
                   aria-label="Remove attachments and close"
                   disabled={sending}
-                  onClick={clearAttachmentDraft}
+                  onClick={cancelAttachmentPreview}
                 >
                   ×
                 </button>
@@ -1507,7 +1551,7 @@ function Messages() {
                   type="button"
                   className="chat-attachment-cancel"
                   disabled={sending}
-                  onClick={clearAttachmentDraft}
+                  onClick={cancelAttachmentPreview}
                 >
                   Cancel
                 </button>
