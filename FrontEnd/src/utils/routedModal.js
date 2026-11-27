@@ -25,7 +25,7 @@ export function pushRoutedModal(navigate, location, modal) {
 export function closeRoutedModal(navigate, location, fallbackUrl = getCurrentUrl(location)) {
   if (location.state?.routedModal) {
     const returnTo = location.state.routedModalReturn
-    if (returnTo?.state?.routedModal) {
+    if (returnTo?.historyEntry || returnTo?.state?.routedModal) {
       navigate(-1)
       return
     }

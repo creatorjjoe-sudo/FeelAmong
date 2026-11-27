@@ -40,6 +40,24 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
   const isOwnProfileRoute = Boolean(
     profilePath && (!profilePath[1] || profilePath[1] === String(user?._id))
   )
+  const currentProfileRoute = {
+    userId: profilePath?.[1] || user?._id,
+    isOwn: profilePath ? isOwnProfileRoute : true,
+    isCompany: profilePath
+      ? isOwnProfileRoute && Boolean(user?.isCompany)
+      : Boolean(user?.isCompany),
+  }
+  const profileRouteKey = profilePath
+    ? `${profilePath[1] || user?._id || 'current'}:${user?._id || ''}:${Boolean(user?.isCompany)}`
+    : null
+  const [lastProfileRoute, setLastProfileRoute] = React.useState(() => ({
+    key: profileRouteKey,
+    route: currentProfileRoute,
+  }))
+  if (profilePath && lastProfileRoute.key !== profileRouteKey) {
+    setLastProfileRoute({ key: profileRouteKey, route: currentProfileRoute })
+  }
+  const displayedProfileRoute = profilePath ? currentProfileRoute : lastProfileRoute.route
   const isVideosView = location.pathname.endsWith('/videos')
   const isMessagesView = location.pathname.endsWith('/messages')
   const isSavePage = location.pathname.endsWith('/save')
@@ -288,11 +306,11 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
         aria-hidden={!isProfilePage}
         inert={!isProfilePage}
       >
-        {isOwnProfileRoute
-          ? user?.isCompany
+        {displayedProfileRoute.isOwn
+          ? displayedProfileRoute.isCompany
             ? <CompanyProfilePage />
             : <ProfilePage />
-          : <PublicProfilePage userId={profilePath?.[1]} />}
+          : <PublicProfilePage userId={displayedProfileRoute.userId} />}
       </div>
       <div
         className={`dashboard-route-layer${isSavedPage ? '' : ' is-hidden'}`}

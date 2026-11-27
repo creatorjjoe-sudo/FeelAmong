@@ -453,6 +453,10 @@ html[data-theme="dark"] .mobile-active-chat-header .active-user-username {
  color: #e5ebe6;
 }
 
+html[data-theme="dark"] .mobile-active-chat-header .active-user-username a {
+ color: #e5ebe6;
+}
+
 /* Dark icon on a dark header: flip it to white in dark mode */
 html[data-theme="dark"] .mobile-active-chat-header .back-icon {
  filter: brightness(0) invert(1);

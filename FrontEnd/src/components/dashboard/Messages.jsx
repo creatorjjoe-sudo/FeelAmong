@@ -77,30 +77,22 @@ function formatPresence(lastSeen, now) {
     hour: 'numeric',
     minute: '2-digit',
   }).format(timestamp).toLowerCase().replace(/\s(?=am|pm)/, '')
+  const today = new Date(now)
+  today.setHours(0, 0, 0, 0)
+  const lastSeenDay = new Date(timestamp)
+  lastSeenDay.setHours(0, 0, 0, 0)
+  if (lastSeenDay.getTime() === today.getTime()) return `Last seen: today at ${time}`
+
   const yesterday = new Date(now)
   yesterday.setDate(yesterday.getDate() - 1)
+  yesterday.setHours(0, 0, 0, 0)
   const isYesterday = timestamp.getFullYear() === yesterday.getFullYear()
     && timestamp.getMonth() === yesterday.getMonth()
     && timestamp.getDate() === yesterday.getDate()
-  if (isYesterday) return `Last seen - yesterday at ${time}`
+  if (isYesterday) return `Last seen: yesterday at ${time}`
 
-  const elapsed = Math.max(0, now - timestamp.getTime())
-  if (elapsed < 60 * 1000) return 'Last seen - just now'
-  if (elapsed < 60 * 60 * 1000) {
-    const minutes = Math.floor(elapsed / (60 * 1000))
-    return `Last seen - ${minutes} minute${minutes === 1 ? '' : 's'} ago`
-  }
-  if (elapsed < 24 * 60 * 60 * 1000) {
-    const hours = Math.floor(elapsed / (60 * 60 * 1000))
-    return `Last seen - ${hours} hour${hours === 1 ? '' : 's'} ago`
-  }
-
-  const date = new Intl.DateTimeFormat(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  }).format(timestamp)
-  return `Last seen - ${date} at ${time}`
+  const weekday = new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(timestamp)
+  return `Last seen: ${weekday} at ${time}`
 }
 
 function Messages() {
@@ -493,6 +485,17 @@ function Messages() {
 
   const middleClassName = windWidth < 800 && chatActive ? 'middle-section-mobile' : windWidth > 800 && chatActive ? 'middle-section-desk' : 'middle-section'
   const leftClassName = windWidth < 800 && chatActive ? 'left-section-active' : 'left-section'
+  const isContactTyping = typingUserIds.has(String(selectedContact?._id))
+  const contactPresenceClass = isContactTyping
+    ? 'is-online is-typing'
+    : presence.online
+      ? 'is-online'
+      : 'is-offline'
+  const contactPresenceText = isContactTyping
+    ? <>typing<span className="typing-dots" aria-hidden="true"><i /><i /><i /></span></>
+    : presence.online
+      ? (presence.viewingChat ? 'With you for now' : 'Active')
+      : formatPresence(presence.lastSeen, presenceNow)
 
   const handleSend = async (e) => {
     e.preventDefault()
@@ -732,13 +735,7 @@ function Messages() {
                     ) : (
                       <h2 className='active-user-username'>{selectedContact?.username}</h2>
                     )}
-                    <p className={typingUserIds.has(String(selectedContact?._id)) ? 'is-online is-typing' : presence.online ? 'is-online' : 'is-offline'}>
-                      {typingUserIds.has(String(selectedContact?._id))
-                        ? <>typing<span className="typing-dots" aria-hidden="true"><i /><i /><i /></span></>
-                        : presence.online
-                        ? (presence.viewingChat ? 'With you for now' : 'Active')
-                        : formatPresence(presence.lastSeen, presenceNow)}
-                    </p>
+                    <p className={contactPresenceClass}>{contactPresenceText}</p>
                   </div>
                 </div>
               </div>
@@ -1075,21 +1072,22 @@ function Messages() {
         </div>
 
         <div className="right-section">
-          {activeContact?._id ? (
-            <Link className="chat-user-avatar-link" to={`/for-you/profile/${activeContact._id}`}>
-              <img className="chat-user-avata" src={getProfileAvatar(activeContact)} alt=""/>
-            </Link>
-          ) : (
-            <img className="chat-user-avata" src={getProfileAvatar(activeContact)} alt=""/>
-          )}
-          <div className="username-egts">
-            {chatActive && (
-              <>
+          {chatActive ? (
+            <>
+              {activeContact?._id ? (
+                <Link className="chat-user-avatar-link" to={`/for-you/profile/${activeContact._id}`}>
+                  <img className="chat-user-avata" src={getProfileAvatar(activeContact)} alt=""/>
+                </Link>
+              ) : (
+                <img className="chat-user-avata" src={getProfileAvatar(activeContact)} alt=""/>
+              )}
+              <div className="username-egts">
                 {activeContact?._id ? (
                   <h1><Link to={`/for-you/profile/${activeContact._id}`}>{activeContact.username}</Link></h1>
                 ) : (
                   <h1>{activeContact?.username}</h1>
                 )}
+                <p className={`desktop-chat-presence ${contactPresenceClass}`}>{contactPresenceText}</p>
                 {!activeContact?.isCompany && (
                   <button type="button" onClick={handleFriendAction} disabled={isFriendActionLoading}>
                     {isChatFriend
@@ -1101,12 +1099,23 @@ function Messages() {
                           : 'Add friend'}
                   </button>
                 )}
-                <p>1.8K</p>
-              </>
-            )}
-
-            {!chatActive && <h1>Last chatted user:</h1>}
-          </div>
+              </div>
+              <div className="desktop-chat-actions" aria-label="Chat options">
+                <span>
+                  <img src={ICONS.callIconColor} alt="" />
+                  Call
+                </span>
+                <span>
+                  <img src={ICONS.settings} alt="" />
+                  Settings
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="username-egts">
+              <h1>Last chatted user:</h1>
+            </div>
+          )}
         </div>
 
         {confirmDeleteMessage && (() => {

@@ -195,7 +195,14 @@ function ProfilePageView({ userId, isOwnProfile }) {
   function openProfilePost(postId) {
     const returnUrl = `${location.pathname}${location.search}${location.hash}`
     navigate(`/for-you?post=${encodeURIComponent(String(postId))}`, {
-      state: { postPreviewReturn: { url: returnUrl, state: null } }
+      state: {
+        routedModal: 'post-preview',
+        routedModalReturn: {
+          url: returnUrl,
+          state: location.state || null,
+          historyEntry: true,
+        },
+      }
     })
   }
 
