@@ -104,6 +104,7 @@ function Messages() {
   const openMessageMenuId = activeMessageDropdown?.type === 'message-actions'
     ? String(activeMessageDropdown.id)
     : null
+  const isAttachmentMenuOpen = activeMessageDropdown?.type === 'chat-attachments'
   const requestedUserId = searchParams.get('user')
   const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
   const hasHistoryRef = React.useRef(false)
@@ -131,6 +132,9 @@ function Messages() {
   const [sending, setSending] = React.useState(false)
   const [error, setError] = React.useState('')
   const messageMenuAnchorsRef = React.useRef(new Map())
+  const attachmentMenuAnchorRef = React.useRef(null)
+  const imagePickerRef = React.useRef(null)
+  const filePickerRef = React.useRef(null)
   const longPressRef = React.useRef(null)
   const [replyToMessage, setReplyToMessage] = React.useState(null)
   const [editingMessageId, setEditingMessageId] = React.useState(null)
@@ -151,6 +155,19 @@ function Messages() {
   const dismissMessageMenu = React.useCallback(() => {
     dismissRoutedDropdown(navigate, location, 'message-actions')
   }, [location, navigate])
+
+  const closeAttachmentMenu = React.useCallback(() => {
+    closeRoutedDropdown(navigate, location, 'chat-attachments')
+  }, [location, navigate])
+
+  const toggleAttachmentMenu = React.useCallback(() => {
+    if (isAttachmentMenuOpen) {
+      closeAttachmentMenu()
+      return
+    }
+
+    pushRoutedDropdown(navigate, location, { type: 'chat-attachments' })
+  }, [closeAttachmentMenu, isAttachmentMenuOpen, location, navigate])
 
   const openMessageMenu = React.useCallback((messageId) => {
     if (openMessageMenuId === String(messageId)) {
@@ -228,6 +245,27 @@ function Messages() {
       document.removeEventListener('keydown', handleKeyDown)
     }
   }, [closeMessageMenu, openMessageMenuId])
+
+  React.useEffect(() => {
+    if (!isAttachmentMenuOpen) return undefined
+
+    function handlePointerDown(event) {
+      if (!attachmentMenuAnchorRef.current?.contains(event.target)) {
+        closeAttachmentMenu()
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') closeAttachmentMenu()
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [closeAttachmentMenu, isAttachmentMenuOpen])
 
   React.useEffect(() => {
     const handleResize = () => {
@@ -1048,7 +1086,68 @@ function Messages() {
             </div>
           ) : (
             <form action="" className='msg-composer' onSubmit={handleSend}>
-              <img className='attach-icon plus' src={ICONS.pluscircle} alt="" />
+              <div className="chat-attachment-anchor" ref={attachmentMenuAnchorRef}>
+                <button
+                  className="chat-attachment-trigger"
+                  type="button"
+                  aria-label="Add attachment"
+                  aria-haspopup="menu"
+                  aria-expanded={isAttachmentMenuOpen}
+                  onClick={toggleAttachmentMenu}
+                >
+                  <img src={ICONS.pluscircle} alt="" />
+                </button>
+                {isAttachmentMenuOpen && (
+                  <ul className="post-more-options chat-attachments-options" role="menu" aria-label="Add attachment">
+                    <li className="post-more-drag-handle" role="presentation">
+                      <span aria-hidden="true" />
+                    </li>
+                    <li role="none">
+                      <button
+                        className="post-more-option"
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          imagePickerRef.current?.click()
+                          closeAttachmentMenu()
+                        }}
+                      >
+                        <span><strong>Add images</strong></span>
+                      </button>
+                    </li>
+                    <li role="none">
+                      <button
+                        className="post-more-option"
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          filePickerRef.current?.click()
+                          closeAttachmentMenu()
+                        }}
+                      >
+                        <span><strong>Add files</strong></span>
+                      </button>
+                    </li>
+                  </ul>
+                )}
+              </div>
+              <input
+                ref={imagePickerRef}
+                className="chat-attachment-file-input"
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={(event) => { event.currentTarget.value = '' }}
+              />
+              <input
+                ref={filePickerRef}
+                className="chat-attachment-file-input"
+                type="file"
+                multiple
+                hidden
+                onChange={(event) => { event.currentTarget.value = '' }}
+              />
               <img className='attach-icon mic' src={ICONS.micGreen} alt="" />
               <div className="input-container">
                 {replyToMessage && (
