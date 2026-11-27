@@ -34,6 +34,8 @@ function ProfilePage({ userId }) {
   const [isFriend, setIsFriend] = React.useState(
     Boolean(user?.friends?.some((friend) => String(typeof friend === 'object' ? friend._id : friend) === String(userId)))
   )
+  const [friendRequestStatus, setFriendRequestStatus] = React.useState(null)
+  const [friendRequestId, setFriendRequestId] = React.useState(null)
   const [isSaving, setIsSaving] = React.useState(false)
   const [editDraft, setEditDraft] = React.useState({})
   const [avatarSelection, setAvatarSelection] = React.useState(null)
@@ -120,6 +122,8 @@ function ProfilePage({ userId }) {
           : Boolean(viewerProfile?.friends?.some(
             (friend) => String(typeof friend === 'object' ? friend._id : friend) === String(currentProfile?._id)
           )))
+        setFriendRequestStatus(currentProfile.friendRequestStatus || null)
+        setFriendRequestId(currentProfile.friendRequestId || null)
         setPosts(allPosts.filter((post) => {
           const belongsToProfile = String(post.user?._id || post.user) === String(currentProfile?._id)
           return belongsToProfile && (isOwnProfile || post.visibility === 'public')
@@ -285,11 +289,28 @@ function ProfilePage({ userId }) {
     setError('')
     setNotice('')
     try {
+      if (!profile.isCompany && friendRequestStatus === 'incoming' && friendRequestId) {
+        const response = await fetch(`${API_ORIGIN}/api/notifications/${friendRequestId}/respond`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'accepted' }),
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.message || 'Could not accept this friend request.')
+        setIsFriend(true)
+        setFriendRequestStatus(null)
+        setFriendRequestId(null)
+        setProfile((current) => ({ ...current, friendsCount: (current?.friendsCount || 0) + 1 }))
+        window.dispatchEvent(new Event('unread-notifications-changed'))
+        setNotice('Friend request accepted.')
+        return
+      }
+
       const endpoint = profile.isCompany
         ? `${API_ORIGIN}/api/companies/${profile._id}/follow`
         : `${API_ORIGIN}/api/users/${profile._id}/friend`
       const response = await fetch(endpoint, {
-        method: isFriend ? 'DELETE' : 'PUT',
+        method: profile.isCompany || isFriend || friendRequestStatus === 'outgoing' ? 'DELETE' : 'PUT',
         headers: { Authorization: `Bearer ${token}` },
       })
       const result = await response.json()
@@ -307,9 +328,19 @@ function ProfilePage({ userId }) {
           friendsCount: Math.max(0, (current?.friendsCount || 0) + (isConnected ? 1 : -1)),
         }))
       }
+      if (!profile.isCompany) {
+        setFriendRequestStatus(result.requestStatus || null)
+        setFriendRequestId(result.requestId || null)
+      }
       setNotice(profile.isCompany
         ? (isConnected ? 'You are now following this company.' : 'You unfollowed this company.')
-        : (isConnected ? 'Friend added.' : 'Friend removed.'))
+        : (isConnected
+        ? 'Friend added.'
+        : result.requestStatus === 'outgoing'
+          ? 'Friend request sent.'
+          : friendRequestStatus === 'outgoing'
+            ? 'Friend request cancelled.'
+            : 'Friend removed.'))
     } catch (actionError) {
       setError(actionError.message)
     }
@@ -406,7 +437,13 @@ function ProfilePage({ userId }) {
                   </svg>
                   <span>{profile?.isCompany
                     ? (isFriend ? 'Following' : 'Follow')
-                    : (isFriend ? 'Your friend' : 'Add friend')}</span>
+                    : (isFriend
+                      ? 'Your friend'
+                      : friendRequestStatus === 'outgoing'
+                        ? 'Request sent'
+                        : friendRequestStatus === 'incoming'
+                          ? 'Accept request'
+                          : 'Add friend')}</span>
                 </button>
               )}
               {!isOwnProfile && (

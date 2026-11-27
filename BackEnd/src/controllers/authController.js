@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -282,7 +283,26 @@ const getProfile = async (req, res) => {
         followingCount: user.followingCompanies.length
       });
     }
-    res.json(user);
+    const [outgoingRequests, incomingRequests] = await Promise.all([
+      Notification.find({
+        actor: user._id,
+        type: 'friend_request',
+        status: 'pending'
+      }).select('recipient').lean(),
+      Notification.find({
+        recipient: user._id,
+        type: 'friend_request',
+        status: 'pending'
+      }).select('_id actor').lean()
+    ]);
+    res.json({
+      ...user.toObject(),
+      pendingFriendRequestIds: outgoingRequests.map((request) => String(request.recipient)),
+      incomingFriendRequests: incomingRequests.map((request) => ({
+        userId: String(request.actor),
+        notificationId: String(request._id)
+      }))
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

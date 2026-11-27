@@ -118,6 +118,10 @@ function Messages() {
 
   const [windWidth, setWindWidth] = React.useState(window.innerWidth)
   const [selectedContact, setSelectedContact] = React.useState(null)
+  const [isChatFriend, setIsChatFriend] = React.useState(false)
+  const [friendRequestStatus, setFriendRequestStatus] = React.useState(null)
+  const [friendRequestId, setFriendRequestId] = React.useState(null)
+  const [isFriendActionLoading, setIsFriendActionLoading] = React.useState(false)
   const [conversations, setConversations] = React.useState([])
   const activeContact = selectedContact
   const chatActive = Boolean(requestedUserId && selectedContact?._id === requestedUserId)
@@ -250,7 +254,9 @@ function Messages() {
 
     async function loadContact() {
       try {
-        const response = await fetch(`${API_ORIGIN}/api/users/${requestedUserId}`)
+        const response = await fetch(`${API_ORIGIN}/api/users/${requestedUserId}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
         const contact = await response.json()
         if (!response.ok) throw new Error(contact.message || 'Could not load this user.')
         if (String(contact._id) === String(user?._id)) {
@@ -258,6 +264,11 @@ function Messages() {
         }
         if (isActive) {
           setSelectedContact(contact)
+          setIsChatFriend((user?.friends || []).some((friend) => (
+            String(typeof friend === 'object' ? friend._id : friend) === String(contact._id)
+          )))
+          setFriendRequestStatus(contact.friendRequestStatus || null)
+          setFriendRequestId(contact.friendRequestId || null)
           setPresence((current) => ({
             ...current,
             userId: String(contact._id),
@@ -273,7 +284,44 @@ function Messages() {
     return () => {
       isActive = false
     }
-  }, [requestedUserId, user?._id])
+  }, [requestedUserId, token, user?._id, user?.friends])
+
+  async function handleFriendAction() {
+    if (!activeContact?._id || !token || isFriendActionLoading) return
+    setIsFriendActionLoading(true)
+    setError('')
+    try {
+      if (friendRequestStatus === 'incoming' && friendRequestId) {
+        const response = await fetch(`${API_ORIGIN}/api/notifications/${friendRequestId}/respond`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'accepted' }),
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.message || 'Could not accept this friend request.')
+        setIsChatFriend(true)
+        setFriendRequestStatus(null)
+        setFriendRequestId(null)
+        window.dispatchEvent(new Event('unread-notifications-changed'))
+        return
+      }
+
+      const hadPendingRequest = friendRequestStatus === 'outgoing'
+      const response = await fetch(`${API_ORIGIN}/api/users/${activeContact._id}/friend`, {
+        method: isChatFriend || hadPendingRequest ? 'DELETE' : 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.message || 'Could not update friend status.')
+      setIsChatFriend(Boolean(result.isFriend))
+      setFriendRequestStatus(result.requestStatus || null)
+      setFriendRequestId(result.requestId || null)
+    } catch (actionError) {
+      setError(actionError.message)
+    } finally {
+      setIsFriendActionLoading(false)
+    }
+  }
 
   React.useEffect(() => {
     if (!requestedUserId) return undefined
@@ -1032,7 +1080,17 @@ function Messages() {
                 ) : (
                   <h1>{activeContact?.username}</h1>
                 )}
-                <button>Add friend</button>
+                {!activeContact?.isCompany && (
+                  <button type="button" onClick={handleFriendAction} disabled={isFriendActionLoading}>
+                    {isChatFriend
+                      ? 'Your friend'
+                      : friendRequestStatus === 'outgoing'
+                        ? 'Request sent'
+                        : friendRequestStatus === 'incoming'
+                          ? 'Accept request'
+                          : 'Add friend'}
+                  </button>
+                )}
                 <p>1.8K</p>
               </>
             )}

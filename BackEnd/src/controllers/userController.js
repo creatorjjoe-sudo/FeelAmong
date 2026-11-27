@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const mongoose = require('mongoose');
+const Notification = require('../models/Notification');
 const UserReport = require('../models/UserReport');
 const { deleteUploadedFiles, deleteStoredMedia } = require('../services/mediaStorage');
 
@@ -11,10 +12,18 @@ const getFriendSuggestions = async (req, res) => {
     if (!currentUser) return res.status(404).json({ message: 'User not found' });
 
     const friends = currentUser.friends || [];
+    const pendingRequests = await Notification.find({
+      type: 'friend_request',
+      status: 'pending',
+      $or: [{ recipient: currentUser._id }, { actor: currentUser._id }]
+    }).select('actor recipient').lean();
+    const unavailableUserIds = pendingRequests.map((request) => (
+      String(request.actor) === String(currentUser._id) ? request.recipient : request.actor
+    ));
     const suggestions = await User.aggregate([
       {
         $match: {
-          _id: { $nin: [currentUser._id, ...friends] },
+          _id: { $nin: [currentUser._id, ...friends, ...unavailableUserIds] },
           isAnonymous: { $ne: true },
           isCompany: { $ne: true }
         }
@@ -71,6 +80,17 @@ const getPublicProfile = async (req, res) => {
     const followersCount = profile.isCompany
       ? await User.countDocuments({ followingCompanies: profile._id })
       : null;
+    let friendRequest = null;
+    if (!profile.isCompany && req.user && String(req.user._id) !== String(profile._id)) {
+      friendRequest = await Notification.findOne({
+        type: 'friend_request',
+        status: 'pending',
+        $or: [
+          { recipient: req.user._id, actor: profile._id },
+          { recipient: profile._id, actor: req.user._id }
+        ]
+      }).select('_id recipient actor').lean();
+    }
 
     res.json({
       _id: profile._id,
@@ -93,6 +113,10 @@ const getPublicProfile = async (req, res) => {
           (companyId) => String(companyId) === String(profile._id)
         )
       ),
+      friendRequestStatus: friendRequest
+        ? (String(friendRequest.actor) === String(req.user._id) ? 'outgoing' : 'incoming')
+        : null,
+      friendRequestId: friendRequest ? String(friendRequest._id) : null,
       companyDescription: profile.isCompany ? profile.bio : '',
       friendsCount: profile.friends.length,
       followersCount,
@@ -191,43 +215,101 @@ const reportUser = async (req, res) => {
 
 const updateFriendship = async (req, res) => {
   try {
-    const { createNotification } = require('../services/notificationService');
     const targetUserId = req.params.id;
     const currentUserId = String(req.user._id);
+    if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
     if (targetUserId === currentUserId) {
       return res.status(400).json({ message: 'You cannot add or remove yourself as a friend' });
     }
 
-    const targetUser = await User.findById(targetUserId).select('_id');
+    const targetUser = await User.findById(targetUserId).select('_id friends isCompany');
     if (!targetUser) return res.status(404).json({ message: 'User not found' });
+    if (targetUser.isCompany || req.user.isCompany) {
+      return res.status(400).json({ message: 'Friend requests are only available between personal accounts' });
+    }
 
     const shouldAdd = req.method === 'PUT';
-    const update = shouldAdd
-      ? { $addToSet: { friends: req.user._id } }
-      : { $pull: { friends: req.user._id } };
-    const inverseUpdate = shouldAdd
-      ? { $addToSet: { friends: targetUser._id } }
-      : { $pull: { friends: targetUser._id } };
+    if (shouldAdd) {
+      const currentUser = await User.findById(req.user._id).select('friends');
+      if (currentUser.friends.some((friendId) => String(friendId) === String(targetUser._id))) {
+        await Notification.deleteMany({
+          type: 'friend_request',
+          status: 'pending',
+          $or: [
+            { recipient: targetUser._id, actor: req.user._id },
+            { recipient: req.user._id, actor: targetUser._id }
+          ]
+        });
+        return res.json({ friendId: targetUser._id, isFriend: true, requestStatus: 'friends' });
+      }
 
-    await User.updateOne({ _id: req.user._id }, update);
-    await User.updateOne({ _id: targetUser._id }, inverseUpdate);
+      const existingRequest = await Notification.findOne({
+        type: 'friend_request',
+        status: 'pending',
+        $or: [
+          { recipient: targetUser._id, actor: req.user._id },
+          { recipient: req.user._id, actor: targetUser._id }
+        ]
+      }).select('_id recipient actor');
+      if (existingRequest) {
+        const requestStatus = String(existingRequest.actor) === currentUserId ? 'outgoing' : 'incoming';
+        return res.json({
+          friendId: targetUser._id,
+          isFriend: false,
+          requestStatus,
+          requestId: String(existingRequest._id)
+        });
+      }
+
+      const { createNotification } = require('../services/notificationService');
+      const notification = await createNotification({
+        recipient: targetUser._id,
+        actor: req.user._id,
+        type: 'friend_request',
+        target: req.user._id,
+        targetModel: 'User',
+        status: 'pending'
+      });
+      if (!notification) {
+        return res.status(500).json({ message: 'Could not send the friend request.' });
+      }
+
+      return res.status(201).json({
+        friendId: targetUser._id,
+        isFriend: false,
+        requestStatus: 'outgoing',
+        requestId: String(notification._id)
+      });
+    }
 
     const currentUser = await User.findById(req.user._id).select('friends');
-
-    // Notify the other user: request sent / friendship ended
-    await createNotification({
-      recipient: targetUser._id,
-      actor: req.user._id,
-      type: shouldAdd ? 'friend_request' : 'friend_accept',
-      target: req.user._id,
-      targetModel: 'User',
-      status: shouldAdd ? 'pending' : null
-    });
+    const isFriend = currentUser.friends.some((friendId) => String(friendId) === String(targetUser._id));
+    if (isFriend) {
+      await User.updateOne({ _id: req.user._id }, { $pull: { friends: targetUser._id } });
+      await User.updateOne({ _id: targetUser._id }, { $pull: { friends: req.user._id } });
+      await Notification.deleteMany({
+        type: 'friend_request',
+        status: 'pending',
+        $or: [
+          { recipient: targetUser._id, actor: req.user._id },
+          { recipient: req.user._id, actor: targetUser._id }
+        ]
+      });
+    } else {
+      await Notification.deleteOne({
+        recipient: targetUser._id,
+        actor: req.user._id,
+        type: 'friend_request',
+        status: 'pending'
+      });
+    }
 
     res.json({
       friendId: targetUser._id,
-      isFriend: shouldAdd,
-      friends: currentUser.friends
+      isFriend: false,
+      requestStatus: null
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

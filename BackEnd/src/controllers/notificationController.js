@@ -93,17 +93,17 @@ const respondToFriendRequest = async (req, res) => {
       return res.status(400).json({ message: 'Action must be accepted or declined' });
     }
 
-    const notification = await Notification.findOne({
-      _id: req.params.id,
-      recipient: req.user._id,
-      type: 'friend_request',
-      status: 'pending'
-    });
+    const notification = await Notification.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        recipient: req.user._id,
+        type: 'friend_request',
+        status: 'pending'
+      },
+      { status: action, isRead: true },
+      { new: true }
+    );
     if (!notification) return res.status(404).json({ message: 'Friend request not found or already handled' });
-
-    notification.status = action;
-    notification.isRead = true;
-    await notification.save();
 
     if (action === 'accepted' && notification.actor) {
       // Add each user to the other's friends list

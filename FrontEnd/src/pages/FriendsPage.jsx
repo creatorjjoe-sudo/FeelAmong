@@ -24,6 +24,7 @@ function FriendsPage() {
   const [dismissedIds, setDismissedIds] = React.useState(() => new Set())
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState('')
+  const [notice, setNotice] = React.useState('')
   const [pendingActionId, setPendingActionId] = React.useState('')
   const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
 
@@ -92,7 +93,7 @@ function FriendsPage() {
     }
   }
 
-  async function addFriend(person) {
+  async function sendFriendRequest(person) {
     setPendingActionId(String(person._id))
     setError('')
     try {
@@ -101,10 +102,13 @@ function FriendsPage() {
         headers: { Authorization: `Bearer ${token}` },
       })
       const result = await response.json()
-      if (!response.ok) throw new Error(result.message || 'Could not add this friend.')
+      if (!response.ok) throw new Error(result.message || 'Could not send this friend request.')
       setSuggestions((current) => current.filter(
         (suggestion) => String(suggestion._id) !== String(person._id)
       ))
+      setNotice(result.requestStatus === 'incoming'
+        ? 'They have already sent you a friend request. You can accept it above.'
+        : 'Friend request sent.')
     } catch (actionError) {
       setError(actionError.message)
     } finally {
@@ -139,6 +143,7 @@ function FriendsPage() {
 
         <div className="friends-page-content">
           {error && <p className="friends-page-error" role="alert">{error}</p>}
+          {notice && <p className="friends-page-notice" role="status">{notice}</p>}
 
           <section className="friends-requests" aria-labelledby="friends-requests-title">
             <h2 id="friends-requests-title">Friend request</h2>
@@ -227,9 +232,9 @@ function FriendsPage() {
                         type="button"
                         className="friends-add-button"
                         disabled={pendingActionId === String(person._id)}
-                        onClick={() => addFriend(person)}
+                        onClick={() => sendFriendRequest(person)}
                       >
-                        Add friend
+                                        Send request
                       </button>
                       <button
                         type="button"

@@ -395,6 +395,8 @@ function Posts() {
   const [friendIds, setFriendIds] = React.useState(() => new Set(
     (user?.friends || []).map((friend) => String(typeof friend === 'object' ? friend._id : friend))
   ))
+  const [friendRequestIds, setFriendRequestIds] = React.useState(new Set())
+  const [incomingFriendRequests, setIncomingFriendRequests] = React.useState({})
   const [activeDialog, setActiveDialog] = React.useState(null)
   const [commentDraft, setCommentDraft] = React.useState('')
   const commentInputRef = React.useRef(null)
@@ -512,6 +514,10 @@ function Posts() {
         if (!profileResponse.ok) throw new Error(profile.message || 'Could not load your friend list.')
         if (!savedItemsResponse.ok) throw new Error(savedItems.message || 'Could not load your saved items.')
         setFriendIds(new Set((profile.friends || []).map((friend) => String(typeof friend === 'object' ? friend._id : friend))))
+        setFriendRequestIds(new Set((profile.pendingFriendRequestIds || []).map(String)))
+        setIncomingFriendRequests(Object.fromEntries(
+          (profile.incomingFriendRequests || []).map((request) => [request.userId, request.notificationId])
+        ))
         setSavedItemFolders(Object.fromEntries(
           (savedItems.items || []).map((item) => [`${item.itemType}:${item.itemId}`, item.folderId])
         ))
@@ -706,17 +712,65 @@ function Posts() {
     if (!requireLogin()) return
     if (!postUserId || String(postUserId) === String(user?._id)) return
 
-    const isFriend = friendIds.has(String(postUserId))
+    const targetId = String(postUserId)
+    const isFriend = friendIds.has(targetId)
+    const hasPendingRequest = friendRequestIds.has(targetId)
     try {
+      if (incomingFriendRequests[targetId]) {
+        const response = await fetch(`${API_ORIGIN}/api/notifications/${incomingFriendRequests[targetId]}/respond`, {
+          method: 'PUT',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'accepted' }),
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.message || 'Could not accept this friend request.')
+        setFriendIds((current) => new Set([...current, targetId]))
+        setIncomingFriendRequests((current) => {
+          const next = { ...current }
+          delete next[targetId]
+          return next
+        })
+        window.dispatchEvent(new Event('unread-notifications-changed'))
+        showNotice('Friend request accepted.')
+        return
+      }
+
       const response = await fetch(`${API_ORIGIN}/api/users/${postUserId}/friend`, {
-        method: isFriend ? 'DELETE' : 'PUT',
+        method: isFriend || hasPendingRequest ? 'DELETE' : 'PUT',
         headers: getAuthHeaders(),
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.message || 'Unable to update friend status.')
 
-      setFriendIds(new Set((result.friends || []).map((friend) => String(typeof friend === 'object' ? friend._id : friend))))
-      showNotice(result.isFriend ? 'Friend added.' : 'Friend removed.')
+      if (result.isFriend) {
+        setFriendIds((current) => new Set([...current, targetId]))
+        setFriendRequestIds((current) => {
+          const next = new Set(current)
+          next.delete(targetId)
+          return next
+        })
+        showNotice('Friend added.')
+      } else if (result.requestStatus === 'outgoing') {
+        setFriendRequestIds((current) => new Set([...current, targetId]))
+        showNotice('Friend request sent.')
+      } else if (result.requestStatus === 'incoming' && result.requestId) {
+        setIncomingFriendRequests((current) => ({ ...current, [targetId]: result.requestId }))
+        showNotice('They have already sent you a friend request.')
+      } else {
+        if (isFriend) {
+          setFriendIds((current) => {
+            const next = new Set(current)
+            next.delete(targetId)
+            return next
+          })
+        }
+        setFriendRequestIds((current) => {
+          const next = new Set(current)
+          next.delete(targetId)
+          return next
+        })
+        showNotice(hasPendingRequest ? 'Friend request cancelled.' : 'Friend removed.')
+      }
     } catch (actionError) {
       setError(actionError.message)
     }
@@ -1154,6 +1208,8 @@ function Posts() {
           const isTextPost = post.postType === 'text'
           const isPostCreator = Boolean(user?._id) && String(post.user?._id) === String(user._id)
           const isPostCreatorFriend = friendIds.has(String(post.user?._id))
+          const hasPostCreatorRequest = friendRequestIds.has(String(post.user?._id))
+          const hasIncomingPostCreatorRequest = Boolean(incomingFriendRequests[String(post.user?._id)])
           const savedItemKey = `post:${post._id}`
           const savedByCurrentUser = Boolean(user) && (
             Object.prototype.hasOwnProperty.call(savedItemFolders, savedItemKey)
@@ -1455,8 +1511,20 @@ function Posts() {
                               <path d="M19 8v6M22 11h-6" />
                             </svg>
                             <span>
-                              <strong>{isPostCreatorFriend ? 'Unfriend' : 'Add friend'}</strong>
-                              <small>{isPostCreatorFriend ? 'Remove this connection' : 'Connect with this creator'}</small>
+                              <strong>{isPostCreatorFriend
+                                ? 'Unfriend'
+                                : hasIncomingPostCreatorRequest
+                                  ? 'Accept request'
+                                  : hasPostCreatorRequest
+                                    ? 'Cancel request'
+                                    : 'Add friend'}</strong>
+                              <small>{isPostCreatorFriend
+                                ? 'Remove this connection'
+                                : hasIncomingPostCreatorRequest
+                                  ? 'Accept their pending friend request'
+                                  : hasPostCreatorRequest
+                                    ? 'Cancel your pending friend request'
+                                    : 'Send a friend request to this creator'}</small>
                             </span>
                           </button>
                         </li>
