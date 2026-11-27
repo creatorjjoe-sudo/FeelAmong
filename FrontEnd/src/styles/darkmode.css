@@ -457,6 +457,20 @@ html[data-theme="dark"] .mobile-active-chat-header .active-user-username a {
  color: #e5ebe6;
 }
 
+html[data-theme="dark"] .right-section .username-egts h1,
+html[data-theme="dark"] .right-section .username-egts h1 a,
+html[data-theme="dark"] .desktop-chat-actions span {
+ color: #e5ebe6;
+}
+
+html[data-theme="dark"] .right-section .desktop-chat-presence.is-offline {
+ color: #a5b2a8;
+}
+
+html[data-theme="dark"] .desktop-chat-actions .chat-settings-icon {
+ filter: brightness(0) invert(1);
+}
+
 /* Dark icon on a dark header: flip it to white in dark mode */
 html[data-theme="dark"] .mobile-active-chat-header .back-icon {
  filter: brightness(0) invert(1);

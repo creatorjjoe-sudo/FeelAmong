@@ -1102,11 +1102,11 @@ function Messages() {
               </div>
               <div className="desktop-chat-actions" aria-label="Chat options">
                 <span>
-                  <img src={ICONS.callIconColor} alt="" />
+                  <img className="chat-call-icon" src={ICONS.callIconColor} alt="" />
                   Call
                 </span>
                 <span>
-                  <img src={ICONS.settings} alt="" />
+                  <img className="chat-settings-icon" src={ICONS.settings} alt="" />
                   Settings
                 </span>
               </div>
