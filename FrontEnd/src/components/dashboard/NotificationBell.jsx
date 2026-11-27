@@ -1,7 +1,8 @@
 import React, { useContext } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../api/context/AuthContext'
 import { getProfileAvatar } from '../../utils/profileAvatar'
+import { closeRoutedDropdown, dismissRoutedDropdown, pushRoutedDropdown } from '../../utils/routedDropdown'
 import '../../styles/components/dashboard/notifications.css'
 
 import { API_ORIGIN } from '../../api/config'
@@ -68,7 +69,8 @@ function ActorAvatar({ actor }) {
 function NotificationBell({ unreadCount, onUnreadCountChanged }) {
   const { user } = useContext(AuthContext)
   const navigate = useNavigate()
-  const [open, setOpen] = React.useState(false)
+  const location = useLocation()
+  const open = location.state?.routedDropdown?.type === 'notification-bell'
   const [notifications, setNotifications] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(false)
   const [hasMore, setHasMore] = React.useState(false)
@@ -86,12 +88,12 @@ function NotificationBell({ unreadCount, onUnreadCountChanged }) {
     if (!open) return undefined
     function handleMouseDown(event) {
       if (!buttonRef.current?.contains(event.target) && !panelRef.current?.contains(event.target)) {
-        setOpen(false)
+        closeRoutedDropdown(navigate, location, 'notification-bell')
       }
     }
     document.addEventListener('mousedown', handleMouseDown)
     return () => document.removeEventListener('mousedown', handleMouseDown)
-  }, [open])
+  }, [location, navigate, open])
 
   // Listen for live notifications pushed over socket.io
   React.useEffect(() => {
@@ -122,11 +124,12 @@ function NotificationBell({ unreadCount, onUnreadCountChanged }) {
   }
 
   function toggleOpen() {
-    const nextOpen = !open
-    setOpen(nextOpen)
-    if (nextOpen) {
+    if (open) {
+      closeRoutedDropdown(navigate, location, 'notification-bell')
+    } else {
       setVisibleCount(10)
       loadNotifications()
+      pushRoutedDropdown(navigate, location, { type: 'notification-bell' })
     }
   }
 
@@ -175,7 +178,7 @@ function NotificationBell({ unreadCount, onUnreadCountChanged }) {
   }
 
   function navigateToNotification(notification) {
-    setOpen(false)
+    dismissRoutedDropdown(navigate, location, 'notification-bell')
     markSingleRead(notification)
     const { type, targetModel, actor } = notification
     const targetId = notification.target?._id || notification.target

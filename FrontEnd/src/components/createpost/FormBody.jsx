@@ -1,10 +1,11 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useContext } from 'react'
 import { AuthContext } from '../../api/context/AuthContext'
 import { ICONS } from '../../assets/icons'
 import PostImageGrid from './PostImageGrid'
 import { DEFAULT_TEXT_POST_BACKGROUND, getTextPostColor, isNoneTextPostBackground, NONE_TEXT_POST_BACKGROUND, TEXT_POST_BACKGROUNDS } from '../../utils/textPostColors'
+import { closeRoutedDropdown, pushRoutedDropdown } from '../../utils/routedDropdown'
 import '../../styles/components/createpost/formbody.css'
 
 import { API_ORIGIN } from '../../api/config'
@@ -19,6 +20,7 @@ const VISIBILITY_OPTIONS = [
 
 function FormBody({ postType, editPostId }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useContext(AuthContext)
   const isTextPost = postType === 'text'
 
@@ -28,7 +30,7 @@ function FormBody({ postType, editPostId }) {
   const hasTextPostBackground = !isNoneTextPostBackground(textPostBackground)
   const [imageFiles, setImageFiles] = React.useState([])
   const [visibility, setVisibility] = React.useState('public')
-  const [visibilityOpen, setVisibilityOpen] = React.useState(false)
+  const visibilityOpen = location.state?.routedDropdown?.type === 'post-form-visibility'
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [isLoadingPost, setIsLoadingPost] = React.useState(Boolean(editPostId))
   const [error, setError] = React.useState('')
@@ -37,6 +39,18 @@ function FormBody({ postType, editPostId }) {
   const textPostDescriptionRef = React.useRef(null)
   const textPostContainerRef = React.useRef(null)
   const previewUrls = React.useRef(new Set())
+
+  function toggleVisibilityDropdown() {
+    if (visibilityOpen) {
+      closeRoutedDropdown(navigate, location, 'post-form-visibility')
+    } else {
+      pushRoutedDropdown(navigate, location, { type: 'post-form-visibility' })
+    }
+  }
+
+  const closeVisibilityDropdown = React.useCallback(() => {
+    closeRoutedDropdown(navigate, location, 'post-form-visibility')
+  }, [location, navigate])
 
   React.useEffect(() => () => {
     previewUrls.current.forEach((url) => URL.revokeObjectURL(url))
@@ -147,12 +161,12 @@ function FormBody({ postType, editPostId }) {
 
     function handlePointerDown(event) {
       if (!visibilityRef.current?.contains(event.target)) {
-        setVisibilityOpen(false)
+        closeVisibilityDropdown()
       }
     }
 
     function handleKeyDown(event) {
-      if (event.key === 'Escape') setVisibilityOpen(false)
+      if (event.key === 'Escape') closeVisibilityDropdown()
     }
 
     document.addEventListener('pointerdown', handlePointerDown)
@@ -161,7 +175,7 @@ function FormBody({ postType, editPostId }) {
       document.removeEventListener('pointerdown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [visibilityOpen])
+  }, [visibilityOpen, closeVisibilityDropdown])
 
   function handleImageSelection(event) {
     const selectedFiles = Array.from(event.target.files || [])
@@ -368,7 +382,7 @@ function FormBody({ postType, editPostId }) {
             )}
 
             <div className="visibility" ref={visibilityRef}>
-              <button className="upper" type="button" aria-expanded={visibilityOpen} aria-haspopup="listbox" onClick={() => setVisibilityOpen((open) => !open)}>
+              <button className="upper" type="button" aria-expanded={visibilityOpen} aria-haspopup="listbox" onClick={toggleVisibilityDropdown}>
                 <p className="option-text">Visibility</p>
                 <img className={visibilityOpen ? 'visibility-arrow open' : 'visibility-arrow'} src={ICONS.arrowDown} alt=""/>
               </button>
@@ -382,7 +396,7 @@ function FormBody({ postType, editPostId }) {
                 <div className="visibility-options" role="listbox" aria-label="Post visibility">
                   {VISIBILITY_OPTIONS.map((option) => (
                     <button key={option.value} className="visibility-option" type="button" role="option" aria-selected={visibility === option.value} onClick={() => {
-                        setVisibility(option.value); setVisibilityOpen(false)}}>
+                        setVisibility(option.value); closeVisibilityDropdown()}}>
                       <img src={option.icon} alt="" />
                       <span>{option.label}</span>
                     </button>

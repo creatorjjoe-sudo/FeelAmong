@@ -5,6 +5,7 @@ import { useContext } from 'react'
 import { AuthContext } from '../../api/context/AuthContext'
 import { ICONS } from '../../assets/icons'
 import { getProfileAvatar } from '../../utils/profileAvatar'
+import { closeRoutedDropdown, pushRoutedDropdown } from '../../utils/routedDropdown'
 import PostImageGrid from './PostImageGrid'
 import {
   getTextPostColor,
@@ -35,9 +36,10 @@ function TextPostComposer({ editPostId }) {
   const [backgroundColor, setBackgroundColor] = React.useState(NONE_TEXT_POST_BACKGROUND)
   const [visibility, setVisibility] = React.useState('public')
   const step = new URLSearchParams(location.search).get('step') === 'review' ? 'review' : 'compose'
-  const [visibilityOpen, setVisibilityOpen] = React.useState(false)
-  const [moreOpen, setMoreOpen] = React.useState(false)
-  const [paletteOpen, setPaletteOpen] = React.useState(false)
+  const activeDropdown = location.state?.routedDropdown
+  const visibilityOpen = activeDropdown?.type === 'text-post-visibility'
+  const moreOpen = activeDropdown?.type === 'text-post-more'
+  const paletteOpen = activeDropdown?.type === 'text-post-palette'
   const [visiblePaletteCount, setVisiblePaletteCount] = React.useState(0)
   const [images, setImages] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(Boolean(editPostId))
@@ -279,23 +281,31 @@ function TextPostComposer({ editPostId }) {
     return () => controller.abort()
   }, [editPostId, user])
 
+  function toggleDropdown(type) {
+    if (activeDropdown?.type === type) {
+      closeRoutedDropdown(navigate, location, type)
+    } else {
+      pushRoutedDropdown(navigate, location, { type })
+    }
+  }
+
+  const closeComposerDropdown = React.useCallback(() => {
+    if (activeDropdown?.type?.startsWith('text-post-')) {
+      closeRoutedDropdown(navigate, location, activeDropdown.type)
+    }
+  }, [activeDropdown, location, navigate])
+
   React.useEffect(() => {
-    if (!visibilityOpen && !moreOpen && !paletteOpen) return undefined
+    if (!activeDropdown?.type?.startsWith('text-post-')) return undefined
 
     function handlePointerDown(event) {
       if (!menuRef.current?.contains(event.target)) {
-        setVisibilityOpen(false)
-        setMoreOpen(false)
-        setPaletteOpen(false)
+        closeComposerDropdown()
       }
     }
 
     function handleKeyDown(event) {
-      if (event.key === 'Escape') {
-        setVisibilityOpen(false)
-        setMoreOpen(false)
-        setPaletteOpen(false)
-      }
+      if (event.key === 'Escape') closeComposerDropdown()
     }
 
     document.addEventListener('pointerdown', handlePointerDown)
@@ -304,7 +314,7 @@ function TextPostComposer({ editPostId }) {
       document.removeEventListener('pointerdown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [moreOpen, paletteOpen, visibilityOpen])
+  }, [activeDropdown?.type, closeComposerDropdown])
 
   React.useEffect(() => {
     if (!cancelDialogOpen) return undefined
@@ -402,7 +412,7 @@ function TextPostComposer({ editPostId }) {
             aria-selected={visibility === option.value}
             onClick={() => {
               setVisibility(option.value)
-              setVisibilityOpen(false)
+              closeComposerDropdown()
             }}
           >
             <img src={option.icon} alt="" />
@@ -431,9 +441,7 @@ function TextPostComposer({ editPostId }) {
                   type="button"
                   className="text-post-header-select"
                   aria-expanded={visibilityOpen}
-                  onClick={() => {
-                    setVisibilityOpen((open) => !open)
-                  }}
+                  onClick={() => toggleDropdown('text-post-visibility')}
                 >
                   <img src={selectedVisibility.icon} alt="" />
                   {selectedVisibility.label}
@@ -527,10 +535,7 @@ function TextPostComposer({ editPostId }) {
                   type="button"
                   aria-label="More background colors"
                   aria-expanded={paletteOpen}
-                  onClick={() => {
-                    setPaletteOpen((open) => !open)
-                    setMoreOpen(false)
-                  }}
+                  onClick={() => toggleDropdown('text-post-palette')}
                 >
                   …
                 </button>
@@ -546,7 +551,7 @@ function TextPostComposer({ editPostId }) {
                         aria-pressed={backgroundColor === color}
                         onClick={() => {
                           setBackgroundColor(color)
-                          setPaletteOpen(false)
+                          closeComposerDropdown()
                         }}
                       >
                         {color === NONE_TEXT_POST_BACKGROUND ? '×' : null}
@@ -564,7 +569,7 @@ function TextPostComposer({ editPostId }) {
                 className="text-post-more-button"
                 type="button"
                 aria-expanded={moreOpen}
-                onClick={() => setMoreOpen((open) => !open)}
+                onClick={() => toggleDropdown('text-post-more')}
               >
                 <span aria-hidden="true">#</span>
                 Add more
@@ -580,7 +585,7 @@ function TextPostComposer({ editPostId }) {
                       className="text-post-menu-option"
                       type="button"
                       onClick={() => {
-                        setMoreOpen(false)
+                        closeComposerDropdown()
                         document.querySelector('.text-post-background-options')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
                       }}
                     >
@@ -696,7 +701,7 @@ function TextPostComposer({ editPostId }) {
                 className="text-post-review-select"
                 type="button"
                 aria-expanded={visibilityOpen}
-                onClick={() => setVisibilityOpen((open) => !open)}
+                onClick={() => toggleDropdown('text-post-visibility')}
               >
                 <img src={selectedVisibility.icon} alt="" />
                 {selectedVisibility.label}

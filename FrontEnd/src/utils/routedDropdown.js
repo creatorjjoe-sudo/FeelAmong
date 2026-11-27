@@ -55,3 +55,15 @@ export function closeRoutedDropdown(navigate, location, dropdownType) {
   if (location.state?.routedDropdown?.type !== dropdownType) return
   navigate(location.state.routedDropdown.view ? -2 : -1)
 }
+
+export function dismissRoutedDropdown(navigate, location, dropdownType) {
+  if (location.state?.routedDropdown?.type !== dropdownType) return false
+
+  const returnTo = location.state.routedDropdownReturn
+  navigate(returnTo?.url || getCurrentUrl(location), {
+    replace: true,
+    state: returnTo?.state || null,
+    preventScrollReset: true,
+  })
+  return true
+}

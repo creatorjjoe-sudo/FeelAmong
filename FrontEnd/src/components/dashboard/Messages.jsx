@@ -1,10 +1,11 @@
 import React, { useContext } from 'react'
 import { createPortal } from 'react-dom'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams, Link, useLocation, useNavigate } from 'react-router-dom'
 import { ICONS } from '../../assets/icons'
 import '../../styles/components/dashboard/message.css'
 import { AuthContext } from '../../api/context/AuthContext'
 import { getProfileAvatar } from '../../utils/profileAvatar'
+import { closeRoutedDropdown, dismissRoutedDropdown, pushRoutedDropdown } from '../../utils/routedDropdown'
 
 import { API_ORIGIN } from '../../api/config'
 
@@ -105,6 +106,12 @@ function formatPresence(lastSeen, now) {
 function Messages() {
   const { user } = useContext(AuthContext)
   const [searchParams, setSearchParams] = useSearchParams()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const activeMessageDropdown = location.state?.routedDropdown
+  const openMessageMenuId = activeMessageDropdown?.type === 'message-actions'
+    ? String(activeMessageDropdown.id)
+    : null
   const requestedUserId = searchParams.get('user')
   const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
   const hasHistoryRef = React.useRef(false)
@@ -127,7 +134,6 @@ function Messages() {
   const [draft, setDraft] = React.useState('')
   const [sending, setSending] = React.useState(false)
   const [error, setError] = React.useState('')
-  const [openMessageMenuId, setOpenMessageMenuId] = React.useState(null)
   const messageMenuAnchorsRef = React.useRef(new Map())
   const longPressRef = React.useRef(null)
   const [replyToMessage, setReplyToMessage] = React.useState(null)
@@ -141,6 +147,23 @@ function Messages() {
   const selectableTextareaRef = React.useRef(null)
   const typingTimeoutRef = React.useRef(null)
   const typingRecipientRef = React.useRef(null)
+
+  const closeMessageMenu = React.useCallback(() => {
+    closeRoutedDropdown(navigate, location, 'message-actions')
+  }, [location, navigate])
+
+  const dismissMessageMenu = React.useCallback(() => {
+    dismissRoutedDropdown(navigate, location, 'message-actions')
+  }, [location, navigate])
+
+  const openMessageMenu = React.useCallback((messageId) => {
+    if (openMessageMenuId === String(messageId)) {
+      closeMessageMenu()
+      return
+    }
+
+    pushRoutedDropdown(navigate, location, { type: 'message-actions', id: String(messageId) })
+  }, [closeMessageMenu, location, navigate, openMessageMenuId])
 
   const sendTyping = React.useCallback((isTyping, recipientId = typingRecipientRef.current) => {
     if (!recipientId) return
@@ -194,12 +217,12 @@ function Messages() {
 
     function handlePointerDown(event) {
       if (!messageMenuAnchorsRef.current.get(openMessageMenuId)?.contains(event.target)) {
-        setOpenMessageMenuId(null)
+        closeMessageMenu()
       }
     }
 
     function handleKeyDown(event) {
-      if (event.key === 'Escape') setOpenMessageMenuId(null)
+      if (event.key === 'Escape') closeMessageMenu()
     }
 
     document.addEventListener('pointerdown', handlePointerDown)
@@ -208,7 +231,7 @@ function Messages() {
       document.removeEventListener('pointerdown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [openMessageMenuId])
+  }, [closeMessageMenu, openMessageMenuId])
 
   React.useEffect(() => {
     const handleResize = () => {
@@ -463,7 +486,7 @@ function Messages() {
     setError('')
     setReplyToMessage(null)
     setEditingMessageId(null)
-    setOpenMessageMenuId(null)
+    if (openMessageMenuId) dismissMessageMenu()
 
     // If the same contact is clicked again, just reload their messages
     // instead of clearing them (the URL param won't change, so the
@@ -498,12 +521,12 @@ function Messages() {
 
   function startReply(message) {
     setReplyToMessage(message)
-    setOpenMessageMenuId(null)
+    closeMessageMenu()
   }
 
   function startSelect(message) {
     setSelectableMessageId(message._id)
-    setOpenMessageMenuId(null)
+    closeMessageMenu()
   }
 
   function exitSelect() {
@@ -513,7 +536,7 @@ function Messages() {
   function startEdit(message) {
     setEditingMessageId(message._id)
     setEditDraft(message.text)
-    setOpenMessageMenuId(null)
+    closeMessageMenu()
   }
 
   function cancelEdit() {
@@ -799,7 +822,7 @@ function Messages() {
                           startY,
                           timer: setTimeout(() => {
                             longPressRef.current = null
-                            setOpenMessageMenuId(msg._id)
+                            openMessageMenu(msg._id)
                             if (navigator.vibrate) navigator.vibrate(30)
                           }, 500)
                         }
@@ -829,7 +852,7 @@ function Messages() {
                       onContextMenu={(event) => {
                         // Desktop right-click also opens the menu, like a native chat app.
                         event.preventDefault()
-                        setOpenMessageMenuId(msg._id)
+                        openMessageMenu(msg._id)
                       }}
                       ref={(element) => {
                         if (element) messageMenuAnchorsRef.current.set(msg._id, element)
@@ -933,7 +956,7 @@ function Messages() {
                             <li role="none">
                               <button className="message-more-option is-danger" type="button" role="menuitem" onClick={(event) => {
                                 event.stopPropagation()
-                                setOpenMessageMenuId(null)
+                                closeMessageMenu()
                                 openDeleteDialog(msg)
                               }}>
                                 <span>Delete</span>

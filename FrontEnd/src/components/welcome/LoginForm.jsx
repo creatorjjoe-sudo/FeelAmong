@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../../src/api/context/AuthContext'; // Hooked global context
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { closeRoutedModal, pushRoutedModal } from '../../utils/routedModal'
+import { closeRoutedDropdown, pushRoutedDropdown } from '../../utils/routedDropdown'
 import { API_ORIGIN } from '../../api/config'
 
 function LoginForm({ view, switchView, selectedAccount, onCancelAccount, onRemoveDeviceAccount }) {
@@ -26,7 +27,8 @@ function LoginForm({ view, switchView, selectedAccount, onCancelAccount, onRemov
   const showIncorrectPasswordModal = location.state?.routedModal === 'login-incorrect-password'
 
   const [showAccountPasswordModal, setShowAccountPasswordModal] = useState(!!selectedAccount);
-  const [isAccountSettingsOpen, setIsAccountSettingsOpen] = useState(false);
+  const isAccountSettingsOpen = location.state?.routedDropdown?.type === 'login-account-settings';
+  const accountSettingsRef = React.useRef(null);
   const [showRemoveAccountModal, setShowRemoveAccountModal] = useState(false);
   const [removeAccountPassword, setRemoveAccountPassword] = useState('');
   const [removeAccountError, setRemoveAccountError] = useState('');
@@ -36,6 +38,37 @@ function LoginForm({ view, switchView, selectedAccount, onCancelAccount, onRemov
   // can close the modal the same way the other routed modals in the app do.
   const MODAL_HISTORY_KEY = 'accountPasswordModal';
   const pushedHistoryRef = React.useRef(false);
+
+  const toggleAccountSettings = () => {
+    if (isAccountSettingsOpen) {
+      closeRoutedDropdown(navigate, location, 'login-account-settings');
+    } else {
+      pushRoutedDropdown(navigate, location, { type: 'login-account-settings' });
+    }
+  };
+
+  const closeAccountSettings = React.useCallback(() => {
+    closeRoutedDropdown(navigate, location, 'login-account-settings');
+  }, [location, navigate]);
+
+  useEffect(() => {
+    if (!isAccountSettingsOpen) return undefined;
+
+    function handlePointerDown(event) {
+      if (!accountSettingsRef.current?.contains(event.target)) closeAccountSettings();
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') closeAccountSettings();
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [closeAccountSettings, isAccountSettingsOpen]);
 
   const openAccountPasswordModal = () => {
     setShowAccountPasswordModal(true);
@@ -327,14 +360,14 @@ function LoginForm({ view, switchView, selectedAccount, onCancelAccount, onRemov
                 </button>
               </div>
             </form>
-            <div className="account-settings">
+            <div className="account-settings" ref={accountSettingsRef}>
               <button
                 className="account-settings-trigger"
                 type="button"
                 aria-label="Account settings"
                 aria-haspopup="menu"
                 aria-expanded={isAccountSettingsOpen}
-                onClick={() => setIsAccountSettingsOpen((open) => !open)}
+                onClick={toggleAccountSettings}
               >
                 <img src={ICONS.settings} alt="" />
               </button>
@@ -344,7 +377,7 @@ function LoginForm({ view, switchView, selectedAccount, onCancelAccount, onRemov
                     type="button"
                     role="menuitem"
                     onClick={() => {
-                      setIsAccountSettingsOpen(false);
+                      closeAccountSettings();
                       setRemoveAccountError('');
                       setShowRemoveAccountModal(true);
                     }}
@@ -354,7 +387,7 @@ function LoginForm({ view, switchView, selectedAccount, onCancelAccount, onRemov
                   <button
                     type="button"
                     role="menuitem"
-                    onClick={() => setIsAccountSettingsOpen(false)}
+                    onClick={closeAccountSettings}
                   >
                     Cancel
                   </button>

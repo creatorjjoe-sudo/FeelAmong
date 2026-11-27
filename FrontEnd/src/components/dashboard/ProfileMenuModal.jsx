@@ -5,6 +5,7 @@ import { ICONS } from '../../assets/icons'
 import { AuthContext } from '../../api/context/AuthContext'
 import { getProfileAvatar } from '../../utils/profileAvatar'
 import { replaceWithRoutedModal } from '../../utils/routedModal'
+import { closeRoutedDropdownView, pushRoutedDropdown } from '../../utils/routedDropdown'
 import '../../styles/components/dashboard/profile-menu.css'
 import { API_ORIGIN } from '../../api/config'
 
@@ -17,7 +18,8 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
   const [companies, setCompanies] = React.useState([])
   const [companyError, setCompanyError] = React.useState('')
   const [isCompanyLoading, setIsCompanyLoading] = React.useState(false)
-  const [accountsExpanded, setAccountsExpanded] = React.useState(false)
+  const accountsExpanded = location.state?.routedDropdown?.type === 'profile-accounts'
+    && location.state.routedDropdown.view === 'accounts'
   const [accountActivity, setAccountActivity] = React.useState({})
   const [selectedAccount, setSelectedAccount] = React.useState(null)
   const [isSwitchingAccount, setIsSwitchingAccount] = React.useState(false)
@@ -53,7 +55,6 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
 
   React.useEffect(() => {
     if (!open) {
-      setAccountsExpanded(false)
       setSelectedAccount(null)
       setSwitchingFromAccount(null)
       return
@@ -103,6 +104,10 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
           return
         }
         if (isSwitchingAccount) return
+        if (accountsExpanded) {
+          closeRoutedDropdownView(navigate, location, 'profile-accounts', 'accounts')
+          return
+        }
         if (selectedAccount) {
           setSelectedAccount(null)
           onClose()
@@ -112,12 +117,20 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isLoggingOut, isLogoutConfirmOpen, isSwitchingAccount, onClose, open, selectedAccount])
+  }, [accountsExpanded, isLoggingOut, isLogoutConfirmOpen, isSwitchingAccount, location, navigate, onClose, open, selectedAccount])
 
   if (!open) return null
 
   const openDestination = (path) => {
     replaceWithRoutedModal(navigate, path, null, location)
+  }
+
+  const toggleAccountsExpanded = () => {
+    if (accountsExpanded) {
+      closeRoutedDropdownView(navigate, location, 'profile-accounts', 'accounts')
+    } else {
+      pushRoutedDropdown(navigate, location, { type: 'profile-accounts', view: 'accounts' })
+    }
   }
 
   const handleAccountAction = async () => {
@@ -221,7 +234,7 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
                 className="profile-menu-active-account"
                 aria-expanded={accountsExpanded}
                 aria-controls="profile-menu-account-list"
-                onClick={() => setAccountsExpanded((expanded) => !expanded)}
+                onClick={toggleAccountsExpanded}
               >
                 <span className="profile-menu-option-icon profile-menu-account-avatar">
                   <img src={getProfileAvatar(user)} alt="" />

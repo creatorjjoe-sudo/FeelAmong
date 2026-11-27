@@ -2,6 +2,7 @@ import React, { useContext } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../api/context/AuthContext'
 import { getProfileAvatar } from '../../utils/profileAvatar'
+import { closeRoutedDropdown, dismissRoutedDropdown, pushRoutedDropdown } from '../../utils/routedDropdown'
 import '../../styles/components/dashboard/notifications.css'
 
 import { API_ORIGIN } from '../../api/config'
@@ -169,17 +170,38 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
   const { user } = useContext(AuthContext)
   const navigate = useNavigate()
   const location = useLocation()
+  const activeDropdown = location.state?.routedDropdown
   const [notifications, setNotifications] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [hasMore, setHasMore] = React.useState(false)
   const [visibleCount, setVisibleCount] = React.useState(10)
-  const [isMenuOpen, setIsMenuOpen] = React.useState(false)
-  const [openUpdateMenuId, setOpenUpdateMenuId] = React.useState(null)
-  const [openParticipantsGroupId, setOpenParticipantsGroupId] = React.useState(null)
+  const isMenuOpen = activeDropdown?.type === 'notifications-page-actions'
+  const openUpdateMenuId = activeDropdown?.type === 'notification-actions'
+    ? String(activeDropdown.id)
+    : null
+  const openParticipantsGroupId = activeDropdown?.type === 'notification-participants'
+    ? String(activeDropdown.id)
+    : null
   const [actionError, setActionError] = React.useState('')
   const updateMenuRefs = React.useRef(new Map())
   const participantsListRefs = React.useRef(new Map())
+  const pageMenuRef = React.useRef(null)
   const token = user?.token || user?.accessToken || user?.data?.token || localStorage.getItem('token')
+
+  function toggleDropdown(type, id) {
+    if (activeDropdown?.type === type && String(activeDropdown.id || '') === String(id || '')) {
+      closeRoutedDropdown(navigate, location, type)
+      return
+    }
+
+    pushRoutedDropdown(navigate, location, { type, id })
+  }
+
+  const closeNotificationDropdown = React.useCallback(() => {
+    if (activeDropdown?.type?.startsWith('notification')) {
+      closeRoutedDropdown(navigate, location, activeDropdown.type)
+    }
+  }, [activeDropdown, location, navigate])
 
   function getAuthHeaders() {
     return { Authorization: `Bearer ${token}` }
@@ -223,16 +245,21 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
   }, [onUnreadCountChanged])
 
   React.useEffect(() => {
-    if (!openUpdateMenuId) return undefined
+    if (!activeDropdown?.type?.startsWith('notification')) return undefined
 
     function handlePointerDown(event) {
-      if (!updateMenuRefs.current.get(openUpdateMenuId)?.contains(event.target)) {
-        setOpenUpdateMenuId(null)
+      const dropdownRef = activeDropdown.type === 'notifications-page-actions'
+        ? pageMenuRef
+        : activeDropdown.type === 'notification-actions'
+          ? { current: updateMenuRefs.current.get(String(activeDropdown.id)) }
+          : { current: participantsListRefs.current.get(String(activeDropdown.id)) }
+      if (!dropdownRef.current?.contains(event.target)) {
+        closeNotificationDropdown()
       }
     }
 
     function handleKeyDown(event) {
-      if (event.key === 'Escape') setOpenUpdateMenuId(null)
+      if (event.key === 'Escape') closeNotificationDropdown()
     }
 
     document.addEventListener('pointerdown', handlePointerDown)
@@ -241,28 +268,7 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
       document.removeEventListener('pointerdown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [openUpdateMenuId])
-
-  React.useEffect(() => {
-    if (!openParticipantsGroupId) return undefined
-
-    function handlePointerDown(event) {
-      if (!participantsListRefs.current.get(openParticipantsGroupId)?.contains(event.target)) {
-        setOpenParticipantsGroupId(null)
-      }
-    }
-
-    function handleKeyDown(event) {
-      if (event.key === 'Escape') setOpenParticipantsGroupId(null)
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [openParticipantsGroupId])
+  }, [activeDropdown, closeNotificationDropdown])
   async function markAllAsRead() {
     try {
       await fetch(`${API_ORIGIN}/api/notifications/read-all`, { method: 'PUT', headers: getAuthHeaders() })
@@ -308,6 +314,9 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
   }
 
   function navigateToNotification(notification, groupNotifications = [notification]) {
+    if (activeDropdown?.type?.startsWith('notification')) {
+      dismissRoutedDropdown(navigate, location, activeDropdown.type)
+    }
     groupNotifications.forEach(markSingleRead)
     const { type, targetModel, actor } = notification
     const targetId = notification.target?._id || notification.target
@@ -337,7 +346,7 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
 
   async function markUpdateUnread(group) {
     setActionError('')
-    setOpenUpdateMenuId(null)
+    closeNotificationDropdown()
     const results = await Promise.all(group.notifications.map(async (notification) => {
       try {
         const response = await fetch(`${API_ORIGIN}/api/notifications/${notification._id}/read`, {
@@ -367,7 +376,7 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
       markUpdateUnread(group)
     } else {
       group.notifications.forEach(markSingleRead)
-      setOpenUpdateMenuId(null)
+      closeNotificationDropdown()
     }
   }
 
@@ -391,7 +400,7 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
     if (deletedIds.size) onUnreadCountChanged?.()
     const failures = results.filter((result) => result.error)
     if (failures.length) setActionError(failures[0].error)
-    setOpenUpdateMenuId(null)
+    closeNotificationDropdown()
   }
 
   // The page isn't shown to anonymous/logged-out users
@@ -405,13 +414,13 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
       <section className="updates-panel" role="region" aria-label="Updates">
         <header className="updates-header">
           <h1>Updates</h1>
-          <div className="updates-menu-wrap">
+          <div className="updates-menu-wrap" ref={pageMenuRef}>
             <button
               className="updates-menu-button"
               type="button"
               aria-label="More update options"
               aria-expanded={isMenuOpen}
-              onClick={() => setIsMenuOpen((open) => !open)}
+              onClick={() => toggleDropdown('notifications-page-actions')}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="5" cy="12" r="1.8" />
@@ -426,8 +435,8 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
                   role="menuitem"
                   disabled={unreadCount === 0}
                   onClick={() => {
+                    closeNotificationDropdown()
                     markAllAsRead()
-                    setIsMenuOpen(false)
                   }}
                 >
                   Mark all as read
@@ -503,7 +512,7 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
                         aria-label="Update options"
                         aria-expanded={openUpdateMenuId === group.id}
                         aria-haspopup="menu"
-                        onClick={() => setOpenUpdateMenuId((current) => current === group.id ? null : group.id)}
+                        onClick={() => toggleDropdown('notification-actions', group.id)}
                       >
                         <svg viewBox="0 0 24 24" aria-hidden="true">
                           <path d="m5 9 7 7 7-7" />
@@ -547,7 +556,7 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
                                 type="button"
                                 key={`${group.id}-text-${index}`}
                                 onClick={() => {
-                                  setOpenParticipantsGroupId(null)
+                                  dismissRoutedDropdown(navigate, location, 'notification-participants')
                                   navigate(`/for-you/profile/${segment.userId}`)
                                 }}
                               >
@@ -570,9 +579,7 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
                                   type="button"
                                   aria-haspopup="dialog"
                                   aria-expanded={openParticipantsGroupId === group.id}
-                                  onClick={() => setOpenParticipantsGroupId(
-                                    (current) => current === group.id ? null : group.id
-                                  )}
+                                  onClick={() => toggleDropdown('notification-participants', group.id)}
                                 >
                                   <strong className="update-emphasis">{segment.count}</strong>
                                   {segment.count === 1 ? ' other' : ' others'}
@@ -586,7 +593,7 @@ function Notifications({ unreadCount, onUnreadCountChanged }) {
                                             <button
                                               type="button"
                                               onClick={() => {
-                                                setOpenParticipantsGroupId(null)
+                                                dismissRoutedDropdown(navigate, location, 'notification-participants')
                                                 navigate(`/for-you/profile/${participant.userId}`)
                                               }}
                                             >
