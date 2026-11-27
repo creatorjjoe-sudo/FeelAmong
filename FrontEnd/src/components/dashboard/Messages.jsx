@@ -302,6 +302,9 @@ function Messages() {
         setIsChatFriend(true)
         setFriendRequestStatus(null)
         setFriendRequestId(null)
+        window.dispatchEvent(new CustomEvent('friend-request-status-changed', {
+          detail: { userId: String(activeContact._id), status: 'friends' },
+        }))
         window.dispatchEvent(new Event('unread-notifications-changed'))
         return
       }
@@ -316,6 +319,13 @@ function Messages() {
       setIsChatFriend(Boolean(result.isFriend))
       setFriendRequestStatus(result.requestStatus || null)
       setFriendRequestId(result.requestId || null)
+      window.dispatchEvent(new CustomEvent('friend-request-status-changed', {
+        detail: {
+          userId: String(activeContact._id),
+          status: result.requestStatus || null,
+          requestId: result.requestId,
+        },
+      }))
     } catch (actionError) {
       setError(actionError.message)
     } finally {

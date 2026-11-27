@@ -534,6 +534,50 @@ function Posts() {
   }, [])
 
   React.useEffect(() => {
+    function handleFriendRequestStatusChanged(event) {
+      const { userId, status, requestId } = event.detail || {}
+      if (!userId) return
+      const targetId = String(userId)
+      if (status === 'outgoing') {
+        setFriendRequestIds((current) => new Set([...current, targetId]))
+        setIncomingFriendRequests((current) => {
+          const next = { ...current }
+          delete next[targetId]
+          return next
+        })
+      } else if (status === 'incoming' && requestId) {
+        setIncomingFriendRequests((current) => ({ ...current, [targetId]: String(requestId) }))
+      } else if (status === 'friends') {
+        setFriendIds((current) => new Set([...current, targetId]))
+        setFriendRequestIds((current) => {
+          const next = new Set(current)
+          next.delete(targetId)
+          return next
+        })
+        setIncomingFriendRequests((current) => {
+          const next = { ...current }
+          delete next[targetId]
+          return next
+        })
+      } else if (status === null) {
+        setFriendRequestIds((current) => {
+          const next = new Set(current)
+          next.delete(targetId)
+          return next
+        })
+        setIncomingFriendRequests((current) => {
+          const next = { ...current }
+          delete next[targetId]
+          return next
+        })
+      }
+    }
+
+    window.addEventListener('friend-request-status-changed', handleFriendRequestStatusChanged)
+    return () => window.removeEventListener('friend-request-status-changed', handleFriendRequestStatusChanged)
+  }, [])
+
+  React.useEffect(() => {
     if (!previewPostId || routedModal) return
     const previewUrl = `${location.pathname}${location.search}${location.hash}`
     const previewReturn = location.state?.postPreviewReturn || { url: '/for-you', state: null }
@@ -730,6 +774,9 @@ function Posts() {
           delete next[targetId]
           return next
         })
+        window.dispatchEvent(new CustomEvent('friend-request-status-changed', {
+          detail: { userId: targetId, status: 'friends' },
+        }))
         window.dispatchEvent(new Event('unread-notifications-changed'))
         showNotice('Friend request accepted.')
         return
@@ -752,9 +799,15 @@ function Posts() {
         showNotice('Friend added.')
       } else if (result.requestStatus === 'outgoing') {
         setFriendRequestIds((current) => new Set([...current, targetId]))
+        window.dispatchEvent(new CustomEvent('friend-request-status-changed', {
+          detail: { userId: targetId, status: 'outgoing', requestId: result.requestId },
+        }))
         showNotice('Friend request sent.')
       } else if (result.requestStatus === 'incoming' && result.requestId) {
         setIncomingFriendRequests((current) => ({ ...current, [targetId]: result.requestId }))
+        window.dispatchEvent(new CustomEvent('friend-request-status-changed', {
+          detail: { userId: targetId, status: 'incoming', requestId: result.requestId },
+        }))
         showNotice('They have already sent you a friend request.')
       } else {
         if (isFriend) {
@@ -769,6 +822,9 @@ function Posts() {
           next.delete(targetId)
           return next
         })
+        window.dispatchEvent(new CustomEvent('friend-request-status-changed', {
+          detail: { userId: targetId, status: null },
+        }))
         showNotice(hasPendingRequest ? 'Friend request cancelled.' : 'Friend removed.')
       }
     } catch (actionError) {
@@ -1268,7 +1324,21 @@ function Posts() {
                 </div>
 
                 <div className="header-right-items">
-                  <p className='add-friend'>Add friend</p>
+                  {!isPostCreator && !post.user?.isCompany && (
+                    <button
+                      className="add-friend"
+                      type="button"
+                      onClick={() => toggleFriend(post.user?._id)}
+                    >
+                      {isPostCreatorFriend
+                        ? 'Unfriend'
+                        : hasIncomingPostCreatorRequest
+                          ? 'Accept request'
+                          : hasPostCreatorRequest
+                            ? 'Request sent'
+                            : 'Add friend'}
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1516,14 +1586,14 @@ function Posts() {
                                 : hasIncomingPostCreatorRequest
                                   ? 'Accept request'
                                   : hasPostCreatorRequest
-                                    ? 'Cancel request'
+                                    ? 'Request sent'
                                     : 'Add friend'}</strong>
                               <small>{isPostCreatorFriend
                                 ? 'Remove this connection'
                                 : hasIncomingPostCreatorRequest
                                   ? 'Accept their pending friend request'
                                   : hasPostCreatorRequest
-                                    ? 'Cancel your pending friend request'
+                                    ? 'Click to cancel your pending friend request'
                                     : 'Send a friend request to this creator'}</small>
                             </span>
                           </button>

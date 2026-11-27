@@ -827,6 +827,174 @@
   color: #a52d25;
 }
 
+.profile-page.is-loading {
+  pointer-events: none;
+}
+
+.profile-page.is-loading .profile-cover::after,
+.profile-page.is-loading .profile-heading h1,
+.profile-page.is-loading .profile-company-badge,
+.profile-page.is-loading .profile-bio,
+.profile-page.is-loading .profile-actions .profile-action-button,
+.profile-page.is-loading .profile-stats > span:not(.profile-stats-separator),
+.profile-page.is-loading .profile-more-info-icon,
+.profile-page.is-loading .profile-more-info > span:not(.profile-more-info-icon),
+.profile-page.is-loading .profile-details::before,
+.profile-page.is-loading .profile-details::after,
+.profile-page.is-loading .profile-posts-heading h2,
+.profile-page.is-loading .profile-posts-heading > span,
+.profile-page.is-loading .profile-post-author-avatar,
+.profile-page.is-loading .profile-loading-line,
+.profile-page.is-loading .profile-post-placeholder,
+.profile-page.is-loading .profile-post-copy h3,
+.profile-page.is-loading .profile-post-copy p {
+  background: linear-gradient(90deg, #e6ebe6 25%, #f5f7f5 50%, #e6ebe6 75%);
+  background-size: 220% 100%;
+  animation: profile-loading-shimmer 1.5s ease-in-out infinite;
+}
+
+.profile-page.is-loading .profile-cover::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  content: '';
+}
+
+.profile-page.is-loading .profile-avatar-trigger {
+  z-index: 1;
+  border-color: #fff;
+  background: #e6ebe6;
+}
+
+.profile-page.is-loading .profile-avatar {
+  opacity: 0;
+}
+
+.profile-page.is-loading .profile-heading h1 {
+  width: min(340px, 70%);
+  height: 34px;
+  border-radius: 7px;
+  color: transparent;
+}
+
+.profile-page.is-loading .profile-company-badge,
+.profile-page.is-loading .profile-bio {
+  color: transparent;
+}
+
+.profile-page.is-loading .profile-actions .profile-action-button {
+  min-width: 116px;
+  border-color: transparent;
+  color: transparent;
+}
+
+.profile-page.is-loading .profile-actions .profile-action-button svg {
+  visibility: hidden;
+}
+
+.profile-page.is-loading .profile-stats > span:not(.profile-stats-separator) {
+  min-width: 112px;
+  border-radius: 5px;
+  color: transparent;
+}
+
+.profile-page.is-loading .profile-stats strong {
+  color: transparent;
+}
+
+.profile-page.is-loading .profile-stats-separator,
+.profile-page.is-loading .profile-stats-chevron,
+.profile-page.is-loading .profile-more-info > svg {
+  visibility: hidden;
+}
+
+.profile-page.is-loading .profile-details > * {
+  display: none;
+}
+
+.profile-page.is-loading .profile-details::before,
+.profile-page.is-loading .profile-details::after {
+  display: block;
+  width: min(420px, 65%);
+  height: 16px;
+  margin-bottom: 11px;
+  border-radius: 5px;
+  content: '';
+}
+
+.profile-page.is-loading .profile-more-info {
+  color: transparent;
+}
+
+.profile-page.is-loading .profile-more-info-icon {
+  color: transparent;
+}
+
+.profile-page.is-loading .profile-more-info > span:not(.profile-more-info-icon) {
+  width: min(220px, 55%);
+  height: 15px;
+  border-radius: 5px;
+  color: transparent;
+}
+
+.profile-page.is-loading .profile-posts-heading h2 {
+  width: min(190px, 45%);
+  height: 24px;
+  border-radius: 5px;
+  color: transparent;
+}
+
+.profile-page.is-loading .profile-posts-heading > span {
+  width: 28px;
+  color: transparent;
+}
+
+.profile-page.is-loading .profile-post-grid {
+  pointer-events: none;
+}
+
+.profile-page.is-loading .profile-post-card {
+  cursor: default;
+}
+
+.profile-page.is-loading .profile-post-author-avatar {
+  background-color: #e6ebe6;
+}
+
+.profile-page.is-loading .profile-loading-line {
+  width: 55%;
+  height: 14px;
+  border-radius: 5px;
+}
+
+.profile-page.is-loading .profile-post-placeholder {
+  border-radius: 10px;
+  color: transparent;
+}
+
+.profile-page.is-loading .profile-post-copy h3,
+.profile-page.is-loading .profile-post-copy p {
+  min-height: 14px;
+  border-radius: 5px;
+  color: transparent;
+}
+
+.profile-page.is-loading .profile-post-copy p {
+  width: 72%;
+}
+
+@keyframes profile-loading-shimmer {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-page.is-loading * {
+    animation-duration: 0.01ms !important;
+  }
+}
+
 @media (max-width: 1000px) {
   .profile-page {
     padding-right: 22px;

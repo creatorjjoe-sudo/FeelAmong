@@ -84,6 +84,9 @@ function FriendsPage() {
         setSuggestions((current) => current.filter(
           (person) => String(person._id) !== String(notification.actor._id)
         ))
+        window.dispatchEvent(new CustomEvent('friend-request-status-changed', {
+          detail: { userId: String(notification.actor._id), status: 'friends' },
+        }))
       }
       window.dispatchEvent(new CustomEvent('unread-notifications-changed'))
     } catch (actionError) {
@@ -106,6 +109,24 @@ function FriendsPage() {
       setSuggestions((current) => current.filter(
         (suggestion) => String(suggestion._id) !== String(person._id)
       ))
+      if (result.requestStatus === 'incoming' && result.requestId) {
+        setRequests((current) => [
+          {
+            _id: result.requestId,
+            actor: person,
+            type: 'friend_request',
+            status: 'pending',
+          },
+          ...current,
+        ])
+      }
+      window.dispatchEvent(new CustomEvent('friend-request-status-changed', {
+        detail: {
+          userId: String(person._id),
+          status: result.requestStatus || null,
+          requestId: result.requestId,
+        },
+      }))
       setNotice(result.requestStatus === 'incoming'
         ? 'They have already sent you a friend request. You can accept it above.'
         : 'Friend request sent.')

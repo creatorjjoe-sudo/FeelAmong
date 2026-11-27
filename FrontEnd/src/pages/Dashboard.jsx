@@ -10,7 +10,7 @@ import Videos from '../components/dashboard/VideosFeed'
 import Messages from '../components/dashboard/Messages'
 import Notifications from '../components/dashboard/Notifications'
 import FriendsPage from './FriendsPage'
-import ProfilePage from './ProfilePage'
+import ProfilePage, { CompanyProfilePage, PublicProfilePage } from './ProfilePage'
 import SavedItemsPage from './SavedItemsPage'
 import SaveToContainerPage from './SaveToContainerPage'
 import CreateContainerPage from './CreateContainerPage'
@@ -288,7 +288,11 @@ function Dashboard({ isDarkMode, setIsDarkMode }) {
         aria-hidden={!isProfilePage}
         inert={!isProfilePage}
       >
-        <ProfilePage userId={profilePath?.[1]} />
+        {isOwnProfileRoute
+          ? user?.isCompany
+            ? <CompanyProfilePage />
+            : <ProfilePage />
+          : <PublicProfilePage userId={profilePath?.[1]} />}
       </div>
       <div
         className={`dashboard-route-layer${isSavedPage ? '' : ' is-hidden'}`}

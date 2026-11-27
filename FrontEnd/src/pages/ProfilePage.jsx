@@ -17,7 +17,7 @@ function resolveImageUrl(image) {
   return image.startsWith('/') ? `${API_ORIGIN}${image}` : image
 }
 
-function ProfilePage({ userId }) {
+function ProfilePageView({ userId, isOwnProfile }) {
   const { user, personalUser, login, logout } = useContext(AuthContext)
   const navigate = useNavigate()
   const location = useLocation()
@@ -25,7 +25,6 @@ function ProfilePage({ userId }) {
   const isEditProfileOpen = location.state?.routedModal === 'profile-edit'
   const isReportProfileOpen = location.state?.routedModal === 'profile-report'
   const isLoginRequiredOpen = location.state?.routedModal === 'profile-login-required'
-  const isOwnProfile = !userId || String(userId) === String(user?._id)
   const [profile, setProfile] = React.useState(isOwnProfile ? user : null)
   const [posts, setPosts] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(true)
@@ -301,6 +300,9 @@ function ProfilePage({ userId }) {
         setFriendRequestStatus(null)
         setFriendRequestId(null)
         setProfile((current) => ({ ...current, friendsCount: (current?.friendsCount || 0) + 1 }))
+        window.dispatchEvent(new CustomEvent('friend-request-status-changed', {
+          detail: { userId: profile._id, status: 'friends' },
+        }))
         window.dispatchEvent(new Event('unread-notifications-changed'))
         setNotice('Friend request accepted.')
         return
@@ -331,6 +333,13 @@ function ProfilePage({ userId }) {
       if (!profile.isCompany) {
         setFriendRequestStatus(result.requestStatus || null)
         setFriendRequestId(result.requestId || null)
+        window.dispatchEvent(new CustomEvent('friend-request-status-changed', {
+          detail: {
+            userId: profile._id,
+            status: result.requestStatus || null,
+            requestId: result.requestId,
+          },
+        }))
       }
       setNotice(profile.isCompany
         ? (isConnected ? 'You are now following this company.' : 'You unfollowed this company.')
@@ -381,7 +390,7 @@ function ProfilePage({ userId }) {
   }
 
   return (
-    <main className="profile-page">
+    <main className={`profile-page${isLoading ? ' is-loading' : ''}`} aria-busy={isLoading}>
       {isLoginRequiredOpen && (
         <LoginRequiredModal
           message="Please log in to interact with profiles"
@@ -698,7 +707,6 @@ function ProfilePage({ userId }) {
             <span>{posts.length}</span>
           </div>
 
-          {isLoading && <p className="profile-state">Loading your profile…</p>}
           {error && <p className="profile-state profile-state-error" role="alert">{error}</p>}
           {!isLoading && !error && posts.length === 0 && (
             <div className="profile-empty-state">
@@ -708,6 +716,24 @@ function ProfilePage({ userId }) {
                   Create post
                 </button>
               )}
+            </div>
+          )}
+
+          {isLoading && (
+            <div className="profile-post-grid" aria-hidden="true">
+              {[0, 1, 2].map((index) => (
+                <article className="profile-post-card" key={index}>
+                  <div className="profile-post-author">
+                    <span className="profile-post-author-avatar" />
+                    <span className="profile-loading-line" />
+                  </div>
+                  <div className="profile-post-placeholder" />
+                  <div className="profile-post-copy">
+                    <h3 />
+                    <p />
+                  </div>
+                </article>
+              ))}
             </div>
           )}
 
@@ -777,6 +803,20 @@ function ProfilePage({ userId }) {
       </div>
     </main>
   )
+}
+
+export function PublicProfilePage({ userId }) {
+  return <ProfilePageView key={userId} userId={userId} isOwnProfile={false} />
+}
+
+export function CompanyProfilePage() {
+  const { user } = useContext(AuthContext)
+  return <ProfilePageView key={`company:${user?._id || 'current'}`} userId={user?._id} isOwnProfile />
+}
+
+function ProfilePage() {
+  const { user } = useContext(AuthContext)
+  return <ProfilePageView key={`personal:${user?._id || 'current'}`} userId={user?._id} isOwnProfile />
 }
 
 export default ProfilePage

@@ -288,10 +288,20 @@
 }
 
 .add-friend {
+   border: 0;
+   padding: 0;
+   background: transparent;
+   font-family: inherit;
    font-size: 18px;
    font-weight: bold;
    color: #00ba00;
    cursor: pointer;
+}
+
+.add-friend:focus-visible {
+   outline: 2px solid currentColor;
+   outline-offset: 3px;
+   border-radius: 2px;
 }
 
 .header-left-items {
