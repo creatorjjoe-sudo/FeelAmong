@@ -483,8 +483,8 @@ function Messages() {
     }
   }, [requestedUserId, token])
 
-  const middleClassName = windWidth < 800 && chatActive ? 'middle-section-mobile' : windWidth > 800 && chatActive ? 'middle-section-desk' : 'middle-section'
-  const leftClassName = windWidth < 800 && chatActive ? 'left-section-active' : 'left-section'
+  const middleClassName = windWidth <= 800 && chatActive ? 'middle-section-mobile' : windWidth > 800 && chatActive ? 'middle-section-desk' : 'middle-section'
+  const leftClassName = windWidth <= 800 && chatActive ? 'left-section-active' : 'left-section'
   const isContactTyping = typingUserIds.has(String(selectedContact?._id))
   const contactPresenceClass = isContactTyping
     ? 'is-online is-typing'
@@ -740,9 +740,9 @@ function Messages() {
                 </div>
               </div>
 
-              <div className="header-right">
-                <h2>Call</h2>
-                <h2>Settings</h2>
+              <div className="header-right" aria-label="Chat options">
+                <img className="chat-call-icon" src={ICONS.callIconColor} alt="Call" title="Call" />
+                <img className="chat-settings-icon" src={ICONS.settings} alt="Settings" title="Settings" />
               </div>
             </div>
           }

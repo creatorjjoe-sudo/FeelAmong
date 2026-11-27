@@ -195,6 +195,7 @@
  transition: all .3s ease;
 }
 .middle-section-desk {
+ position: relative;
  display: flex;
  flex-direction: column;
  justify-content: end;
@@ -235,8 +236,20 @@
 
 .header-left {
   display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
   align-items: center;
   gap: 10px;
+}
+
+.name-timeago {
+ min-width: 0;
+}
+
+.name-timeago .active-user-username {
+ overflow: hidden;
+ text-overflow: ellipsis;
+ white-space: nowrap;
 }
 
 .active-user {
@@ -332,7 +345,15 @@
 
 .header-right {
   display: flex;
-  gap: 10px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-right img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }
 
 .chat-top {
@@ -849,6 +870,43 @@
  .right-section {
   display: none;
  }
+
+ .middle-section-desk .mobile-active-chat-header {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  min-height: 70px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #c3c9e1;
+  border-radius: 30px 30px 0 0;
+  background-color: var(--chat-header-background, #fff);
+ }
+}
+
+@media screen and (min-width: 801px) and (max-width: 1200px) {
+ .mobile-active-chat-header .back-icon {
+  width: 24px;
+ }
+
+ .mobile-active-chat-header .user-avata-msg {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+ }
+
+ .mobile-active-chat-header .active-user-username {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.2;
+ }
 }
 
 @media screen and (max-width: 880px) {
@@ -915,10 +973,34 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px;
-  width: inherit;
+  box-sizing: border-box;
+  width: 100%;
   height: 70px;
   background-color: var(--chat-header-background, #fff);
   border-bottom: 1px solid #c3c9e1;
+ }
+
+ .header-left {
+  gap: 6px;
+ }
+
+ .header-right {
+  gap: 20px;
+ }
+
+ .header-right img {
+  width: 18px;
+  height: 18px;
+ }
+
+ .header-right .chat-call-icon {
+  width: 30px;
+  height: 30px;
+ }
+
+ .header-right .chat-settings-icon {
+  width: 24px;
+  height: 24px;
  }
  .left-section {
   margin-top: 65px;

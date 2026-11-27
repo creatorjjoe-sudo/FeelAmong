@@ -442,7 +442,8 @@ html[data-theme="dark"] .create-container {
 /* Mobile chat area + header have a hardcoded white background; override
    it in dark mode. */
 html[data-theme="dark"] .middle-section-mobile,
-html[data-theme="dark"] .mobile-active-chat-header {
+html[data-theme="dark"] .mobile-active-chat-header,
+html[data-theme="dark"] .middle-section-desk .mobile-active-chat-header {
  --chat-header-background: #121614;
  background-color: var(--chat-header-background);
  border-color: #303a33;
@@ -467,7 +468,7 @@ html[data-theme="dark"] .right-section .desktop-chat-presence.is-offline {
  color: #a5b2a8;
 }
 
-html[data-theme="dark"] .desktop-chat-actions .chat-settings-icon {
+html[data-theme="dark"] .chat-settings-icon {
  filter: brightness(0) invert(1);
 }
 
