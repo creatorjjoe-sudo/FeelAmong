@@ -20,8 +20,11 @@ function MobileHeader() {
  const isLoginRequiredOpen = location.state?.routedModal === 'mobile-header-login-required'
  const openSearch = () => pushRoutedModal(navigate, location, 'mobile-search')
  const closeSearch = () => closeRoutedModal(navigate, location)
- const openProfileMenu = () => pushRoutedModal(navigate, location, 'mobile-profile-menu')
  const closeProfileMenu = () => closeRoutedModal(navigate, location)
+ const toggleProfileMenu = () => {
+  if (profileMenuOpen) closeProfileMenu()
+  else pushRoutedModal(navigate, location, 'mobile-profile-menu')
+ }
 
  function handleCreate() {
   if (!user || user.isAnonymous === true) {
@@ -47,7 +50,7 @@ function MobileHeader() {
    <button className="create-post-mobile" type="button" onClick={handleCreate} aria-label={user?.isCompany ? 'Create video' : 'Create post'}>
     <img className='plus-circle' src={ICONS.pluscircle} alt="" />
    </button>
-   <button ref={profileButtonRef} className="profile-shortcut" type="button" aria-label="Open account menu" aria-haspopup="dialog" aria-expanded={profileMenuOpen} onClick={openProfileMenu}>
+   <button ref={profileButtonRef} className="profile-shortcut" type="button" aria-label="Open account menu" aria-haspopup="dialog" aria-expanded={profileMenuOpen} onClick={toggleProfileMenu}>
     <img className='user-avata' src={getProfileAvatar(user)} alt="" />
    </button>
    </div>

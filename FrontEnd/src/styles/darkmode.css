@@ -241,6 +241,7 @@ html[data-theme="dark"] .chat-conversation-row.is-selected,
 html[data-theme="dark"] .search-result-item:hover,
 html[data-theme="dark"] .search-result-item:focus-visible,
 html[data-theme="dark"] .message-row.their p,
+html[data-theme="dark"] .profile-menu-panel,
 html[data-theme="dark"] .post-more-options {
  background-color: #252e28;
 }

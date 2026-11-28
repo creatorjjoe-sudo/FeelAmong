@@ -29,8 +29,11 @@ function Navbar({
   const isLoginRequiredOpen = location.state?.routedModal === 'navbar-login-required'
   const openSearch = () => pushRoutedModal(navigate, location, 'desktop-search')
   const closeSearch = () => closeRoutedModal(navigate, location)
-  const openProfileMenu = () => pushRoutedModal(navigate, location, 'desktop-profile-menu')
   const closeProfileMenu = () => closeRoutedModal(navigate, location)
+  const toggleProfileMenu = () => {
+    if (profileMenuOpen) closeProfileMenu()
+    else pushRoutedModal(navigate, location, 'desktop-profile-menu')
+  }
 
   const posts = []
   const videos = []
@@ -148,7 +151,7 @@ function Navbar({
         type="button"
         aria-haspopup="dialog"
         aria-expanded={profileMenuOpen}
-        onClick={openProfileMenu}
+        onClick={toggleProfileMenu}
       >
         <div className="nav-title profile">
           <div className={`icon-wrapper profile-nav-icon${activeView === 'profile' ? ' is-active' : ''}`}>

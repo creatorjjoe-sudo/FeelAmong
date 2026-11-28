@@ -10,7 +10,7 @@ import '../../styles/components/dashboard/profile-menu.css'
 import { API_ORIGIN } from '../../api/config'
 
 function ProfileMenuModal({ open, onClose, anchorRef }) {
-  const [anchorStyle, setAnchorStyle] = React.useState({})
+  const panelRef = React.useRef(null)
   const navigate = useNavigate()
   const location = useLocation()
   const { user, personalUser, logout, switchToPersonal, switchToCompany } = useContext(AuthContext)
@@ -69,22 +69,25 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
     }
   }, [open, personalUser?._id])
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!open) return undefined
 
     const updateAnchor = () => {
+      const panel = panelRef.current
+      if (!panel) return
+
       if (window.innerWidth < 800) {
-        setAnchorStyle({})
-        return
-      }
-      const bounds = anchorRef?.current?.getBoundingClientRect()
-      if (bounds) {
-        const width = Math.min(360, window.innerWidth - 24)
-        setAnchorStyle({
-          left: `${Math.max(12, Math.min(bounds.right - width, window.innerWidth - width - 12))}px`,
-          bottom: `${Math.max(window.innerHeight - bounds.bottom, 12)}px`,
-          width: `${width}px`,
-        })
+        panel.style.removeProperty('left')
+        panel.style.removeProperty('bottom')
+        panel.style.removeProperty('width')
+      } else {
+        const bounds = anchorRef?.current?.getBoundingClientRect()
+        if (bounds) {
+          const width = Math.min(340, window.innerWidth - 24)
+          panel.style.left = `${Math.max(12, Math.min(bounds.right - width, window.innerWidth - width - 12))}px`
+          panel.style.bottom = `${Math.max(window.innerHeight - bounds.bottom, 12)}px`
+          panel.style.width = `${width}px`
+        }
       }
     }
 
@@ -209,13 +212,13 @@ function ProfileMenuModal({ open, onClose, anchorRef }) {
   return createPortal(
     <div
       className={`profile-menu-backdrop${selectedAccount || isLogoutConfirmOpen ? ' is-account-action-confirming' : ''}`}
-      onMouseDown={(event) => {
+      onPointerDown={(event) => {
         if (event.target === event.currentTarget) onClose()
       }}
     >
       <section
         className="profile-menu-panel"
-        style={anchorStyle}
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label="Profile menu"
