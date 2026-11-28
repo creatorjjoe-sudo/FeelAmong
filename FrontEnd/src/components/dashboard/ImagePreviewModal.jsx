@@ -4,28 +4,9 @@ import '../../styles/components/dashboard/imagepreviewmodal.css'
 
 const FLY_IN_DURATION = 0.42
 const FLY_IN_EASE = 'cubic-bezier(0.2, 0.75, 0.25, 1)'
-const SHAPE_CHANGE_START = 0.76
 
 function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
-}
-
-function getFlyInProgress(progress) {
-  const bezierCoordinate = (time, firstControl, secondControl) => (
-    3 * (1 - time) ** 2 * time * firstControl
-      + 3 * (1 - time) * time ** 2 * secondControl
-      + time ** 3
-  )
-
-  let lower = 0
-  let upper = 1
-  for (let iteration = 0; iteration < 16; iteration += 1) {
-    const midpoint = (lower + upper) / 2
-    if (bezierCoordinate(midpoint, 0.2, 0.25) < progress) lower = midpoint
-    else upper = midpoint
-  }
-
-  return bezierCoordinate((lower + upper) / 2, 0.75, 1)
 }
 
 // Shared-element fly-in: clones the source image and animates it from the
@@ -94,10 +75,9 @@ async function flyInFromRect(sourceElement, targetElement, originRect, signal) {
     transformOrigin: 'top left',
     transform: initialTransform,
   })
-
   if (sourceImage) {
     clone.src = sourceImage.currentSrc || sourceImage.src
-    clone.style.objectFit = sourceStyle.objectFit || 'cover'
+    clone.style.objectFit = sourceStyle.objectFit
     clone.style.objectPosition = sourceStyle.objectPosition
     clone.style.borderRadius = sourceStyle.borderRadius
   }
@@ -110,64 +90,14 @@ async function flyInFromRect(sourceElement, targetElement, originRect, signal) {
     ],
     { duration: FLY_IN_DURATION * 1000, easing: FLY_IN_EASE, fill: 'forwards' },
   )
-
-  let shapeFlight = null
-  if (sourceImage) {
-    const fitScale = Math.min(
-      destinationRect.width / originRect.width,
-      destinationRect.height / originRect.height,
-    )
-    const phaseProgress = getFlyInProgress(SHAPE_CHANGE_START)
-    const shapeFrames = Array.from({ length: 61 }, (_, index) => {
-      const offset = index / 60
-      const progress = getFlyInProgress(offset)
-      const scaleX = originRect.width / destinationRect.width
-        + (1 - originRect.width / destinationRect.width) * progress
-      const scaleY = originRect.height / destinationRect.height
-        + (1 - originRect.height / destinationRect.height) * progress
-      const phaseScale = 1 + (fitScale - 1) * phaseProgress
-      const shapeScale = 1 + (fitScale - 1) * progress
-      const morphProgress = progress <= phaseProgress
-        ? 0
-        : (progress - phaseProgress) / (1 - phaseProgress)
-      const widthAtPhase = originRect.width * phaseScale
-      const heightAtPhase = originRect.height * phaseScale
-      const width = progress <= phaseProgress
-        ? originRect.width * shapeScale
-        : widthAtPhase + (destinationRect.width - widthAtPhase) * morphProgress
-      const height = progress <= phaseProgress
-        ? originRect.height * shapeScale
-        : heightAtPhase + (destinationRect.height - heightAtPhase) * morphProgress
-      const localWidth = width / scaleX
-      const localHeight = height / scaleY
-      const insetX = Math.max(0, (destinationRect.width - localWidth) / 2)
-      const insetY = Math.max(0, (destinationRect.height - localHeight) / 2)
-
-      return {
-        offset,
-        clipPath: `inset(${insetY}px ${insetX}px ${insetY}px ${insetX}px)`,
-        easing: 'linear',
-      }
-    })
-    shapeFlight = clone.animate(
-      shapeFrames,
-      { duration: FLY_IN_DURATION * 1000, easing: 'linear', fill: 'forwards' },
-    )
-  }
-
-  const cancelFlight = () => {
-    flight.cancel()
-    shapeFlight?.cancel()
-  }
+  const cancelFlight = () => flight.cancel()
   signal.addEventListener('abort', cancelFlight, { once: true })
 
   try {
-    await Promise.all([flight.finished, shapeFlight?.finished].filter(Boolean))
+    await flight.finished
     if (signal.aborted) return false
-    if (sourceImage) {
-      clone.style.objectFit = targetStyle.objectFit
-      clone.style.objectPosition = targetStyle.objectPosition
-    }
+    clone.style.objectFit = targetStyle.objectFit
+    clone.style.objectPosition = targetStyle.objectPosition
     return true
   } catch (error) {
     if (error.name === 'AbortError') return false
@@ -175,7 +105,6 @@ async function flyInFromRect(sourceElement, targetElement, originRect, signal) {
   } finally {
     signal.removeEventListener('abort', cancelFlight)
     flight.cancel()
-    shapeFlight?.cancel()
     clone.remove()
   }
 }
