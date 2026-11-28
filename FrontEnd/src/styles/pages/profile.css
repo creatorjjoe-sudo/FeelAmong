@@ -96,7 +96,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgb(0 0 0 / 88%);
+  background: #000;
 }
 
 .profile-avatar-preview-modal {
@@ -108,7 +108,7 @@
   height: min(88vh, 760px);
   padding: 24px;
   border-radius: 16px;
-  background: #111;
+  background: #000;
 }
 
 .profile-avatar-large {

@@ -225,6 +225,11 @@ html[data-theme="dark"] .search-modal-panel {
  color: #e5ebe6;
 }
 
+html[data-theme="dark"] .profile-avatar-preview-backdrop,
+html[data-theme="dark"] .profile-avatar-preview-modal {
+ background-color: #000;
+}
+
 html[data-theme="dark"] .profile-menu-option:hover,
 html[data-theme="dark"] .profile-menu-option:focus-visible,
 html[data-theme="dark"] .device-account-select:hover,
